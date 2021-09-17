@@ -15,5 +15,8 @@
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "prettier": "2.4.1"
+  },
+  "dependencies": {
+    "node-html-parser": "^4.1.4"
   }
 }
