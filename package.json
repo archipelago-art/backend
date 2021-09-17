@@ -4,8 +4,16 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "npm run prettier:check",
+    "fix": "npm run prettier:write",
+    "prettier": "prettier '**/*.json' '**/*.js'",
+    "prettier:check": "npm run prettier -- --check",
+    "prettier:write": "npm run prettier -- --write"
   },
   "author": "William Chargin <wchargin@gmail.com>",
-  "license": "AGPL-3.0-or-later"
+  "license": "AGPL-3.0-or-later",
+  "devDependencies": {
+    "prettier": "2.4.1"
+  }
 }
