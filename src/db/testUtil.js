@@ -2,14 +2,16 @@ const crypto = require("crypto");
 
 const pg = require("pg");
 
+const migrations = require("./migrations");
 const { acqrel } = require("./util");
 
 function generateTestDbName() {
   return "archipelago_test_" + crypto.randomBytes(8).toString("hex");
 }
 
-function testDbProvider(templateConnInfo) {
-  templateConnInfo = { ...templateConnInfo };
+function testDbProvider(options = {}) {
+  const migrate = !!(options.migrate ?? true);
+  const templateConnInfo = { ...options.templateConnInfo };
   /**
    * Decorates a function (typically a test case) to take an additional first
    * argument, which includes a connection pool to a newly created database
@@ -46,9 +48,10 @@ function testDbProvider(templateConnInfo) {
 
       const pool = new pg.Pool({ ...templateConnInfo, database });
       try {
-        return await acqrel(pool, (client) =>
-          callback({ database, pool, client }, ...args)
-        );
+        return await acqrel(pool, async (client) => {
+          if (migrate) await migrations.applyAll({ client });
+          await callback({ database, pool, client }, ...args);
+        });
       } finally {
         if (!pool.ended) {
           await pool.end();
