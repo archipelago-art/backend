@@ -2,6 +2,8 @@ const crypto = require("crypto");
 
 const pg = require("pg");
 
+const { acqrel } = require("./util");
+
 function generateTestDbName() {
   return "archipelago_test_" + crypto.randomBytes(8).toString("hex");
 }
@@ -14,8 +16,9 @@ function testDbProvider(templateConnInfo) {
    * that will automatically be torn down once the function completes.
    *
    * Specifically, the first argument to the decorated function is an object
-   * with fields `pool` (a `pg.Pool`) and `database` (a string; the name of the
-   * temporary database).
+   * with fields `pool` (a `pg.Pool`), `client` (a `pg.Client` from the same
+   * pool, for convenience; this will be automatically released), and
+   * `database` (a string; the name of the temporary database).
    *
    * The decorated function must be sure to release all clients that it
    * acquires on the given pool. The `acqrel` function from `./util` may help.
@@ -43,7 +46,9 @@ function testDbProvider(templateConnInfo) {
 
       const pool = new pg.Pool({ ...templateConnInfo, database });
       try {
-        return await callback({ database, pool }, ...args);
+        return await acqrel(pool, (client) =>
+          callback({ database, pool, client }, ...args)
+        );
       } finally {
         if (!pool.ended) {
           await pool.end();
