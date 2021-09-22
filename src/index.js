@@ -44,11 +44,35 @@ async function addToken(args) {
   });
 }
 
-async function getTokenFeatures(args) {
+async function getFeaturesOfToken(args) {
   const [tokenId] = args;
   await withClient(async (client) => {
     const features = await artblocks.getTokenFeatures({ client, tokenId });
-    console.log(features.sort());
+    for (const feature of features) console.log(feature);
+  });
+}
+
+async function getFeaturesOfProject(args) {
+  const projectId = Number(args[0]);
+  await withClient(async (client) => {
+    const features = await artblocks.getProjectFeatures({
+      client,
+      projectId,
+    });
+    for (const feature of features) console.log(feature);
+  });
+}
+
+async function getTokensWithFeature(args) {
+  const projectId = Number(args[0]);
+  const featureName = args[1];
+  await withClient(async (client) => {
+    const tokenIds = await artblocks.getTokensWithFeature({
+      client,
+      projectId,
+      featureName,
+    });
+    for (const tokenId of tokenIds) console.log(String(tokenId));
   });
 }
 
@@ -93,8 +117,10 @@ async function main() {
     ["add-project", addProject],
     ["get-project", getProject],
     ["add-token", addToken],
-    ["get-token-features", getTokenFeatures],
+    ["get-features-of-token", getFeaturesOfToken],
+    ["get-features-of-project", getFeaturesOfProject],
     ["add-project-tokens", addProjectTokens],
+    ["get-tokens-with-feature", getTokensWithFeature],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {

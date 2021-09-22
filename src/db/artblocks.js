@@ -1,5 +1,11 @@
 const PROJECT_STRIDE = 1e6;
 
+function tokenBounds(projectId) {
+  const minTokenId = projectId * PROJECT_STRIDE;
+  const maxTokenId = minTokenId + PROJECT_STRIDE;
+  return { minTokenId, maxTokenId };
+}
+
 async function addProject({ client, project }) {
   return await client.query(
     `
@@ -58,8 +64,23 @@ async function getTokenFeatures({ client, tokenId }) {
     SELECT feature_name AS "name"
     FROM token_features
     WHERE token_id = $1
+    ORDER BY feature_name ASC
     `,
     [tokenId]
+  );
+  return res.rows.map((row) => row.name);
+}
+
+async function getProjectFeatures({ client, projectId }) {
+  const { minTokenId, maxTokenId } = tokenBounds(projectId);
+  const res = await client.query(
+    `
+    SELECT DISTINCT feature_name AS "name"
+    FROM token_features
+    WHERE $1 <= token_id AND token_id < $2
+    ORDER BY feature_name ASC
+    `,
+    [minTokenId, maxTokenId]
   );
   return res.rows.map((row) => row.name);
 }
@@ -86,10 +107,26 @@ async function getUnfetchedTokenIds({ client, projectId }) {
   return res.rows.map((row) => row.tokenId);
 }
 
+async function getTokensWithFeature({ client, projectId, featureName }) {
+  const { minTokenId, maxTokenId } = tokenBounds(projectId);
+  const res = await client.query(
+    `
+    SELECT token_id AS "tokenId" FROM token_features
+    WHERE $1 <= token_id AND token_id < $2
+      AND feature_name = $3
+    ORDER BY token_id ASC
+    `,
+    [minTokenId, maxTokenId, featureName]
+  );
+  return res.rows.map((row) => row.tokenId);
+}
+
 module.exports = {
   addProject,
   getProject,
   addToken,
   getTokenFeatures,
+  getProjectFeatures,
   getUnfetchedTokenIds,
+  getTokensWithFeature,
 };

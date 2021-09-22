@@ -106,4 +106,74 @@ describe("db/artblocks", () => {
       ).toEqual([0, 1, 3, 4, 5].map((i) => baseTokenId + i));
     })
   );
+
+  async function addTestData(client) {
+    const projects = [
+      { projectId: 1, name: "A", maxInvocations: 5 },
+      { projectId: 2, name: "B", maxInvocations: 5 },
+    ];
+    const s = JSON.stringify;
+    const tokens = [
+      { tokenId: 1000000, rawTokenData: s({ features: { Size: "small" } }) },
+      { tokenId: 1000001, rawTokenData: s({ features: { Size: "large" } }) },
+      {
+        tokenId: 2000000,
+        rawTokenData: s({ features: { Size: "small", Color: "red" } }),
+      },
+      {
+        tokenId: 2000001,
+        rawTokenData: s({ features: { Size: "large", Color: "green" } }),
+      },
+      {
+        tokenId: 2000002,
+        rawTokenData: s({ features: { Size: "small", Color: "blue" } }),
+      },
+    ];
+    await Promise.all(
+      projects.map((p) => artblocks.addProject({ client, project: p }))
+    );
+    await Promise.all(
+      tokens.map((t) =>
+        artblocks.addToken({
+          client,
+          tokenId: t.tokenId,
+          rawTokenData: t.rawTokenData,
+        })
+      )
+    );
+  }
+
+  it(
+    "finds tokens with a feature within a project",
+    withTestDb(async ({ client }) => {
+      await addTestData(client);
+      expect(
+        await artblocks.getTokensWithFeature({
+          client,
+          projectId: 2,
+          featureName: "Size: small",
+        })
+      ).toEqual([2000000, 2000002]);
+    })
+  );
+
+  it(
+    "finds features of a project",
+    withTestDb(async ({ client }) => {
+      await addTestData(client);
+      const features = await artblocks.getProjectFeatures({
+        client,
+        projectId: 2,
+      });
+      expect(features).toEqual(
+        [
+          "Size: small",
+          "Size: large",
+          "Color: red",
+          "Color: green",
+          "Color: blue",
+        ].sort()
+      );
+    })
+  );
 });
