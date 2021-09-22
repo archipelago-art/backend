@@ -2,8 +2,13 @@ const fs = require("fs");
 const path = require("path");
 const { promisify } = require("util");
 
-const PROJECTS = Object.freeze([0, 23]);
-const TOKENS = Object.freeze([0, 7583, 23000250]);
+const SQUIGGLES = 0;
+const ARCHETYPE = 23;
+const PROJECTS = Object.freeze([SQUIGGLES, ARCHETYPE]);
+
+const PERFECT_CHROMATIC = 7583;
+const THE_CUBE = 23000250;
+const TOKENS = Object.freeze([0, PERFECT_CHROMATIC, THE_CUBE]);
 
 function baseDir() {
   return path.join(__dirname, "snapshots");
@@ -30,7 +35,11 @@ async function readToken(tokenId) {
 }
 
 module.exports = {
+  SQUIGGLES,
+  ARCHETYPE,
   PROJECTS,
+  PERFECT_CHROMATIC,
+  THE_CUBE,
   TOKENS,
   readProject,
   readToken,
