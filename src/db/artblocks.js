@@ -1,3 +1,5 @@
+const PROJECT_STRIDE = 1e6;
+
 async function addProject({ client, project }) {
   return await client.query(
     `
@@ -62,9 +64,32 @@ async function getTokenFeatures({ client, tokenId }) {
   return res.rows.map((row) => row.name);
 }
 
+async function getUnfetchedTokenIds({ client, projectId }) {
+  const res = await client.query(
+    `
+    SELECT token_id AS "tokenId"
+    FROM
+      GENERATE_SERIES(
+        $2::int,
+        $2::int + (
+          SELECT max_invocations
+          FROM projects
+          WHERE project_id = $1
+        ) - 1
+      ) AS token_id
+      LEFT OUTER JOIN tokens USING (token_id)
+    WHERE token_data IS NULL
+    ORDER BY token_id ASC
+    `,
+    [projectId, projectId * PROJECT_STRIDE]
+  );
+  return res.rows.map((row) => row.tokenId);
+}
+
 module.exports = {
   addProject,
   getProject,
   addToken,
   getTokenFeatures,
+  getUnfetchedTokenIds,
 };

@@ -80,4 +80,30 @@ describe("db/artblocks", () => {
       expect(actualFeatures).toEqual([]);
     })
   );
+
+  it(
+    "computes unfetched token IDs",
+    withTestDb(async ({ client }) => {
+      const projectId = 12;
+      const baseTokenId = projectId * 1e6;
+      const maxInvocations = 6;
+      await artblocks.addProject({
+        client,
+        project: { projectId, name: "Test", maxInvocations },
+      });
+      await artblocks.addToken({
+        client,
+        tokenId: baseTokenId + 2,
+        rawTokenData: JSON.stringify({ features: {} }),
+      });
+      await artblocks.addToken({
+        client,
+        tokenId: baseTokenId + 4,
+        rawTokenData: null,
+      });
+      expect(
+        await artblocks.getUnfetchedTokenIds({ client, projectId })
+      ).toEqual([0, 1, 3, 4, 5].map((i) => baseTokenId + i));
+    })
+  );
 });
