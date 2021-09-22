@@ -1,0 +1,721 @@
+<html><body><h1>Name: Archetype</h1><h3>Artist: Kjetil Golid</h3><h3>Description: Archetype explores the use of repetition as a counterweight to unruly, random structures. As each single component look chaotic alone, the repetition brings along a sense of intentionality, ultimately resulting in a complex, yet satisfying expression.</h3><h3>https://generated.space</h3><hr/><p>Script JSON: {&quot;type&quot;:&quot;p5js&quot;,&quot;version&quot;:&quot;1.0.0&quot;,&quot;aspectRatio&quot;:&quot;1&quot;,&quot;curation_status&quot;:&quot;curated&quot;}</p><p>Script Type: p5js</p><p>Version: 1.0.0</p><p>Script Ratio: 1</p><p>Instructions: </p><p>Hashes Generated per Token: true</p><p>Dynamic Asset? true</p><hr/><p>Artist Ethereum Address: 0x08f950816358f4306b70fb319e4f35c592d1b8a8</p><p>Additional Payee: 0x0000000000000000000000000000000000000000</p><p>Additional Payee Percentage: 0</p><p>Price: 0.2</p><p>Currency: ETH</p><p>Currency Address: N/A</p><p>Invocations: 600</p><p>Maximum Invocations: 600</p><p>License: CC BY-NC 4.0</p><p>Token Ids: 23000000,23000001,23000002,23000003,23000004,23000005,23000006,23000007,23000008,23000009,23000010,23000011,23000012,23000013,23000014,23000015,23000016,23000017,23000018,23000019,23000020,23000021,23000022,23000023,23000024,23000025,23000026,23000027,23000028,23000029,23000030,23000031,23000032,23000033,23000034,23000035,23000036,23000037,23000038,23000039,23000040,23000041,23000042,23000043,23000044,23000045,23000046,23000047,23000048,23000049,23000050,23000051,23000052,23000053,23000054,23000055,23000056,23000057,23000058,23000059,23000060,23000061,23000062,23000063,23000064,23000065,23000066,23000067,23000068,23000069,23000070,23000071,23000072,23000073,23000074,23000075,23000076,23000077,23000078,23000079,23000080,23000081,23000082,23000083,23000084,23000085,23000086,23000087,23000088,23000089,23000090,23000091,23000092,23000093,23000094,23000095,23000096,23000097,23000098,23000099</p><p>Active? true</p><p>Paused? false</p><hr/><p><strong>Script:</strong></p><pre>let seed = generateSeedFromTokenData(tokenData);
+const rng = rnd,
+     cube_scene = {
+          cubedimX: 5,
+          cubedimY: 5,
+          cubedimZ: 5,
+          mag: 8,
+          tx: 0,
+          ty: 0
+     },
+     edge_scene = {
+          cubedimX: 12,
+          cubedimY: 12,
+          cubedimZ: 12,
+          mag: 12,
+          tx: 0,
+          ty: 0
+     },
+     landscape_scene = {
+          cubedimX: 30,
+          cubedimY: 0,
+          cubedimZ: 30,
+          mag: 12,
+          tx: 0,
+          ty: 900
+     },
+     pattern_layout = {
+          outerSize: 1,
+          minGridSize: 5,
+          innerSize: .78,
+          nonempty: !0,
+          name: &quot;pattern&quot;
+     },
+     balance_layout = {
+          outerSize: .96,
+          minGridSize: 4,
+          innerSize: .8,
+          nonempty: !1,
+          name: &quot;balance&quot;
+     },
+     chaos_layout = {
+          outerSize: .92,
+          minGridSize: 6,
+          innerSize: .7,
+          nonempty: !1,
+          name: &quot;chaos&quot;
+     },
+     layout = w_pick([chaos_layout, balance_layout, pattern_layout], [1, 4, 2]),
+     shades = [
+          [1, 1],
+          [1, 0],
+          [0, 1],
+          [0, 0],
+          [.15, 0],
+          [0, .15]
+     ],
+     shadeOpacity = w_pick(shades, [5, 1, 1, .5, 1, 1]),
+     shadeOpacityFront = shadeOpacity[0],
+     shadeOpacityLeft = shadeOpacity[1],
+     shadeOpacityTop = 0,
+     is_bright = shadeOpacity[0] + shadeOpacity[1] &lt; 1,
+     opts = is_bright &amp;&amp; rng() &lt; .25 ? rng() &lt; .25 ? cube_scene : edge_scene : landscape_scene,
+     colorModes = [&quot;group&quot;, &quot;main&quot;, &quot;single&quot;, &quot;random&quot;],
+     colorMode = w_pick(colorModes, [4, 2, 1, 2]),
+     palette = get_palette(),
+     framed = rng() &lt; .95,
+     paletteShift = rangeFloor(0, palette.c.length),
+     strokeCol = palette.s ? palette.s : &quot;#000&quot;,
+     bgCol = palette.b ? palette.b : &quot;#eee&quot;,
+     minGridSize = layout.minGridSize,
+     sectionAppOpts = {
+          simple: !0,
+          extension_chance: layout.outerSize,
+          horizontal_symmetry: !1,
+          vertical_chance: .5,
+          rng: rng
+     },
+     atomAppOpts = {
+          simple: !0,
+          extension_chance: layout.innerSize,
+          horizontal_symmetry: !1,
+          vertical_chance: .5,
+          color_mode: colorMode,
+          group_size: .4,
+          colors: [...Array(1e3).keys()],
+          nonempty: layout.nonempty,
+          rng: rng
+     },
+     dim = Math.min(window.innerWidth, window.innerHeight),
+     scale = dim / 1e3,
+     cubedimX = opts.cubedimX,
+     cubedimY = opts.cubedimY,
+     cubedimZ = opts.cubedimZ,
+     tx = opts.tx * scale,
+     ty = opts.ty * scale,
+     xr = -1 * Math.PI / 6,
+     yr = 3 * Math.PI / 6,
+     zr = 1 * Math.PI / 6,
+     mag = opts.mag * scale,
+     xu = [Math.cos(xr) * mag, Math.sin(xr) * mag],
+     yu = [Math.cos(yr) * mag, Math.sin(yr) * mag],
+     zu = [Math.cos(zr) * mag, Math.sin(zr) * mag],
+     nxu = xu.map(e =&gt; -e),
+     nyu = yu.map(e =&gt; -e),
+     nzu = zu.map(e =&gt; -e),
+     maxDepth = 1.5,
+     depthSteps = 8,
+     outerStrokeWeight = 3 * scale,
+     innerStrokeWeight = 1.5 * scale,
+     borderWidth = 50 * scale;
+let frontLayout, leftLayout, topLayout;
+
+function setup() {
+     createCanvas(1e3 * scale, 1e3 * scale), smooth(), strokeJoin(ROUND), reset(), displayLayout(), framed &amp;&amp; displayBorder(borderWidth)
+}
+
+function reset() {
+     const e = new Apparatus(cubedimX, cubedimY, sectionAppOpts),
+          t = new Apparatus(cubedimY, cubedimZ, sectionAppOpts),
+          n = new Apparatus(cubedimZ, cubedimX, sectionAppOpts),
+          a = e.generate(null, null, !0),
+          r = t.generate(a[1].map(e =&gt; ({
+               ...e[1],
+               v: e[1].h
+          })), null, !0),
+          o = n.generate(r[1].map(e =&gt; ({
+               ...e[1],
+               v: e[1].h
+          })), a[1][1].map(e =&gt; ({
+               ...e,
+               h: e.v
+          })), !0),
+          c = a[0].map(e =&gt; createGrid(e, null, null)),
+          i = r[0].map(e =&gt; createGrid(e, c, null)),
+          s = o[0].map(e =&gt; createGrid(e, i, c));
+     frontLayout = get_overlap_graph(c.flatMap(e =&gt; e.content)), leftLayout = get_overlap_graph(i.flatMap(e =&gt; e.content)), topLayout = get_overlap_graph(s.flatMap(e =&gt; e.content))
+}
+
+function displayBorder(e) {
+     fill(bgCol), strokeWeight(outerStrokeWeight), stroke(strokeCol), strokeJoin(MITER), beginShape(), vertex(-e, -e), vertex(width + e, -e), vertex(width + e, height + e), vertex(-e, height + e), beginContour(), vertex(e, e), vertex(e, height - e), vertex(width - e, height - e), vertex(width - e, e), endContour(), endShape(CLOSE)
+}
+
+function displayLayout() {
+     push(), translate(tx + width / 2, ty + height / 2), background(bgCol);
+     const e = shadeOpacityFront,
+          t = shadeOpacityLeft,
+          n = shadeOpacityTop;
+     frontLayout.forEach(a =&gt; displayBox(a, xu, yu, zu, [e, t, n], !0, !0)), leftLayout.forEach(a =&gt; displayBox(a, yu, nzu, nxu, [t, n, e], !1, !0)), topLayout.forEach(a =&gt; displayBox(a, nzu, xu, nyu, [n, e, t], !1, !1)), pop()
+}
+
+function displayBox(e, t, n, a, r, o, c) {
+     display(e, t, n, a, maxDepth, r, palette.c, paletteShift, strokeCol, o, c)
+}
+
+function createGrid(e, t, n) {
+     const {
+          x1: a,
+          y1: r,
+          w: o,
+          h: c
+     } = e, i = t &amp;&amp; 1 == r ? t.filter(e =&gt; 1 == e.x1 &amp;&amp; e.y1 == a)[0] : null, s = n &amp;&amp; 1 == a ? n.filter(e =&gt; 1 == e.y1 &amp;&amp; e.x1 == r)[0] : null, d = i ? i.rows : Math.ceil(rng() * o / minGridSize), f = s ? s.cols : Math.ceil(rng() * c / minGridSize), l = o / d, h = c / f, u = i ? i.apparatus.map(e =&gt; ({
+          ...e[1],
+          v: e[1].h
+     })) : null, p = s ? s.apparatus[1].map(e =&gt; ({
+          ...e,
+          h: e.v
+     })) : null, b = createApparatus(l, h, u, p);
+     let g = [];
+     for (let e = 0; e &lt; f; e++)
+          for (let t = 0; t &lt; d; t++) {
+               const n = b[0].map(n =&gt; {
+                    const o = a + n.x1 + t * l - 1,
+                         c = r + n.y1 + e * h - 1;
+                    let d = i &amp;&amp; 0 == e &amp;&amp; c &lt;= 0 ? i.content.filter(e =&gt; e.x1 &lt;= 0 &amp;&amp; Math.max(e.y1, 0) == o)[0].z1 : 0,
+                         f = s &amp;&amp; 0 == t &amp;&amp; o &lt;= 0 ? s.content.filter(e =&gt; e.y1 &lt;= 0 &amp;&amp; Math.max(e.x1, 0) == c)[0].z1 : 0;
+                    return {
+                         ...n,
+                         x1: o,
+                         y1: c,
+                         w: n.w,
+                         h: n.h,
+                         x_off: f,
+                         y_off: d,
+                         level: 2,
+                         filled: !0
+                    }
+               });
+               g = g.concat(n)
+          }
+     return {
+          x1: a,
+          y1: r,
+          cols: d,
+          rows: f,
+          apparatus: b[1],
+          content: g
+     }
+}
+
+function createApparatus(e, t, n, a) {
+     const r = Math.round(e, 0),
+          o = Math.round(t, 0),
+          c = e / r,
+          i = t / o,
+          s = new Apparatus((r - 11) / 2, (o - 11) / 2, atomAppOpts).generate(n, a, !0, atomAppOpts.nonempty);
+     return s[0] = s[0].map(e =&gt; ({
+          x1: (e.x1 - 1) * c,
+          y1: (e.y1 - 1) * i,
+          z1: .1 + Math.floor(rng() * depthSteps) / depthSteps,
+          w: e.w * c,
+          h: e.h * i,
+          col: e.col
+     })), s
+}
+
+function overlaps(e, t) {
+     const n = [e.x1 + e.w, e.y1],
+          a = [e.x1, e.y1 + e.h],
+          r = [e.x1, e.y1],
+          o = [t.x1 + t.w, t.y1],
+          c = [t.x1, t.y1 + t.h],
+          i = [t.x1, t.y1];
+     return !(e.y1 + .005 &gt;= t.y1 + t.h || e.x1 + .005 &gt;= t.x1 + t.w) &amp;&amp; (r[1] - r[0] &lt; i[1] - i[0] ? !(a[1] - a[0] &lt;= o[1] - o[0]) &amp;&amp; a[1] + a[0] &lt; o[1] + o[0] : r[1] - r[0] &gt; i[1] - i[0] ? !(n[1] - n[0] &gt;= c[1] - c[0]) &amp;&amp; n[1] + n[0] &lt; c[1] + c[0] : r[1] + r[0] &lt; i[1] + i[0])
+}
+
+function get_overlap_graph(e) {
+     const t = [];
+     e.forEach((e, n) =&gt; t.push(n));
+     const n = [];
+     return e.forEach((t, a) =&gt; {
+          e.forEach((e, r) =&gt; {
+               overlaps(t, e) &amp;&amp; n.push([a, r, t, e])
+          })
+     }), toposort1(n).reverse().map(t =&gt; e[t])
+}
+class Apparatus {
+     constructor(e, t, {
+          initiate_chance: n = .8,
+          extension_chance: a = .8,
+          vertical_chance: r = .8,
+          horizontal_symmetry: o = !0,
+          vertical_symmetry: c = !1,
+          roundness: i = .1,
+          solidness: s = .5,
+          colors: d = [],
+          color_mode: f = &quot;group&quot;,
+          group_size: l = .8,
+          simple: h = !1,
+          simplex: u = null,
+          rate_of_change: p = .01,
+          rng: b = null
+     } = {}) {
+          this.xdim = Math.round(2 * e + 11, 0), this.ydim = Math.round(2 * t + 11, 0), this.radius_x = e, this.radius_y = t, this.chance_new = n, this.chance_extend = a, this.chance_vertical = r, this.colors = d, this.color_mode = f, this.group_size = l, this.h_symmetric = o, this.v_symmetric = c, this.roundness = i, this.solidness = s, this.simple = h, this.simplex = u, this.rate_of_change = p, this.rng = b
+     }
+     generate(e = null, t = null, n = !1, a = !1, r = 0, o = 0) {
+          this.idx = r, this.idy = o, this.main_color = this.get_random(this.colors), this.id_counter = 0, this.nonempty = a, this.guaranteed_top = Math.floor(this.rng() * (this.xdim - 2)) + 2, this.guaranteed_left = Math.floor(this.rng() * (this.ydim - 2)) + 2;
+          let c = new Array(this.ydim + 1);
+          for (var i = 0; i &lt; c.length; i++) {
+               c[i] = new Array(this.xdim + 1);
+               for (var s = 0; s &lt; c[i].length; s++) c[i][s] = 0 == i || 0 == s ? {
+                    h: !1,
+                    v: !1,
+                    in: !1,
+                    col: null
+               } : 1 == i &amp;&amp; null != e ? {
+                    ...e[s],
+                    h: !0
+               } : 1 == s &amp;&amp; null != t ? {
+                    ...t[i],
+                    v: !0
+               } : this.next_block(s, i, c[i][s - 1], c[i - 1][s])
+          }
+          let d = linegrid_to_rects(c);
+          return n ? [d, c] : d
+     }
+     next_block(e, t, n, a) {
+          const r = this;
+          if (!n.in &amp;&amp; !a.in) return i();
+          if (n.in &amp;&amp; !a.in) return n.h ? function(e, t) {
+               return s(e, t) ? {
+                    v: !1,
+                    h: !0,
+                    in: !0,
+                    col: n.col,
+                    id: n.id
+               } : o(e, t)
+          }(e, t) : o(e, t);
+          if (!n.in &amp;&amp; a.in) return a.v ? function(e, t) {
+               return s(e, t) ? {
+                    v: !0,
+                    h: !1,
+                    in: !0,
+                    col: a.col,
+                    id: a.id
+               } : c(e, t)
+          }(e, t) : c(e, t);
+          if (n.in &amp;&amp; a.in) return n.h || a.v ? n.h &amp;&amp; !a.v ? function(e, t) {
+               return s(e, t) ? {
+                    v: !1,
+                    h: !0,
+                    in: !0,
+                    col: n.col,
+                    id: n.id
+               } : i()
+          }(e, t) : !n.h &amp;&amp; a.v ? function(e, t) {
+               return s(e, t) ? {
+                    v: !0,
+                    h: !1,
+                    in: !0,
+                    col: a.col,
+                    id: a.id
+               } : i()
+          }(e, t) : r.rng() &lt;= r.chance_vertical ? {
+               v: !0,
+               h: !1,
+               in: !0,
+               col: a.col,
+               id: a.id
+          } : {
+               v: !1,
+               h: !0,
+               in: !0,
+               col: n.col,
+               id: n.id
+          } : {
+               v: !1,
+               h: !1,
+               in: !0,
+               col: n.col,
+               id: n.id
+          };
+
+          function o(e, t) {
+               return i()
+          }
+
+          function c(e, t) {
+               return i()
+          }
+
+          function i() {
+               let e;
+               if (&quot;random&quot; === r.color_mode) e = r.get_random(r.colors);
+               else if (&quot;main&quot; === r.color_mode) e = r.rng() &gt; .75 ? r.get_random(r.colors) : r.main_color;
+               else if (&quot;group&quot; === r.color_mode) {
+                    let t = r.rng() &gt; .5 ? n.col : a.col;
+                    r.main_color = r.rng() &gt; r.group_size ? r.get_random(r.colors) : t || r.main_color, e = r.main_color
+               } else e = r.main_color;
+               return {
+                    v: !0,
+                    h: !0,
+                    in: !0,
+                    col: e,
+                    id: r.id_counter++
+               }
+          }
+
+          function s(e, t) {
+               return (!r.nonempty || 1 != t || e != r.guaranteed_top) &amp;&amp; ((!r.nonempty || 1 != e || t != r.guaranteed_left) &amp;&amp; (!(! function(e, t, n) {
+                    let a = 1 + r.rng() * n,
+                         o = Math.pow(e - r.xdim / 2, 2) / Math.pow(r.radius_x * a, 2),
+                         c = Math.pow(t - r.ydim / 2, 2) / Math.pow(r.radius_y * a, 2);
+                    return o + c &lt; 1
+               }(e, t, 1 - r.roundness) &amp;&amp; !r.simple) &amp;&amp; r.rng() &lt;= r.chance_extend))
+          }
+     }
+     get_random(e) {
+          return e[Math.floor(this.rng() * e.length)]
+     }
+}
+
+function linegrid_to_rects(e) {
+     let t = get_nw_corners(e);
+     return corners_to_rects(t, e), t
+}
+
+function get_nw_corners(e) {
+     let t = [];
+     for (let n = 0; n &lt; e.length; n++)
+          for (let a = 0; a &lt; e[n].length; a++) {
+               let r = e[n][a];
+               r.h &amp;&amp; r.v &amp;&amp; r.in &amp;&amp; t.push({
+                    x1: a,
+                    y1: n,
+                    col: r.col,
+                    id: r.id
+               })
+          }
+     return t
+}
+
+function corners_to_rects(e, t) {
+     e.map(e =&gt; {
+          let n = 1;
+          for (; e.x1 + n &lt; t[e.y1].length &amp;&amp; !t[e.y1][e.x1 + n].v;) n++;
+          let a = 1;
+          for (; e.y1 + a &lt; t.length &amp;&amp; !t[e.y1 + a][e.x1].h;) a++;
+          return e.w = n, e.h = a, e
+     })
+}
+
+function display(e, t, n, a, r, o, c, i, s, d, f) {
+     const l = e.x1 - e.x_off * r,
+          h = e.y1 - e.y_off * r,
+          u = e.w + e.x_off * r,
+          p = e.h + e.y_off * r,
+          b = e.z1 * r;
+     let g = c.slice(i).concat(c.slice(0, i));
+     fill(g[e.col % g.length]), noStroke(), y(), _(), x();
+     let m = color(s);
+
+     function y() {
+          beginShape(), vertex(...w(l, h, b)), vertex(...w(l + u, h, b)), vertex(...w(l + u, h + p, b)), vertex(...w(l, h + p, b)), endShape()
+     }
+
+     function _() {
+          beginShape(), vertex(...w(l, h, b)), vertex(...w(l, h + p, b)), vertex(...w(l, h + p, 0)), vertex(...w(l, h, 0)), endShape()
+     }
+
+     function x() {
+          beginShape(), vertex(...w(l + u, h, b)), vertex(...w(l + u, h, 0)), vertex(...w(l, h, 0)), vertex(...w(l, h, b)), endShape()
+     }
+
+     function w(e, r, o) {
+          const c = [e * t[0] + r * n[0], e * t[1] + r * n[1]],
+               i = [e * t[0] + o * a[0], e * t[1] + o * a[1]],
+               s = [r * n[0] + o * a[0], r * n[1] + o * a[1]];
+          return [c[0] + i[0] + s[0], c[1] + i[1] + s[1]]
+     }
+     m.setAlpha(255 * o[0]), fill(m), y(), m.setAlpha(255 * o[1]), fill(m), _(), m.setAlpha(255 * o[2]), fill(m), x(), noFill(), stroke(s), strokeWeight(innerStrokeWeight), 0 === e.x1 &amp;&amp; f || 0 === e.y1 &amp;&amp; d || line(...w(l, h, b), ...w(l, h, 0)), 0 === e.x1 &amp;&amp; f || line(...w(l, h, b), ...w(l, h + p, b)), 0 === e.y1 &amp;&amp; d || line(...w(l, h, b), ...w(l + u, h, b)), strokeWeight(outerStrokeWeight), beginShape(), vertex(...w(l + u, h, 0)), vertex(...w(l + u, h, b)), vertex(...w(l + u, h + p, b)), vertex(...w(l, h + p, b)), vertex(...w(l, h + p, 0)), endShape()
+}
+
+function toposort1(e) {
+     return toposort(uniqueNodes(e), e)
+}
+
+function toposort(e, t) {
+     for (var n = e.length, a = new Array(n), r = {}, o = n, c = makeOutgoingEdges(t), i = makeNodesHash(e); o--;) r[o] || s(e[o], o, new Set);
+     return a;
+
+     function s(e, t, o) {
+          if (o.has(e)) try {
+               &quot;, node was:&quot; + JSON.stringify(e)
+          } catch (e) {
+               &quot;&quot;
+          }
+          if (!r[t]) {
+               r[t] = !0;
+               var d = c.get(e) || new Set;
+               if (t = (d = Array.from(d)).length) {
+                    o.add(e);
+                    do {
+                         var f = d[--t];
+                         s(f, i.get(f), o)
+                    } while (t);
+                    o.delete(e)
+               }
+               a[--n] = e
+          }
+     }
+}
+
+function uniqueNodes(e) {
+     for (var t = new Set, n = 0, a = e.length; n &lt; a; n++) {
+          var r = e[n];
+          t.add(r[0]), t.add(r[1])
+     }
+     return Array.from(t)
+}
+
+function makeOutgoingEdges(e) {
+     for (var t = new Map, n = 0, a = e.length; n &lt; a; n++) {
+          var r = e[n];
+          t.has(r[0]) || t.set(r[0], new Set), t.has(r[1]) || t.set(r[1], new Set), t.get(r[0]).add(r[1])
+     }
+     return t
+}
+
+function makeNodesHash(e) {
+     for (var t = new Map, n = 0, a = e.length; n &lt; a; n++) t.set(e[n], n);
+     return t
+}
+
+function rnd() {
+     seed ^= seed &lt;&lt; 13, seed ^= seed &gt;&gt; 17;
+     const e = ((seed ^= seed &lt;&lt; 5) &lt; 0 ? 1 + ~seed : seed) % 1e5 / 1e5;
+     return 0 === e || 1 === e ? .5 : e
+}
+
+function range(e, t) {
+     return void 0 === t &amp;&amp; (t = e, e = 0), rng() * (t - e) + e
+}
+
+function rangeFloor(e, t) {
+     return Math.floor(range(e, t))
+}
+
+function pick(e) {
+     if (0 !== e.length) return e[rangeFloor(0, e.length)]
+}
+
+function w_pick(e, t) {
+     const n = t.reduce((e, t) =&gt; [...e, e[e.length - 1] + t], [0]),
+          a = range(n[n.length - 1]);
+     return e[n.findIndex(e =&gt; e &gt; a) - 1]
+}
+
+function generateSeedFromTokenData(e) {
+     return parseInt(e.hash.slice(0, 16), 16)
+}
+
+function get_palette() {
+     var e = [{
+          c: [&quot;#ff3931&quot;, &quot;#007861&quot;, &quot;#bab9a4&quot;],
+          s: &quot;#311f27&quot;,
+          b: &quot;#ddd&quot;,
+          w: .5
+     }, {
+          c: [&quot;#f1594a&quot;, &quot;#f5b50e&quot;, &quot;#14a160&quot;, &quot;#2969de&quot;, &quot;#885fa4&quot;],
+          s: &quot;#1a1a1a&quot;,
+          b: &quot;#e2e6e8&quot;,
+          w: 2
+     }, {
+          c: [&quot;#f2d002&quot;, &quot;#f7f5e1&quot;, &quot;#ec643b&quot;],
+          s: &quot;#19080e&quot;,
+          b: &quot;#f7f5e1&quot;,
+          w: 1
+     }, {
+          c: [&quot;#ec2f28&quot;, &quot;#f8cd28&quot;, &quot;#1e95bb&quot;, &quot;#fbaab3&quot;, &quot;#fcefdf&quot;],
+          s: &quot;#221e1f&quot;,
+          b: &quot;#fcefdf&quot;,
+          w: 1
+     }, {
+          c: [&quot;#ed555d&quot;, &quot;#fffcc9&quot;, &quot;#41b797&quot;, &quot;#eda126&quot;, &quot;#7b5770&quot;],
+          s: &quot;#2d1922&quot;,
+          b: &quot;#2d1922&quot;,
+          w: 2
+     }, {
+          c: [&quot;#ff6936&quot;, &quot;#fddc3f&quot;, &quot;#0075ca&quot;, &quot;#00bb70&quot;],
+          s: &quot;#020202&quot;,
+          b: &quot;#020202&quot;,
+          w: .2
+     }, {
+          c: [&quot;#e16503&quot;, &quot;#dc9a0f&quot;, &quot;#dfe2b4&quot;, &quot;#66a7a6&quot;],
+          s: &quot;#3c1c03&quot;,
+          b: &quot;#3c1c03&quot;,
+          w: .5
+     }, {
+          c: [&quot;#ffce49&quot;, &quot;#ede8dc&quot;, &quot;#ff5736&quot;, &quot;#ff99b4&quot;],
+          b: &quot;#f7f4ed&quot;,
+          w: 1
+     }, {
+          c: [&quot;#553c60&quot;, &quot;#ffb0a0&quot;, &quot;#ff6749&quot;, &quot;#fbe090&quot;],
+          b: &quot;#f5e9de&quot;,
+          w: 1
+     }, {
+          c: [&quot;#ec6c26&quot;, &quot;#613a53&quot;, &quot;#e8ac52&quot;, &quot;#639aa0&quot;],
+          b: &quot;#d5cda1&quot;,
+          w: 2
+     }, {
+          c: [&quot;#f5736a&quot;, &quot;#925951&quot;, &quot;#feba4c&quot;, &quot;#9d9b9d&quot;],
+          b: &quot;#eedfa2&quot;,
+          w: 1
+     }, {
+          c: [&quot;#4bae8c&quot;, &quot;#d0c1a0&quot;],
+          s: &quot;#2d3538&quot;,
+          b: &quot;#d06440&quot;,
+          w: .2
+     }, {
+          c: [&quot;#ca3122&quot;, &quot;#e5af16&quot;, &quot;#4a93a2&quot;, &quot;#0e7e39&quot;, &quot;#e2b9bd&quot;],
+          s: &quot;#1c1616&quot;,
+          b: &quot;#e3ded8&quot;,
+          w: 1
+     }, {
+          c: [&quot;#d24c23&quot;, &quot;#7ba6bc&quot;, &quot;#f0c667&quot;, &quot;#ede2b3&quot;, &quot;#672b35&quot;],
+          s: &quot;#132a37&quot;,
+          b: &quot;#108266&quot;,
+          w: 1
+     }, {
+          c: [&quot;#e3937b&quot;, &quot;#d93f1d&quot;, &quot;#e6cca7&quot;],
+          s: &quot;#090d15&quot;,
+          b: &quot;#558947&quot;,
+          w: .2
+     }, {
+          c: [&quot;#d03718&quot;, &quot;#33762f&quot;, &quot;#ead7c9&quot;, &quot;#ce7028&quot;, &quot;#689d8d&quot;],
+          s: &quot;#292b36&quot;,
+          b: &quot;#deb330&quot;,
+          w: 1
+     }, {
+          c: [&quot;#de3f1a&quot;, &quot;#de9232&quot;, &quot;#007158&quot;, &quot;#e6cdaf&quot;, &quot;#869679&quot;],
+          s: &quot;#010006&quot;,
+          b: &quot;#7aa5a6&quot;,
+          w: 1
+     }, {
+          c: [&quot;#4aad8b&quot;, &quot;#e15147&quot;, &quot;#f3b551&quot;, &quot;#cec8b8&quot;, &quot;#d1af84&quot;, &quot;#544e47&quot;],
+          s: &quot;#251c12&quot;,
+          b: &quot;#cfc7b9&quot;,
+          w: 1
+     }, {
+          c: [&quot;#50978e&quot;, &quot;#f7f0df&quot;],
+          s: &quot;#000&quot;,
+          b: &quot;#f7f0df&quot;,
+          w: 1
+     }, {
+          c: [&quot;#ee5d65&quot;, &quot;#f0e5cb&quot;],
+          s: &quot;#080708&quot;,
+          b: &quot;#f0e5cb&quot;,
+          w: 1
+     }, {
+          c: [&quot;#e5dfcf&quot;, &quot;#e9b500&quot;],
+          s: &quot;#151513&quot;,
+          b: &quot;#e9b500&quot;,
+          w: .2
+     }, {
+          c: [&quot;#ec5526&quot;, &quot;#f4ac12&quot;, &quot;#9ebbc1&quot;, &quot;#f7f4e2&quot;],
+          s: &quot;#1e1b1e&quot;,
+          b: &quot;#e7e8d4&quot;,
+          w: 3
+     }, {
+          c: [&quot;#eb5627&quot;, &quot;#eebb20&quot;, &quot;#4e9eb8&quot;, &quot;#f7f5d0&quot;],
+          s: &quot;#201d13&quot;,
+          b: &quot;#77c1c0&quot;,
+          w: 3
+     }, {
+          c: [&quot;#e95145&quot;, &quot;#f8b917&quot;, &quot;#b8bdc1&quot;, &quot;#ffb2a2&quot;],
+          s: &quot;#010101&quot;,
+          b: &quot;#6b7752&quot;,
+          w: 1
+     }, {
+          c: [&quot;#ff6555&quot;, &quot;#ffb58f&quot;, &quot;#d8eecf&quot;, &quot;#8c4b47&quot;, &quot;#bf7f93&quot;],
+          s: &quot;#2b0404&quot;,
+          b: &quot;#ffda82&quot;,
+          w: 1
+     }, {
+          c: [&quot;#c92a28&quot;, &quot;#e69301&quot;, &quot;#1f8793&quot;, &quot;#13652b&quot;, &quot;#e7d8b0&quot;, &quot;#e3b3ac&quot;],
+          s: &quot;#1a1a1a&quot;,
+          b: &quot;#f0f0f2&quot;,
+          w: 1
+     }, {
+          c: [&quot;#475b62&quot;, &quot;#7a999c&quot;, &quot;#fbaf3c&quot;, &quot;#df4a33&quot;, &quot;#f0e0c6&quot;, &quot;#af592c&quot;],
+          s: &quot;#2a1f1d&quot;,
+          b: &quot;#f0e0c6&quot;,
+          w: 1
+     }, {
+          c: [&quot;#e85b30&quot;, &quot;#ef9e28&quot;, &quot;#c6ac71&quot;, &quot;#e0c191&quot;, &quot;#3f6279&quot;, &quot;#ee854e&quot;],
+          s: &quot;#180305&quot;,
+          b: &quot;#ede4cb&quot;,
+          w: 1
+     }, {
+          c: [&quot;#99cb9f&quot;, &quot;#cfb610&quot;, &quot;#d00701&quot;, &quot;#dba78d&quot;, &quot;#bfbea2&quot;, &quot;#d2cfaf&quot;],
+          s: &quot;#332e22&quot;,
+          b: &quot;#e3e2c5&quot;,
+          w: 1
+     }, {
+          c: [&quot;#f14d42&quot;, &quot;#f4fdec&quot;, &quot;#4fbe5d&quot;, &quot;#265487&quot;, &quot;#f6e916&quot;, &quot;#f9a087&quot;, &quot;#2e99d6&quot;],
+          s: &quot;#141414&quot;,
+          b: &quot;#f4fdec&quot;,
+          w: .5
+     }, {
+          c: [&quot;#f4b232&quot;, &quot;#f2dbbd&quot;, &quot;#01799c&quot;, &quot;#e93e48&quot;, &quot;#006748&quot;, &quot;#ed817d&quot;],
+          s: &quot;#050505&quot;,
+          b: &quot;#f0dbbc&quot;,
+          w: .1
+     }, {
+          c: [&quot;#5399b1&quot;, &quot;#f4e9d5&quot;, &quot;#de4037&quot;, &quot;#ed942f&quot;, &quot;#4e9e48&quot;],
+          s: &quot;#3d352b&quot;,
+          b: &quot;#f0c328&quot;,
+          w: 3
+     }, {
+          c: [&quot;#FBF5E9&quot;, &quot;#FF514E&quot;, &quot;#FDBC2E&quot;, &quot;#4561CC&quot;, &quot;#2A303E&quot;, &quot;#6CC283&quot;, &quot;#238DA5&quot;, &quot;#9BD7CB&quot;],
+          s: &quot;#000&quot;,
+          b: &quot;#FBF5E9&quot;,
+          w: 2
+     }, {
+          c: [&quot;#ff7a5a&quot;, &quot;#765aa6&quot;, &quot;#fee7bc&quot;, &quot;#515e8c&quot;, &quot;#ffc64a&quot;, &quot;#b460a6&quot;, &quot;#fff&quot;, &quot;#4781c1&quot;],
+          s: &quot;#000&quot;,
+          b: &quot;#abe9e8&quot;,
+          w: 1
+     }, {
+          c: [&quot;#ae5d9d&quot;, &quot;#f1e8bc&quot;, &quot;#ef8fa3&quot;, &quot;#f7c047&quot;, &quot;#58c9ed&quot;, &quot;#f77150&quot;],
+          s: &quot;#000&quot;,
+          b: &quot;#00ae83&quot;,
+          w: 1
+     }, {
+          c: [&quot;#ea663f&quot;, &quot;#f9cc27&quot;, &quot;#84afd7&quot;, &quot;#7ca994&quot;, &quot;#f1bbc9&quot;],
+          s: &quot;#2a2a2a&quot;,
+          b: &quot;#f5f6f1&quot;,
+          w: 1
+     }, {
+          c: [&quot;#ea5b19&quot;, &quot;#f8c9b9&quot;, &quot;#137661&quot;],
+          s: &quot;#2a2a2a&quot;,
+          b: &quot;#f5f4f0&quot;,
+          w: 1
+     }, {
+          c: [&quot;#f4b232&quot;, &quot;#f2dbbd&quot;],
+          s: &quot;#050505&quot;,
+          b: &quot;#f0dbbc&quot;,
+          w: 2
+     }, {
+          c: [&quot;#f2dbbd&quot;, &quot;#01799c&quot;],
+          s: &quot;#050505&quot;,
+          b: &quot;#f0dbbc&quot;,
+          w: 2
+     }, {
+          c: [&quot;#f2dbbd&quot;, &quot;#e93e48&quot;],
+          s: &quot;#050505&quot;,
+          b: &quot;#f0dbbc&quot;,
+          w: 2
+     }, {
+          c: [&quot;#f2dbbd&quot;, &quot;#006748&quot;],
+          s: &quot;#050505&quot;,
+          b: &quot;#f0dbbc&quot;,
+          w: 2
+     }, {
+          c: [&quot;#f2dbbd&quot;, &quot;#ed817d&quot;],
+          s: &quot;#050505&quot;,
+          b: &quot;#f0dbbc&quot;,
+          w: 2
+     }];
+     return w_pick(e, e.map(e =&gt; e.w))
+}</pre></body></html>

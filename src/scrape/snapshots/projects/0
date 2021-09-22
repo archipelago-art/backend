@@ -1,0 +1,166 @@
+<html><body><h1>Name: Chromie Squiggle</h1><h3>Artist: Snowfro</h3><h3>Description: Simple and easily identifiable, each squiggle embodies the soul of the Art Blocks platform. Consider each my personal signature as an artist, developer, and tinkerer. Public minting of the Chromie Squiggle is permanently paused. They are now reserved for manual distribution to collectors and community members over a longer period of time. Please visit OpenSea to explore Squiggles available on the secondary market. </h3><h3>https://www.twitter.com/artonblockchain</h3><hr/><p>Script JSON: {&quot;type&quot;:&quot;p5js&quot;,&quot;version&quot;:&quot;1.0.0&quot;,&quot;instructions&quot;:&quot;click to animate | space bar changes background color&quot;,&quot;aspectRatio&quot;:&quot;1.5&quot;,&quot;interactive&quot;:&quot;true&quot;,&quot;curation_status&quot;:&quot;curated&quot;}</p><p>Script Type: p5js</p><p>Version: 1.0.0</p><p>Script Ratio: 1.5</p><p>Instructions: click to animate | space bar changes background color</p><p>Hashes Generated per Token: true</p><p>Dynamic Asset? true</p><hr/><p>Artist Ethereum Address: 0xb998a2520907ed1fc0f9f457b2219fb2720466cd</p><p>Additional Payee: 0xf3860788d1597cecf938424baabe976fac87dc26</p><p>Additional Payee Percentage: 100</p><p>Price: 0</p><p>Currency: ETH</p><p>Currency Address: N/A</p><p>Invocations: 9206</p><p>Maximum Invocations: 10000</p><p>License: NFT License</p><p>Token Ids: 0,1,10,100,1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,101,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,102,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,103,1030,1031,1032,1033,1034,1035,1036,1037,1038,1039,104,1040,1041,1042,1043,1044,1045,1046,1047,1048,1049,105,1050,1051,1052,1053,1054,1055,1056,1057,1058,1059,106,1060,1061,1062,1063,1064,1065,1066,1067,1068,1069,107,1070,1071,1072,1073,1074,1075,1076,1077,1078,1079,108,1080,1081,1082,1083,1084,1085,1086,1087</p><p>Active? false</p><p>Paused? true</p><hr/><p><strong>Script:</strong></p><pre>let numHashes = tokenData.hashes.length;
+let hashPairs = [];
+for (let i = 0; i &lt; numHashes; i++) {
+     for (let j = 0; j &lt; 32; j++) {
+          hashPairs.push(tokenData.hashes[i].slice(2 + (j * 2), 4 + (j * 2)));
+     }
+}
+let decPairs = hashPairs.map(x =&gt; {
+     return parseInt(x, 16);
+});
+
+let seed = parseInt(tokenData.hashes[0].slice(0, 16), 16);
+let color;
+let backgroundIndex = 0;
+let backgroundArray = [255, 225, 200, 175, 150, 125, 100, 75, 50, 25, 0, 25, 50, 75, 100, 125, 150, 175, 200, 225];
+let index = 0;
+let ht;
+let wt = 2;
+let speed = 1;
+let segments;
+let amp = 1;
+let direction = 1;
+let loops = false;
+let startColor = decPairs[29];
+let reverse = decPairs[30] &lt; 128;
+let slinky = decPairs[31] &lt; 35;
+let pipe = decPairs[22] &lt; 32;
+let bold = decPairs[23] &lt; 15;
+let segmented = decPairs[24] &lt; 30;
+let fuzzy = pipe &amp;&amp; !slinky;
+
+
+function setup() {
+     let portrait = windowWidth &lt; windowHeight;
+     createCanvas(windowWidth &gt; windowHeight * 3 / 2 ? windowHeight * 3 / 2 : windowWidth, windowWidth &gt; windowHeight * 3 / 2 ? windowHeight : windowWidth * 2 / 3);
+     var el = document.getElementsByTagName(&quot;canvas&quot;)[0];
+     el.addEventListener(&quot;touchstart&quot;, mouseClicked, false);
+     colorMode(HSB, 255);
+     segments = map(decPairs[26], 0, 255, 12, 20);
+     ht = map(decPairs[27], 0, 255, 3, 4);
+     spread = decPairs[28] &lt; 3 ? 0.5 : map(decPairs[28], 0, 255, 5, 50);
+     strokeWeight(height / 1200);
+}
+
+function draw() {
+     color = 0;
+     background(backgroundArray[backgroundIndex]);
+     let div = Math.floor(map(Math.round(decPairs[24]), 0, 230, 3, 20));
+     let steps = slinky ? 50 : fuzzy ? 1000 : 200;
+     translate((width / 2) - (width / wt / 2), height / 2);
+     for (let j = 0; j &lt; segments - 2; j++) {
+          for (let i = 0; i &lt;= steps; i++) {
+               let t = i / steps;
+               let x = curvePoint(width / segments / wt * j, width / segments / wt * (j + 1), width / segments / wt * (j + 2), width / segments / wt * (j + 3), t);
+               let y = curvePoint(map(decPairs[j], 0, 255, -height / ht, height / ht) * amp, map(decPairs[j + 1], 0, 255, -height / ht, height / ht) * amp, map(decPairs[j + 2], 0, 255, -height / ht, height / ht) * amp, map(decPairs[j + 3], 0, 255, -height / ht, height / ht) * amp, t);
+               let hue = reverse ? 255 - (((color / spread) + startColor + index) % 255) : (((color / spread) + startColor) + index) % 255;
+
+               if (fuzzy) {
+                    noStroke();
+                    fill(hue, 255, 255, 20);
+                    let fuzzX = x + map(rnd(), 0, 1, 0, height / 10);
+                    let fuzzY = y + map(rnd(), 0, 1, 0, height / 10);
+                    if (dist(x, y, fuzzX, fuzzY) &lt; height / 11.5) {
+                         circle(fuzzX, fuzzY, map(rnd(), 0, 1, height / 160, height / 16));
+                    }
+               } else {
+                    if (slinky &amp;&amp; pipe) {
+                         if (i == 0 || i == steps - 1) {
+                              fill(0);
+                         } else {
+                              noFill();
+                         }
+                         stroke(0);
+                         circle(x, y, (height / 7))
+                    }
+
+                    if (slinky) {
+                         if (i == 0 || i == steps - 1) {
+                              fill(hue, 255, 255);
+                         } else {
+                              noFill();
+                         }
+                         stroke(hue, 255, 255);
+                    } else {
+                         noStroke();
+                         fill(hue, 255, 255);
+                    }
+
+                    circle(x, y, bold &amp;&amp; !slinky ? height / 5 : height / 13);
+
+                    if (segmented &amp;&amp; !slinky &amp;&amp; !bold) {
+                         if (i % div === 0 || i == 0 || i == steps - 1) {
+                              noStroke();
+                              fill(decPairs[25]);
+                              circle(x, y, height / 12);
+                         }
+                    }
+               }
+               color++;
+          }
+          seed = parseInt(tokenData.hashes[0].slice(0, 16), 16);
+     }
+
+
+     loops === true ? index = index + speed : index = index;
+     if (keyIsDown(UP_ARROW)) {
+          if (keyIsDown(SHIFT)) {
+               if (speed &lt; 20) {
+                    speed++;
+               } else {
+                    speed = 20;
+               }
+          } else {
+               if (speed &lt; 20) {
+                    speed = speed + 0.1;
+               } else {
+                    speed = 20;
+               }
+          }
+     } else if (keyIsDown(DOWN_ARROW)) {
+          if (keyIsDown(SHIFT)) {
+               if (speed &gt; 1) {
+                    speed--;
+               } else {
+                    speed = 0.1;
+               }
+          } else {
+               if (speed &gt; 0.1) {
+                    speed = speed - 0.1;
+               } else {
+                    speed = 0.1;
+               }
+          }
+     }
+
+}
+
+function keyPressed() {
+     if (keyCode === 32) {
+          if (backgroundIndex &lt; backgroundArray.length - 1) {
+               backgroundIndex++;
+          } else {
+               backgroundIndex = 0;
+          }
+     }
+}
+
+function mouseClicked() {
+     if (loops === false) {
+          loops = true;
+     } else {
+          loops = false;
+     }
+}
+
+function rnd() {
+
+
+     seed ^= seed &lt;&lt; 13;
+
+     seed ^= seed &gt;&gt; 17;
+
+     seed ^= seed &lt;&lt; 5;
+
+     return (((seed &lt; 0) ? ~seed + 1 : seed) % 1000) / 1000;
+}</pre></body></html>
