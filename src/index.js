@@ -1,27 +1,107 @@
-var pg = require("pg");
+const pg = require("pg");
 
+const artblocks = require("./db/artblocks");
 const migrations = require("./db/migrations");
-const { testDbProvider } = require("./db/testUtil");
-const dbutil = require("./db/util");
+const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
+const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
+
+async function withClient(callback) {
+  const client = new pg.Client();
+  await client.connect();
+  try {
+    return await callback(client);
+  } finally {
+    await client.end();
+  }
+}
+
+async function init() {
+  await withClient(async (client) => {
+    await migrations.applyAll({ client, verbose: true });
+  });
+}
+
+async function addProject(args) {
+  const [projectId] = args;
+  await withClient(async (client) => {
+    const project = await fetchProjectData(projectId);
+    await artblocks.addProject({ client, project });
+  });
+}
+
+async function getProject(args) {
+  const [projectId] = args;
+  await withClient(async (client) => {
+    console.log(await artblocks.getProject({ client, projectId }));
+  });
+}
+
+async function addToken(args) {
+  const [tokenId] = args;
+  await withClient(async (client) => {
+    const token = await fetchTokenData(tokenId);
+    await artblocks.addToken({ client, tokenId, rawTokenData: token.raw });
+  });
+}
+
+async function getTokenFeatures(args) {
+  const [tokenId] = args;
+  await withClient(async (client) => {
+    const features = await artblocks.getTokenFeatures({ client, tokenId });
+    console.log(features.sort());
+  });
+}
+
+async function addProjectTokens(args) {
+  const [projectId] = args;
+  await withClient(async (client) => {
+    const ids = await artblocks.getUnfetchedTokenIds({ client, projectId });
+    console.log(`got ${ids.length} missing IDs`);
+    const chunks = [];
+    async function worker() {
+      while (true) {
+        const tokenId = ids.shift();
+        if (tokenId == null) return;
+        try {
+          const token = await fetchTokenData(tokenId);
+          await artblocks.addToken({
+            client,
+            tokenId,
+            rawTokenData: token.raw,
+          });
+          console.log("added token " + tokenId);
+        } catch (e) {
+          console.log("failed to add token " + tokenId);
+          console.error(e);
+          console.error(`failed to add token ${tokenId}: ${e}`);
+        }
+      }
+    }
+    await Promise.all(
+      Array(8)
+        .fill()
+        .map(() => worker())
+    );
+  });
+}
 
 async function main() {
   require("dotenv").config();
-
-  const withDb = testDbProvider();
-
-  const testCase = withDb(async ({ database, pool }, arg) => {
-    await dbutil.acqrel(pool, async (client) => {
-      await migrations.applyAll({ client });
-    });
-    console.log(
-      database,
-      (await pool.query("SELECT COUNT(1) FROM projects")).rows,
-      arg
-    );
-    return arg * 2;
-  });
-
-  console.log(await testCase(21));
+  const [arg0, ...args] = process.argv.slice(2);
+  const commands = [
+    ["init", init],
+    ["add-project", addProject],
+    ["get-project", getProject],
+    ["add-token", addToken],
+    ["get-token-features", getTokenFeatures],
+    ["add-project-tokens", addProjectTokens],
+  ];
+  for (const [name, fn] of commands) {
+    if (name === arg0) {
+      return await fn(args);
+    }
+  }
+  throw "Unknown command: " + arg0;
 }
 
 main().catch((e) => {
