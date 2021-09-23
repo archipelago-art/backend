@@ -107,6 +107,25 @@ async function getUnfetchedTokenIds({ client, projectId }) {
   return res.rows.map((row) => row.tokenId);
 }
 
+async function getAllUnfetchedTokenIds({ client }) {
+  const res = await client.query(
+    `
+    SELECT token_id AS "tokenId"
+    FROM
+      projects,
+      LATERAL generate_series(
+        project_id * $1,
+        project_id * $1 + max_invocations - 1
+      ) AS token_id
+      LEFT OUTER JOIN tokens USING (token_id)
+    WHERE token_data IS NULL
+    ORDER BY token_id ASC
+    `,
+    [PROJECT_STRIDE]
+  );
+  return res.rows.map((row) => row.tokenId);
+}
+
 async function getTokensWithFeature({ client, projectId, featureName }) {
   const { minTokenId, maxTokenId } = tokenBounds(projectId);
   const res = await client.query(
@@ -128,5 +147,6 @@ module.exports = {
   getTokenFeatures,
   getProjectFeatures,
   getUnfetchedTokenIds,
+  getAllUnfetchedTokenIds,
   getTokensWithFeature,
 };

@@ -82,7 +82,7 @@ describe("db/artblocks", () => {
   );
 
   it(
-    "computes unfetched token IDs",
+    "computes unfetched token IDs for a single project",
     withTestDb(async ({ client }) => {
       const projectId = 12;
       const baseTokenId = projectId * 1e6;
@@ -116,6 +116,7 @@ describe("db/artblocks", () => {
     const tokens = [
       { tokenId: 1000000, rawTokenData: s({ features: { Size: "small" } }) },
       { tokenId: 1000001, rawTokenData: s({ features: { Size: "large" } }) },
+      { tokenId: 1000002, rawTokenData: null },
       {
         tokenId: 2000000,
         rawTokenData: s({ features: { Size: "small", Color: "red" } }),
@@ -142,6 +143,19 @@ describe("db/artblocks", () => {
       )
     );
   }
+
+  it(
+    "computes unfetched token IDs across all projects",
+    withTestDb(async ({ client }) => {
+      const p1 = 1e6 * 1;
+      const p2 = 1e6 * 2;
+      await addTestData(client);
+      expect(await artblocks.getAllUnfetchedTokenIds({ client })).toEqual([
+        ...[p1 + 2, p1 + 3, p1 + 4],
+        ...[p2 + 3, p2 + 4],
+      ]);
+    })
+  );
 
   it(
     "finds tokens with a feature within a project",
