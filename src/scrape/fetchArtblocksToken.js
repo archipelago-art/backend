@@ -24,7 +24,9 @@ function parseTokenData(text) {
     return { found: false };
   }
   try {
-    return { found: true, raw: text, parsed: JSON.parse(text) };
+    const parsed = JSON.parse(text);
+    if (!parsed.features) throw new Error(`no "features": ${text}`);
+    return { found: true, raw: text, parsed };
   } catch (e) {
     throw new Error(`invalid JSON: ${e.message}`);
   }
