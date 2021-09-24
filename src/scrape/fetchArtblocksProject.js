@@ -1,5 +1,6 @@
-const fetch = require("node-fetch");
 const htmlParser = require("node-html-parser");
+
+const { fetchWithRetries } = require("./retryFetch");
 
 const PROJECT_URL_BASE = "https://api.artblocks.io/project";
 
@@ -11,10 +12,7 @@ function normalizeProjectId(projectId) {
 
 async function fetchProjectHtml(projectId) {
   const url = `${PROJECT_URL_BASE}/${normalizeProjectId(projectId)}`;
-  const res = await fetch(url);
-  if (!res.ok)
-    throw new Error(`fetching ${url}: ${res.status} ${res.statusText}`);
-  return await res.text();
+  return (await fetchWithRetries(url, { timeout: 5000 })).text;
 }
 
 function parseProjectData(projectId, html) {
