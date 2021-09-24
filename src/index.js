@@ -102,7 +102,7 @@ async function addProjectTokens(args) {
       }
     }
     await Promise.all(
-      Array(8)
+      Array(64)
         .fill()
         .map(() => worker())
     );
