@@ -27,7 +27,7 @@ function parseTokenData(text) {
   try {
     return { found: true, raw: text, parsed: JSON.parse(text) };
   } catch (e) {
-    throw new Error(`parsing ${url}: invalid JSON: ${e.message}`);
+    throw new Error(`invalid JSON: ${e.message}`);
   }
 }
 
