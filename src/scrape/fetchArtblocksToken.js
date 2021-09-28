@@ -14,9 +14,13 @@ function normalizeTokenId(tokenId) {
 
 async function fetchTokenJsonText(tokenId) {
   const url = `${TOKEN_URL_BASE}/${normalizeTokenId(tokenId)}`;
-  const { text, res } = await fetchWithRetries(url);
-  if (res.status === 404) return null;
-  return text;
+  try {
+    const { text, res } = await fetchWithRetries(url);
+    return text;
+  } catch (e) {
+    if (e.res && e.res.status === 404) return null;
+    throw e;
+  }
 }
 
 function parseTokenData(text) {

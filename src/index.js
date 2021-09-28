@@ -90,14 +90,18 @@ async function addProjectTokens(args) {
         if (tokenId == null) return;
         try {
           const token = await fetchTokenData(tokenId);
-          await acqrel(pool, (client) =>
-            artblocks.addToken({
-              client,
-              tokenId,
-              rawTokenData: token.raw,
-            })
-          );
-          console.log("added token " + tokenId);
+          if (token.found) {
+            await acqrel(pool, (client) =>
+              artblocks.addToken({
+                client,
+                tokenId,
+                rawTokenData: token.raw,
+              })
+            );
+            console.log("added token " + tokenId);
+          } else {
+            console.log("skipping token %s (not found)", tokenId);
+          }
         } catch (e) {
           console.log("failed to add token " + tokenId);
           console.error(e);
