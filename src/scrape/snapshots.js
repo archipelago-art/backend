@@ -4,7 +4,8 @@ const { promisify } = require("util");
 
 const SQUIGGLES = 0;
 const ARCHETYPE = 23;
-const PROJECTS = Object.freeze([SQUIGGLES, ARCHETYPE]);
+const PHANTOM_SEADRAGONS = 155;
+const PROJECTS = Object.freeze([SQUIGGLES, ARCHETYPE, PHANTOM_SEADRAGONS]);
 
 const PERFECT_CHROMATIC = 7583;
 const THE_CUBE = 23000250;
@@ -37,6 +38,7 @@ async function readToken(tokenId) {
 module.exports = {
   SQUIGGLES,
   ARCHETYPE,
+  PHANTOM_SEADRAGONS,
   PROJECTS,
   PERFECT_CHROMATIC,
   THE_CUBE,
