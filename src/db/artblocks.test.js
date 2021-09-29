@@ -7,8 +7,10 @@ const { parseTokenData } = require("../scrape/fetchArtblocksToken");
 describe("db/artblocks", () => {
   const withTestDb = testDbProvider();
   let theCubeRaw;
+  let galaxissZeroRaw;
   beforeAll(async () => {
     theCubeRaw = await snapshots.readToken(snapshots.THE_CUBE);
+    galaxissZeroRaw = await snapshots.readToken(snapshots.GALAXISS_ZERO);
   });
 
   it(
@@ -61,6 +63,49 @@ describe("db/artblocks", () => {
       ];
       expect(actualFeatures.slice().sort()).toEqual(
         expectedFeatures.slice().sort()
+      );
+    })
+  );
+
+  it(
+    'inserts token data when "features" is an array',
+    withTestDb(async ({ client }) => {
+      await artblocks.addToken({
+        client,
+        tokenId: snapshots.GALAXISS_ZERO,
+        rawTokenData: galaxissZeroRaw,
+      });
+      const actualFeatures = await artblocks.getTokenFeatures({
+        client,
+        tokenId: snapshots.GALAXISS_ZERO,
+      });
+      const expectedFeatures = [
+        "0: Pleasant palette",
+        "1: Night theme",
+        "2: 4 clouds",
+      ];
+      expect(actualFeatures.slice().sort()).toEqual(
+        expectedFeatures.slice().sort()
+      );
+    })
+  );
+
+  it(
+    'rejects token data when "features" is not an array or object',
+    withTestDb(async ({ client }) => {
+      const tokenId = 999000000;
+      const rawTokenData = JSON.stringify({ features: "hmm" });
+      await expect(
+        artblocks.addToken({
+          client,
+          tokenId,
+          rawTokenData,
+        })
+      ).rejects.toEqual(
+        expect.objectContaining({
+          code: "22023",
+          message: "cannot deconstruct a scalar",
+        })
       );
     })
   );

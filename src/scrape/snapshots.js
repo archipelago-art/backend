@@ -9,7 +9,8 @@ const PROJECTS = Object.freeze([SQUIGGLES, ARCHETYPE, PHANTOM_SEADRAGONS]);
 
 const PERFECT_CHROMATIC = 7583;
 const THE_CUBE = 23000250;
-const TOKENS = Object.freeze([0, PERFECT_CHROMATIC, THE_CUBE]);
+const GALAXISS_ZERO = 31000000;
+const TOKENS = Object.freeze([0, PERFECT_CHROMATIC, THE_CUBE, GALAXISS_ZERO]);
 
 function baseDir() {
   return path.join(__dirname, "snapshots");
@@ -42,6 +43,7 @@ module.exports = {
   PROJECTS,
   PERFECT_CHROMATIC,
   THE_CUBE,
+  GALAXISS_ZERO,
   TOKENS,
   readProject,
   readToken,

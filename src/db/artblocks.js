@@ -49,9 +49,18 @@ async function addToken({ client, tokenId, rawTokenData }) {
   await client.query(
     `
     INSERT INTO token_features (token_id, feature_name)
-    SELECT token_id, features.key || ': ' || features.value
-    FROM tokens, LATERAL json_each_text(token_data->'features') AS features
-    WHERE token_id = $1
+    SELECT token_id, kv.key || ': ' || kv.value
+    FROM tokens,
+      LATERAL (SELECT token_data->'features' AS features) AS f,
+      LATERAL json_each_text(CASE
+        WHEN json_typeof(features) = 'object' THEN features
+        WHEN json_typeof(features) = 'array' THEN (
+          SELECT json_object_agg(ordinality - 1, value)
+          FROM LATERAL json_array_elements(features) WITH ORDINALITY
+        )
+        ELSE 'null'::json  -- will fail hard
+      END) AS kv
+    WHERE token_id = $1 AND token_data IS NOT NULL
     `,
     [tokenId]
   );
