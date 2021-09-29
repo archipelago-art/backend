@@ -80,7 +80,9 @@ async function addProjectTokens(args) {
   const [projectId] = args;
   await withDb(async ({ pool }) => {
     const ids = await acqrel(pool, (client) =>
-      artblocks.getUnfetchedTokenIds({ client, projectId })
+      projectId === "all"
+        ? artblocks.getAllUnfetchedTokenIds({ client })
+        : artblocks.getUnfetchedTokenIds({ client, projectId })
     );
     console.log(`got ${ids.length} missing IDs`);
     const chunks = [];
