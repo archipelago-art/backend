@@ -30,12 +30,6 @@ function parseTokenData(text) {
   try {
     const parsed = JSON.parse(text);
     if (!parsed.features) throw new Error(`no "features": ${text}`);
-    // The Art Blocks API has been known to simply omit the features for some
-    // tokens [1]. If this happens again, fail instead of inserting bad data.
-    //
-    // [1]: https://discord.com/channels/411959613370400778/887136427241009253/892503024784793650
-    if (!Object.keys(parsed.features).length)
-      throw new Error(`empty "features": ${text}`);
     return { found: true, raw: text, parsed };
   } catch (e) {
     throw new Error(`invalid JSON: ${e.message}`);
