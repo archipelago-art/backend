@@ -19,6 +19,11 @@ async function acqrel(pool, callback) {
     return await callback(client);
   } finally {
     try {
+      await client.query("ROLLBACK");
+    } catch (e) {
+      console.error("failed to roll back client: " + e);
+    }
+    try {
       await client.release();
     } catch (e) {
       if ((e || {}).message !== ALREADY_RELEASED) {
