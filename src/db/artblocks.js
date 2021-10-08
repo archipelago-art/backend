@@ -49,7 +49,7 @@ async function addToken({ client, tokenId, rawTokenData }) {
   await client.query(
     `
     INSERT INTO token_features (token_id, feature_name)
-    SELECT token_id, kv.key || ': ' || kv.value
+    SELECT token_id, kv.key || ': ' || COALESCE(kv.value, 'null')
     FROM tokens,
       LATERAL (SELECT token_data->'features' AS features) AS f,
       LATERAL json_each_text(CASE

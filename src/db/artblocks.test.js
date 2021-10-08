@@ -8,9 +8,11 @@ describe("db/artblocks", () => {
   const withTestDb = testDbProvider();
   let theCubeRaw;
   let galaxissZeroRaw;
+  let bytebeatsSeven;
   beforeAll(async () => {
     theCubeRaw = await snapshots.readToken(snapshots.THE_CUBE);
     galaxissZeroRaw = await snapshots.readToken(snapshots.GALAXISS_ZERO);
+    bytebeatsSeven = await snapshots.readToken(snapshots.BYTEBEATS_SEVEN);
   });
 
   it(
@@ -83,6 +85,31 @@ describe("db/artblocks", () => {
         "0: Pleasant palette",
         "1: Night theme",
         "2: 4 clouds",
+      ];
+      expect(actualFeatures.slice().sort()).toEqual(
+        expectedFeatures.slice().sort()
+      );
+    })
+  );
+
+  it(
+    "inserts data whose features are strings, numbers, or null",
+    withTestDb(async ({ client }) => {
+      await artblocks.addToken({
+        client,
+        tokenId: snapshots.BYTEBEATS_SEVEN,
+        rawTokenData: bytebeatsSeven,
+      });
+      const actualFeatures = await artblocks.getTokenFeatures({
+        client,
+        tokenId: snapshots.BYTEBEATS_SEVEN,
+      });
+      const expectedFeatures = [
+        "Tint: Electric",
+        "Family: Powerclimb",
+        "Visual: Waveform",
+        "Sample Rate: 4978",
+        "Progressions: null",
       ];
       expect(actualFeatures.slice().sort()).toEqual(
         expectedFeatures.slice().sort()

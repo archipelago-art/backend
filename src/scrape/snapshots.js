@@ -10,7 +10,14 @@ const PROJECTS = Object.freeze([SQUIGGLES, ARCHETYPE, PHANTOM_SEADRAGONS]);
 const PERFECT_CHROMATIC = 7583;
 const THE_CUBE = 23000250;
 const GALAXISS_ZERO = 31000000;
-const TOKENS = Object.freeze([0, PERFECT_CHROMATIC, THE_CUBE, GALAXISS_ZERO]);
+const BYTEBEATS_SEVEN = 38000007; // has `{"Progressions": null}` in `features`
+const TOKENS = Object.freeze([
+  0,
+  PERFECT_CHROMATIC,
+  THE_CUBE,
+  GALAXISS_ZERO,
+  BYTEBEATS_SEVEN,
+]);
 
 function baseDir() {
   return path.join(__dirname, "snapshots");
@@ -44,6 +51,7 @@ module.exports = {
   PERFECT_CHROMATIC,
   THE_CUBE,
   GALAXISS_ZERO,
+  BYTEBEATS_SEVEN,
   TOKENS,
   readProject,
   readToken,
