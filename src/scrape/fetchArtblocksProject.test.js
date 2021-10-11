@@ -13,6 +13,7 @@ describe("scrape/fetchArtblocksProject", () => {
   it("parses a successful response", () => {
     expect(parseProjectData(snapshots.ARCHETYPE, rawArchetype)).toEqual({
       projectId: snapshots.ARCHETYPE,
+      artistName: "Kjetil Golid",
       name: "Archetype",
       maxInvocations: 600,
     });

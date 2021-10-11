@@ -20,6 +20,7 @@ describe("db/artblocks", () => {
     withTestDb(async ({ client }) => {
       const project = {
         projectId: 23,
+        artistName: "Kjetil Golid",
         name: "Archetype",
         maxInvocations: 600,
       };

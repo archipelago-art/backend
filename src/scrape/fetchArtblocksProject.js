@@ -32,6 +32,7 @@ function parseProjectData(projectId, html) {
   }
   return {
     projectId: normalizeProjectId(projectId),
+    artistName: findByInnerText(body, "h3", /^Artist: (.*)$/)[1],
     name: findByInnerText(body, "h1", /^Name: (.*)$/)[1],
     maxInvocations: Number.parseInt(
       findByInnerText(body, "p", /^Maximum Invocations: ([0-9]+)$/)[1],
