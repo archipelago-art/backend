@@ -16,7 +16,8 @@ async function collections({ client }) {
     SELECT
       project_id AS "id",
       name AS "name",
-      artist_name AS "artistName"
+      artist_name AS "artistName",
+      description AS "description"
     FROM projects
     ORDER BY project_id ASC
   `);
