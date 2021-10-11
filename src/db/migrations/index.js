@@ -3,6 +3,7 @@ const migrationModules = [
   "./0002_projects_fields_not_null",
   "./0003_tokens",
   "./0004_projects_artist_name",
+  "./0005_projects_description_and_script_json",
   // ...
 ];
 

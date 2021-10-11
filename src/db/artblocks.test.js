@@ -2,14 +2,19 @@ const { testDbProvider } = require("./testUtil");
 
 const artblocks = require("./artblocks");
 const snapshots = require("../scrape/snapshots");
-const { parseTokenData } = require("../scrape/fetchArtblocksToken");
+const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 
 describe("db/artblocks", () => {
   const withTestDb = testDbProvider();
+  let archetype;
   let theCubeRaw;
   let galaxissZeroRaw;
   let bytebeatsSeven;
   beforeAll(async () => {
+    archetype = parseProjectData(
+      snapshots.ARCHETYPE,
+      await snapshots.readProject(snapshots.ARCHETYPE)
+    );
     theCubeRaw = await snapshots.readToken(snapshots.THE_CUBE);
     galaxissZeroRaw = await snapshots.readToken(snapshots.GALAXISS_ZERO);
     bytebeatsSeven = await snapshots.readToken(snapshots.BYTEBEATS_SEVEN);
@@ -23,11 +28,18 @@ describe("db/artblocks", () => {
         artistName: "Kjetil Golid",
         name: "Archetype",
         maxInvocations: 600,
+        description: snapshots.ARCHETYPE_DESCRIPTION,
+        scriptJson: {
+          type: "p5js",
+          version: "1.0.0",
+          aspectRatio: "1",
+          curation_status: "curated",
+        },
       };
-      await artblocks.addProject({ client, project });
-      expect(await artblocks.getProject({ client, projectId: 23 })).toEqual(
-        project
-      );
+      await artblocks.addProject({ client, project: archetype });
+      expect(
+        await artblocks.getProject({ client, projectId: snapshots.ARCHETYPE })
+      ).toEqual(project);
     })
   );
 

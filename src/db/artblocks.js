@@ -9,14 +9,18 @@ function tokenBounds(projectId) {
 async function addProject({ client, project }) {
   return await client.query(
     `
-    INSERT INTO projects (project_id, name, max_invocations, artist_name)
-    VALUES ($1, $2, $3, $4)
+    INSERT INTO projects (
+      project_id, name, max_invocations, artist_name, description, script_json
+    )
+    VALUES ($1, $2, $3, $4, $5, $6)
     `,
     [
       project.projectId,
       project.name,
       project.maxInvocations,
       project.artistName,
+      project.description,
+      project.scriptJson,
     ]
   );
 }
@@ -28,7 +32,9 @@ async function getProject({ client, projectId }) {
       project_id AS "projectId",
       name as "name",
       max_invocations AS "maxInvocations",
-      artist_name AS "artistName"
+      artist_name AS "artistName",
+      description AS "description",
+      script_json AS "scriptJson"
     FROM projects
     WHERE project_id = $1
     `,
