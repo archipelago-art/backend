@@ -3,7 +3,7 @@ function artblocksProjectIdToCollectionName(id) {
   return `ab-${id}`;
 }
 
-const RE_ARTBLOCKS_COLLECTION = /^ab-(0|[1-9][0-9]+)$/;
+const RE_ARTBLOCKS_COLLECTION = /^ab-(0|[1-9][0-9]*)$/;
 
 function collectionNameToArtblocksProjectId(name) {
   const match = name.match(RE_ARTBLOCKS_COLLECTION);
