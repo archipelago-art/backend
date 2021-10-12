@@ -44,6 +44,7 @@ describe("db/artblocks", () => {
         projectId: 23,
         name: "Archetype",
         maxInvocations: 600,
+        scriptJson: JSON.stringify({ aspectRatio: "3/2" }),
       };
       await artblocks.addProject({ client, project });
       await expect(artblocks.addProject({ client, project })).rejects.toThrow();
@@ -166,9 +167,10 @@ describe("db/artblocks", () => {
       const projectId = 12;
       const baseTokenId = projectId * 1e6;
       const maxInvocations = 6;
+      const scriptJson = JSON.stringify({ aspectRatio: "1" });
       await artblocks.addProject({
         client,
-        project: { projectId, name: "Test", maxInvocations },
+        project: { projectId, name: "Test", maxInvocations, scriptJson },
       });
       await artblocks.addToken({
         client,
@@ -187,9 +189,10 @@ describe("db/artblocks", () => {
   );
 
   async function addTestData(client) {
+    const scriptJson = JSON.stringify({ aspectRatio: "1" });
     const projects = [
-      { projectId: 1, name: "A", maxInvocations: 5 },
-      { projectId: 2, name: "B", maxInvocations: 5 },
+      { projectId: 1, name: "A", maxInvocations: 5, scriptJson },
+      { projectId: 2, name: "B", maxInvocations: 5, scriptJson },
     ];
     const s = JSON.stringify;
     const tokens = [
