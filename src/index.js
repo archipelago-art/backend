@@ -50,13 +50,19 @@ async function migrate(args) {
 async function addProject(args) {
   const [projectId] = args;
   await withDb(async ({ client }) => {
-    const project = await fetchProjectData(projectId);
-    if (project == null) {
-      console.warn("skipping phantom project %s", projectId);
+    try {
+      const project = await fetchProjectData(projectId);
+      if (project == null) {
+        console.warn("skipping phantom project %s", projectId);
+        return;
+      }
+      await artblocks.addProject({ client, project });
+      console.log("added project %s (%s)", project.projectId, project.name);
+    } catch (e) {
+      console.error("failed to add project %s: %s", projectId, e);
+      process.exitCode = 1;
       return;
     }
-    await artblocks.addProject({ client, project });
-    console.log("added project %s (%s)", project.projectId, project.name);
   });
 }
 
