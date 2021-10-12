@@ -31,11 +31,17 @@ describe("api", () => {
           id: "ab-0",
           name: "Chromie Squiggle",
           artistName: "Snowfro",
+          description: expect.stringContaining(
+            "the soul of the Art Blocks platform"
+          ),
+          aspectRatio: 1.5,
         },
         {
           id: "ab-23",
           name: "Archetype",
           artistName: "Kjetil Golid",
+          description: expect.stringContaining("repetition as a counterweight"),
+          aspectRatio: 1,
         },
       ]);
     })

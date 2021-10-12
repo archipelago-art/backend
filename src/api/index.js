@@ -1,3 +1,5 @@
+const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
+
 function artblocksProjectIdToCollectionName(id) {
   if (!Number.isInteger(id)) throw new Error("non-numeric project ID: " + id);
   return `ab-${id}`;
@@ -17,7 +19,8 @@ async function collections({ client }) {
       project_id AS "id",
       name AS "name",
       artist_name AS "artistName",
-      description AS "description"
+      description AS "description",
+      script_json->'aspectRatio' AS "aspectRatio"
     FROM projects
     ORDER BY project_id ASC
   `);
@@ -25,6 +28,9 @@ async function collections({ client }) {
     id: artblocksProjectIdToCollectionName(row.id),
     name: row.name,
     artistName: row.artistName,
+    description: row.description,
+    aspectRatio:
+      row.aspectRatio == null ? null : normalizeAspectRatio(row.aspectRatio),
   }));
 }
 
