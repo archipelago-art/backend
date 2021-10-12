@@ -2,16 +2,14 @@ const { parseTokenData } = require("./fetchArtblocksToken");
 const snapshots = require("./snapshots");
 
 describe("scrape/fetchArtblocksToken", () => {
-  let rawCube;
-  beforeAll(async () => {
-    rawCube = await snapshots.readToken(snapshots.THE_CUBE);
-  });
+  const sc = new snapshots.SnapshotCache();
 
   it("handles fetch failures", () => {
     expect(parseTokenData(null)).toEqual({ found: false });
   });
 
-  it("parses a successful response", () => {
+  it("parses a successful response", async () => {
+    const rawCube = await sc.token(snapshots.THE_CUBE);
     expect(parseTokenData(rawCube)).toEqual({
       found: true,
       raw: rawCube,

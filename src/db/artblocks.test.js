@@ -6,19 +6,7 @@ const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 
 describe("db/artblocks", () => {
   const withTestDb = testDbProvider();
-  let archetype;
-  let theCubeRaw;
-  let galaxissZeroRaw;
-  let bytebeatsSeven;
-  beforeAll(async () => {
-    archetype = parseProjectData(
-      snapshots.ARCHETYPE,
-      await snapshots.readProject(snapshots.ARCHETYPE)
-    );
-    theCubeRaw = await snapshots.readToken(snapshots.THE_CUBE);
-    galaxissZeroRaw = await snapshots.readToken(snapshots.GALAXISS_ZERO);
-    bytebeatsSeven = await snapshots.readToken(snapshots.BYTEBEATS_SEVEN);
-  });
+  const sc = new snapshots.SnapshotCache();
 
   it(
     "writes and reads a project",
@@ -36,7 +24,13 @@ describe("db/artblocks", () => {
           curation_status: "curated",
         },
       };
-      await artblocks.addProject({ client, project: archetype });
+      await artblocks.addProject({
+        client,
+        project: parseProjectData(
+          snapshots.ARCHETYPE,
+          await sc.project(snapshots.ARCHETYPE)
+        ),
+      });
       expect(
         await artblocks.getProject({ client, projectId: snapshots.ARCHETYPE })
       ).toEqual(project);
@@ -62,7 +56,7 @@ describe("db/artblocks", () => {
       await artblocks.addToken({
         client,
         tokenId: snapshots.THE_CUBE,
-        rawTokenData: theCubeRaw,
+        rawTokenData: await sc.token(snapshots.THE_CUBE),
       });
       const actualFeatures = await artblocks.getTokenFeatures({
         client,
@@ -88,7 +82,7 @@ describe("db/artblocks", () => {
       await artblocks.addToken({
         client,
         tokenId: snapshots.GALAXISS_ZERO,
-        rawTokenData: galaxissZeroRaw,
+        rawTokenData: await sc.token(snapshots.GALAXISS_ZERO),
       });
       const actualFeatures = await artblocks.getTokenFeatures({
         client,
@@ -111,7 +105,7 @@ describe("db/artblocks", () => {
       await artblocks.addToken({
         client,
         tokenId: snapshots.BYTEBEATS_SEVEN,
-        rawTokenData: bytebeatsSeven,
+        rawTokenData: await sc.token(snapshots.BYTEBEATS_SEVEN),
       });
       const actualFeatures = await artblocks.getTokenFeatures({
         client,

@@ -7,22 +7,19 @@ const snapshots = require("../scrape/snapshots");
 
 describe("api", () => {
   const withTestDb = testDbProvider();
-  let squiggles;
-  let archetype;
-  beforeAll(async () => {
-    squiggles = parseProjectData(
-      snapshots.SQUIGGLES,
-      await snapshots.readProject(snapshots.SQUIGGLES)
-    );
-    archetype = parseProjectData(
-      snapshots.ARCHETYPE,
-      await snapshots.readProject(snapshots.ARCHETYPE)
-    );
-  });
+  const sc = new snapshots.SnapshotCache();
 
   it(
     "writes and reads a project",
     withTestDb(async ({ client }) => {
+      const archetype = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      const squiggles = parseProjectData(
+        snapshots.SQUIGGLES,
+        await sc.project(snapshots.SQUIGGLES)
+      );
       await artblocks.addProject({ client, project: archetype });
       await artblocks.addProject({ client, project: squiggles });
       const res = await api.collections({ client });

@@ -2,17 +2,15 @@ const { parseProjectData } = require("./fetchArtblocksProject");
 const snapshots = require("./snapshots");
 
 describe("scrape/fetchArtblocksProject", () => {
-  let rawHyperhash, rawArchetype, rawPhantomSeadragons;
-  beforeAll(async () => {
-    rawHyperhash = await snapshots.readProject(snapshots.HYPERHASH);
-    rawArchetype = await snapshots.readProject(snapshots.ARCHETYPE);
-    rawPhantomSeadragons = await snapshots.readProject(
-      snapshots.PHANTOM_SEADRAGONS
-    );
-  });
+  const sc = new snapshots.SnapshotCache();
 
-  it("parses a successful response", () => {
-    expect(parseProjectData(snapshots.ARCHETYPE, rawArchetype)).toEqual({
+  it("parses a successful response", async () => {
+    expect(
+      parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      )
+    ).toEqual({
       projectId: snapshots.ARCHETYPE,
       artistName: "Kjetil Golid",
       description: snapshots.ARCHETYPE_DESCRIPTION,
@@ -23,8 +21,13 @@ describe("scrape/fetchArtblocksProject", () => {
     });
   });
 
-  it("parses a response with line breaks in description", () => {
-    expect(parseProjectData(snapshots.HYPERHASH, rawHyperhash)).toEqual({
+  it("parses a response with line breaks in description", async () => {
+    expect(
+      parseProjectData(
+        snapshots.HYPERHASH,
+        await sc.project(snapshots.HYPERHASH)
+      )
+    ).toEqual({
       projectId: snapshots.HYPERHASH,
       artistName: "Beervangeer",
       description: snapshots.HYPERHASH_DESCRIPTION,
@@ -39,9 +42,12 @@ describe("scrape/fetchArtblocksProject", () => {
     expect(parseProjectData(9999, "project does not exist")).toBe(null);
   });
 
-  it("parses a phantom project response", () => {
+  it("parses a phantom project response", async () => {
     expect(
-      parseProjectData(snapshots.PHANTOM_SEADRAGONS, rawPhantomSeadragons)
+      parseProjectData(
+        snapshots.PHANTOM_SEADRAGONS,
+        await sc.project(snapshots.PHANTOM_SEADRAGONS)
+      )
     ).toBe(null);
   });
 });

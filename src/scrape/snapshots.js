@@ -54,6 +54,28 @@ async function readToken(tokenId) {
   return (await promisify(fs.readFile)(tokenPath(tokenId))).toString();
 }
 
+class SnapshotCache {
+  constructor() {
+    this._projects = new Map();
+    this._tokens = new Map();
+  }
+
+  async _get(cache, resolver, key) {
+    if (!cache.has(key)) {
+      cache.set(key, await resolver(key));
+    }
+    return cache.get(key);
+  }
+
+  async project(projectId) {
+    return this._get(this._projects, readProject, projectId);
+  }
+
+  async token(tokenId) {
+    return this._get(this._tokens, readToken, tokenId);
+  }
+}
+
 module.exports = {
   SQUIGGLES,
   HYPERHASH,
@@ -69,6 +91,7 @@ module.exports = {
   TOKENS,
   readProject,
   readToken,
+  SnapshotCache,
   locations: {
     baseDir,
     projectsDir,
