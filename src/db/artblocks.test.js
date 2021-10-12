@@ -23,6 +23,7 @@ describe("db/artblocks", () => {
           aspectRatio: "1",
           curation_status: "curated",
         },
+        aspectRatio: 1,
       };
       await artblocks.addProject({
         client,

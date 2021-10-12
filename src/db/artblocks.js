@@ -1,3 +1,5 @@
+const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
+
 const PROJECT_STRIDE = 1e6;
 
 function tokenBounds(projectId) {
@@ -7,12 +9,26 @@ function tokenBounds(projectId) {
 }
 
 async function addProject({ client, project }) {
+  if (typeof project.scriptJson !== "string") {
+    throw new Error(
+      "project.scriptJson should be a raw JSON string; got: " +
+        JSON.stringify(project)
+    );
+  }
+  const rawAspectRatio = JSON.parse(project.scriptJson).aspectRatio;
+  const aspectRatio = normalizeAspectRatio(rawAspectRatio);
   return await client.query(
     `
     INSERT INTO projects (
-      project_id, name, max_invocations, artist_name, description, script_json
+      project_id,
+      name,
+      max_invocations,
+      artist_name,
+      description,
+      script_json,
+      aspect_ratio
     )
-    VALUES ($1, $2, $3, $4, $5, $6)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     `,
     [
       project.projectId,
@@ -21,6 +37,7 @@ async function addProject({ client, project }) {
       project.artistName,
       project.description,
       project.scriptJson,
+      aspectRatio,
     ]
   );
 }
@@ -34,7 +51,8 @@ async function getProject({ client, projectId }) {
       max_invocations AS "maxInvocations",
       artist_name AS "artistName",
       description AS "description",
-      script_json AS "scriptJson"
+      script_json AS "scriptJson",
+      aspect_ratio AS "aspectRatio"
     FROM projects
     WHERE project_id = $1
     `,

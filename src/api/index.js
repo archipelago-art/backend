@@ -20,7 +20,7 @@ async function collections({ client }) {
       name AS "name",
       artist_name AS "artistName",
       description AS "description",
-      script_json->'aspectRatio' AS "aspectRatio"
+      aspect_ratio AS "aspectRatio"
     FROM projects
     ORDER BY project_id ASC
   `);
@@ -29,8 +29,7 @@ async function collections({ client }) {
     name: row.name,
     artistName: row.artistName,
     description: row.description,
-    aspectRatio:
-      row.aspectRatio == null ? null : normalizeAspectRatio(row.aspectRatio),
+    aspectRatio: row.aspectRatio,
   }));
 }
 
