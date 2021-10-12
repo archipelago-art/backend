@@ -12,11 +12,15 @@ const migrations = migrationModules.map((path) => ({
   migration: require(path),
 }));
 
-async function applyAll({ client, verbose }) {
+async function apply({ client, migrations, verbose }) {
   for (const { name, migration } of migrations) {
     if (verbose) console.log("--- " + name);
     await migration.up({ client, verbose });
   }
 }
 
-module.exports = { migrations, applyAll };
+async function applyAll({ client, verbose }) {
+  return apply({ client, migrations, verbose });
+}
+
+module.exports = { migrations, apply, applyAll };

@@ -21,6 +21,32 @@ async function init() {
   });
 }
 
+// usage: migrate [<migration-name> [...]]
+// where each <migration-name> must be a substring of a unique migration
+async function migrate(args) {
+  await withDb(async ({ client }) => {
+    const desiredMigrations = args.map((needle) => {
+      const matches = migrations.migrations.filter((m) =>
+        m.name.includes(needle)
+      );
+      if (matches.length === 0)
+        throw new Error(`no migrations named like "${needle}"`);
+      if (matches.length > 1)
+        throw new Error(
+          `multiple migrations named like "${needle}": ${matches
+            .map((m) => m.name)
+            .join(", ")}`
+        );
+      return matches[0];
+    });
+    await migrations.apply({
+      client,
+      migrations: desiredMigrations,
+      verbose: true,
+    });
+  });
+}
+
 async function addProject(args) {
   const [projectId] = args;
   await withDb(async ({ client }) => {
@@ -129,6 +155,7 @@ async function main() {
   const [arg0, ...args] = process.argv.slice(2);
   const commands = [
     ["init", init],
+    ["migrate", migrate],
     ["add-project", addProject],
     ["get-project", getProject],
     ["add-token", addToken],
