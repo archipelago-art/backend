@@ -3,11 +3,12 @@ const pg = require("pg");
 const artblocks = require("./db/artblocks");
 const migrations = require("./db/migrations");
 const { acqrel } = require("./db/util");
-const { downloadImage } = require("./scrape/downloadImages");
+const { downloadImage, resizeImage } = require("./scrape/downloadImages");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 
 const NETWORK_CONCURRENCY = 64;
+const IMAGEMAGICK_CONCURRENCY = 16;
 
 async function withDb(callback) {
   const pool = new pg.Pool();
@@ -188,6 +189,49 @@ async function downloadImages(args) {
   });
 }
 
+async function resizeImages(args) {
+  const [inputDir, outputDir, rawOutputSizePx] = args;
+  const outputSizePx = Number(rawOutputSizePx);
+  if (!Number.isSafeInteger(outputSizePx))
+    throw new Error("bad output size: " + outputSizePx);
+  await withDb(async ({ pool }) => {
+    const tokenIds = await acqrel(pool, (client) =>
+      artblocks.getTokenIds({ client })
+    );
+    console.log(`got ${tokenIds.length} token IDs`);
+    const chunks = [];
+    async function worker() {
+      while (true) {
+        const tokenId = tokenIds.shift();
+        if (tokenId == null) return;
+        try {
+          const outputPath = await resizeImage(
+            inputDir,
+            outputDir,
+            tokenId,
+            outputSizePx
+          );
+          if (outputPath == null) {
+            console.log(
+              "declined to resize image for %s (input did not exist)",
+              tokenId
+            );
+          } else {
+            console.log("resized image for %s to %s", tokenId, outputPath);
+          }
+        } catch (e) {
+          console.error(`failed to resize image for ${tokenId}: ${e}`);
+        }
+      }
+    }
+    await Promise.all(
+      Array(IMAGEMAGICK_CONCURRENCY)
+        .fill()
+        .map(() => worker())
+    );
+  });
+}
+
 async function main() {
   require("dotenv").config();
   const [arg0, ...args] = process.argv.slice(2);
@@ -202,6 +246,7 @@ async function main() {
     ["add-project-tokens", addProjectTokens],
     ["get-tokens-with-feature", getTokensWithFeature],
     ["download-images", downloadImages],
+    ["resize-images", resizeImages],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {

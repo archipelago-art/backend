@@ -97,6 +97,15 @@ async function addToken({ client, tokenId, rawTokenData }) {
   await client.query("COMMIT");
 }
 
+async function getTokenIds({ client }) {
+  const res = await client.query(`
+    SELECT token_id AS "tokenId"
+    FROM tokens
+    ORDER BY token_id ASC
+  `);
+  return res.rows.map((row) => row.tokenId);
+}
+
 async function getTokenFeatures({ client, tokenId }) {
   const res = await client.query(
     `
@@ -192,6 +201,7 @@ module.exports = {
   addProject,
   getProject,
   addToken,
+  getTokenIds,
   getTokenFeatures,
   getProjectFeatures,
   getUnfetchedTokenIds,
