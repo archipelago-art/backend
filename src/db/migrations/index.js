@@ -5,6 +5,7 @@ const migrationModules = [
   "./0004_projects_artist_name",
   "./0005_projects_description_and_script_json",
   "./0006_projects_aspect_ratio",
+  "./0007_index_token_features_token_id_feature_name",
   // ...
 ];
 
