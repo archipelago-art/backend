@@ -179,6 +179,15 @@ async function getTokensWithFeature({ client, projectId, featureName }) {
   return res.rows.map((row) => row.tokenId);
 }
 
+async function getTokenImageUrls({ client }) {
+  const res = await client.query(`
+    SELECT token_id AS "tokenId", token_data->'image' AS "imageUrl"
+    FROM tokens
+    ORDER BY token_id ASC
+  `);
+  return res.rows;
+}
+
 module.exports = {
   addProject,
   getProject,
@@ -188,4 +197,5 @@ module.exports = {
   getUnfetchedTokenIds,
   getAllUnfetchedTokenIds,
   getTokensWithFeature,
+  getTokenImageUrls,
 };

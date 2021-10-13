@@ -3,8 +3,11 @@ const pg = require("pg");
 const artblocks = require("./db/artblocks");
 const migrations = require("./db/migrations");
 const { acqrel } = require("./db/util");
+const { downloadImage } = require("./scrape/downloadImages");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
+
+const NETWORK_CONCURRENCY = 64;
 
 async function withDb(callback) {
   const pool = new pg.Pool();
@@ -149,7 +152,36 @@ async function addProjectTokens(args) {
       }
     }
     await Promise.all(
-      Array(64)
+      Array(NETWORK_CONCURRENCY)
+        .fill()
+        .map(() => worker())
+    );
+  });
+}
+
+async function downloadImages(args) {
+  const [rootDir] = args;
+  await withDb(async ({ pool }) => {
+    const tokens = await acqrel(pool, (client) =>
+      artblocks.getTokenImageUrls({ client })
+    );
+    console.log(`got ${tokens.length} token image URLs`);
+    const chunks = [];
+    async function worker() {
+      while (true) {
+        const workUnit = tokens.shift();
+        if (workUnit == null) return;
+        const { tokenId, imageUrl } = workUnit;
+        try {
+          const path = await downloadImage(rootDir, imageUrl, tokenId);
+          console.log("downloaded image for %s to %s", tokenId, path);
+        } catch (e) {
+          console.error(`failed to download image for ${tokenId}: ${e}`);
+        }
+      }
+    }
+    await Promise.all(
+      Array(NETWORK_CONCURRENCY)
         .fill()
         .map(() => worker())
     );
@@ -169,6 +201,7 @@ async function main() {
     ["get-features-of-project", getFeaturesOfProject],
     ["add-project-tokens", addProjectTokens],
     ["get-tokens-with-feature", getTokensWithFeature],
+    ["download-images", downloadImages],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
