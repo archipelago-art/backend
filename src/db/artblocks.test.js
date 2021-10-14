@@ -24,6 +24,7 @@ describe("db/artblocks", () => {
           curation_status: "curated",
         },
         aspectRatio: 1,
+        numTokens: 0,
       };
       await artblocks.addProject({
         client,
@@ -53,8 +54,41 @@ describe("db/artblocks", () => {
   );
 
   it(
+    "populates `num_tokens` when tokens already exist",
+    withTestDb(async ({ client }) => {
+      await artblocks.addToken({
+        client,
+        tokenId: snapshots.THE_CUBE,
+        rawTokenData: await sc.token(snapshots.THE_CUBE),
+      });
+      await artblocks.addProject({
+        client,
+        project: parseProjectData(
+          snapshots.ARCHETYPE,
+          await sc.project(snapshots.ARCHETYPE)
+        ),
+      });
+      expect(
+        await artblocks.getProject({ client, projectId: snapshots.ARCHETYPE })
+      ).toEqual(
+        expect.objectContaining({
+          projectId: 23,
+          numTokens: 1,
+        })
+      );
+    })
+  );
+
+  it(
     "inserts token data for successful fetches",
     withTestDb(async ({ client }) => {
+      await artblocks.addProject({
+        client,
+        project: parseProjectData(
+          snapshots.ARCHETYPE,
+          await sc.project(snapshots.ARCHETYPE)
+        ),
+      });
       await artblocks.addToken({
         client,
         tokenId: snapshots.THE_CUBE,
@@ -74,6 +108,13 @@ describe("db/artblocks", () => {
       ];
       expect(actualFeatures.slice().sort()).toEqual(
         expectedFeatures.slice().sort()
+      );
+      expect(
+        await artblocks.getProject({ client, projectId: snapshots.ARCHETYPE })
+      ).toEqual(
+        expect.objectContaining({
+          numTokens: 1,
+        })
       );
     })
   );
@@ -271,6 +312,22 @@ describe("db/artblocks", () => {
           "Color: blue",
         ].sort()
       );
+    })
+  );
+
+  it(
+    "doesn't bump `num_tokens` when updating a token",
+    withTestDb(async ({ client }) => {
+      await addTestData(client);
+      const p1NumTokens = async () =>
+        (await artblocks.getProject({ client, projectId: 1 })).numTokens;
+      expect(await p1NumTokens()).toBe(3);
+      await artblocks.addToken({
+        client,
+        tokenId: 1000001,
+        rawTokenData: JSON.stringify({ features: { Size: "weird" } }),
+      });
+      expect(await p1NumTokens()).toBe(3);
     })
   );
 });

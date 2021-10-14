@@ -26,9 +26,12 @@ async function addProject({ client, project }) {
       artist_name,
       description,
       script_json,
-      aspect_ratio
+      aspect_ratio,
+      num_tokens
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    SELECT
+      $1, $2, $3, $4, $5, $6, $7,
+      (SELECT COUNT(1) FROM tokens WHERE project_id = $1)
     `,
     [
       project.projectId,
@@ -52,7 +55,8 @@ async function getProject({ client, projectId }) {
       artist_name AS "artistName",
       description AS "description",
       script_json AS "scriptJson",
-      aspect_ratio AS "aspectRatio"
+      aspect_ratio AS "aspectRatio",
+      num_tokens AS "numTokens"
     FROM projects
     WHERE project_id = $1
     `,
@@ -64,15 +68,29 @@ async function getProject({ client, projectId }) {
 
 async function addToken({ client, tokenId, rawTokenData }) {
   await client.query("BEGIN");
-  await client.query("DELETE FROM tokens WHERE token_id = $1", [tokenId]);
-  const res = await client.query(
+  const deleteResult = await client.query(
+    "DELETE FROM tokens WHERE token_id = $1",
+    [tokenId]
+  );
+  const existed = deleteResult.rowCount !== 0;
+  const projectId = Math.floor(tokenId / PROJECT_STRIDE);
+  await client.query(
     `
     INSERT INTO tokens (token_id, fetch_time, token_data, project_id)
-    VALUES ($1, $2, $3, $1 / 1000000)
+    VALUES ($1, $2, $3, $4)
     `,
-    [tokenId, new Date(), rawTokenData]
+    [tokenId, new Date(), rawTokenData, projectId]
   );
-  const rowId = res.rows[0];
+  if (!existed) {
+    await client.query(
+      `
+      UPDATE projects
+      SET num_tokens = num_tokens + 1
+      WHERE project_id = $1
+      `,
+      [projectId]
+    );
+  }
   await client.query("DELETE FROM token_features WHERE token_id = $1", [
     tokenId,
   ]);
