@@ -21,7 +21,8 @@ async function collections({ client }) {
       name AS "name",
       artist_name AS "artistName",
       description AS "description",
-      aspect_ratio AS "aspectRatio"
+      aspect_ratio AS "aspectRatio",
+      num_tokens AS "numTokens"
     FROM projects
     ORDER BY project_id ASC
   `);
@@ -31,6 +32,7 @@ async function collections({ client }) {
     artistName: row.artistName,
     description: row.description,
     aspectRatio: row.aspectRatio,
+    numTokens: row.numTokens,
   }));
 }
 
