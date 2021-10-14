@@ -39,6 +39,7 @@ describe("api", () => {
           ),
           aspectRatio: 1.5,
           numTokens: 0,
+          slug: "chromie-squiggle",
         },
         {
           id: "ab-23",
@@ -47,6 +48,7 @@ describe("api", () => {
           description: expect.stringContaining("repetition as a counterweight"),
           aspectRatio: 1,
           numTokens: 1,
+          slug: "archetype",
         },
       ]);
     })
