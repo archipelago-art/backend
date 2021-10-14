@@ -67,8 +67,8 @@ async function addToken({ client, tokenId, rawTokenData }) {
   await client.query("DELETE FROM tokens WHERE token_id = $1", [tokenId]);
   const res = await client.query(
     `
-    INSERT INTO tokens (token_id, fetch_time, token_data)
-    VALUES ($1, $2, $3)
+    INSERT INTO tokens (token_id, fetch_time, token_data, project_id)
+    VALUES ($1, $2, $3, $1 / 1000000)
     `,
     [tokenId, new Date(), rawTokenData]
   );
