@@ -25,6 +25,7 @@ describe("db/artblocks", () => {
         },
         aspectRatio: 1,
         numTokens: 0,
+        slug: "archetype",
       };
       await artblocks.addProject({
         client,

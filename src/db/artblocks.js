@@ -1,3 +1,5 @@
+const slug = require("slug");
+
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 
 const PROJECT_STRIDE = 1e6;
@@ -8,7 +10,7 @@ function tokenBounds(projectId) {
   return { minTokenId, maxTokenId };
 }
 
-async function addProject({ client, project }) {
+async function addProject({ client, project, slugOverride }) {
   if (typeof project.scriptJson !== "string") {
     throw new Error(
       "project.scriptJson should be a raw JSON string; got: " +
@@ -27,11 +29,13 @@ async function addProject({ client, project }) {
       description,
       script_json,
       aspect_ratio,
-      num_tokens
+      num_tokens,
+      slug
     )
     SELECT
       $1, $2, $3, $4, $5, $6, $7,
-      (SELECT COUNT(1) FROM tokens WHERE project_id = $1)
+      (SELECT COUNT(1) FROM tokens WHERE project_id = $1),
+      $8
     `,
     [
       project.projectId,
@@ -41,6 +45,7 @@ async function addProject({ client, project }) {
       project.description,
       project.scriptJson,
       aspectRatio,
+      slugOverride ?? slug(project.name),
     ]
   );
 }
@@ -56,7 +61,8 @@ async function getProject({ client, projectId }) {
       description AS "description",
       script_json AS "scriptJson",
       aspect_ratio AS "aspectRatio",
-      num_tokens AS "numTokens"
+      num_tokens AS "numTokens",
+      slug AS "slug"
     FROM projects
     WHERE project_id = $1
     `,
@@ -64,6 +70,22 @@ async function getProject({ client, projectId }) {
   );
   if (res.rows.length === 0) return null;
   return res.rows[0];
+}
+
+async function setProjectSlug({ client, projectId, slug }) {
+  if (typeof slug !== "string") {
+    throw new Error(
+      "new slug should be a string, but got: " + JSON.stringify(project)
+    );
+  }
+  const res = await client.query(
+    `
+    UPDATE projects SET slug = $2 WHERE project_id = $1
+    `,
+    [projectId, slug]
+  );
+  if (res.rowCount === 0)
+    throw new Error("no project found by ID " + projectId);
 }
 
 async function addToken({ client, tokenId, rawTokenData }) {
@@ -218,6 +240,7 @@ async function getTokenImageUrls({ client }) {
 module.exports = {
   addProject,
   getProject,
+  setProjectSlug,
   addToken,
   getTokenIds,
   getTokenFeatures,
