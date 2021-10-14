@@ -1,6 +1,7 @@
 const pg = require("pg");
 
 const artblocks = require("./db/artblocks");
+const backfills = require("./db/backfills");
 const migrations = require("./db/migrations");
 const { acqrel } = require("./db/util");
 const { downloadImage, resizeImage } = require("./scrape/downloadImages");
@@ -48,6 +49,18 @@ async function migrate(args) {
       migrations: desiredMigrations,
       verbose: true,
     });
+  });
+}
+
+// usage: backfill <backfill-module-name>
+// where <backfill-module-name> is the basename of a file in
+// `src/db/backfills`, without the `.js` extension
+async function backfill(args) {
+  const [backfillName] = args;
+  const backfill = backfills[backfillName];
+  if (backfill == null) throw new Error("unknown backfill " + backfillName);
+  await withDb(async ({ client }) => {
+    await backfill({ client, verbose: true });
   });
 }
 
@@ -238,6 +251,7 @@ async function main() {
   const commands = [
     ["init", init],
     ["migrate", migrate],
+    ["backfill", backfill],
     ["add-project", addProject],
     ["get-project", getProject],
     ["add-token", addToken],
