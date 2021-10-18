@@ -1,7 +1,7 @@
 async function up({ client }) {
   await client.query(`
     BEGIN;
-    ALTER TABLE projects ADD COLUMN num_tokens INTEGER;
+    ALTER TABLE projects ADD COLUMN num_tokens integer;
     UPDATE projects SET num_tokens = (
       SELECT COUNT(1) FROM tokens
       WHERE tokens.project_id = projects.project_id

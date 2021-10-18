@@ -4,7 +4,7 @@ async function up({ client }) {
   // varying input format.
   await client.query(`
     ALTER TABLE projects
-      ADD COLUMN aspect_ratio FLOAT8;
+      ADD COLUMN aspect_ratio float8;
   `);
 }
 

@@ -34,7 +34,7 @@ async function addProject({ client, project, slugOverride }) {
     )
     SELECT
       $1, $2, $3, $4, $5, $6, $7,
-      (SELECT COUNT(1) FROM tokens WHERE project_id = $1),
+      (SELECT count(1) FROM tokens WHERE project_id = $1),
       $8
     `,
     [
@@ -119,7 +119,7 @@ async function addToken({ client, tokenId, rawTokenData }) {
   await client.query(
     `
     INSERT INTO token_features (token_id, feature_name)
-    SELECT token_id, kv.key || ': ' || COALESCE(kv.value, 'null')
+    SELECT token_id, kv.key || ': ' || coalesce(kv.value, 'null')
     FROM tokens,
       LATERAL (SELECT token_data->'features' AS features) AS f,
       LATERAL json_each_text(CASE
@@ -178,7 +178,7 @@ async function getUnfetchedTokenIds({ client, projectId }) {
     `
     SELECT token_id AS "tokenId"
     FROM
-      GENERATE_SERIES(
+      generate_series(
         $2::int,
         $2::int + (
           SELECT max_invocations
