@@ -18,7 +18,7 @@ describe("combo", () => {
       });
       it("rejects numbers", () => {
         const thunk = () => C.string.parseOrThrow(77);
-        expect(thunk).toThrow("expected string, got number");
+        expect(thunk).toThrow("expected string, got number 77");
       });
       it("rejects nulls", () => {
         const thunk = () => C.string.parseOrThrow(null);
@@ -32,7 +32,7 @@ describe("combo", () => {
       });
       it("rejects strings", () => {
         const thunk = () => C.number.parseOrThrow("hey");
-        expect(thunk).toThrow("expected number, got string");
+        expect(thunk).toThrow('expected number, got "hey"');
       });
       it("rejects arrays", () => {
         const thunk = () => C.number.parseOrThrow([2, 3, 4]);
@@ -40,7 +40,7 @@ describe("combo", () => {
       });
       it("rejects strings that look like numbers", () => {
         const thunk = () => C.number.parseOrThrow("77");
-        expect(thunk).toThrow("expected number, got string");
+        expect(thunk).toThrow('expected number, got "77"');
       });
     });
 
@@ -74,11 +74,11 @@ describe("combo", () => {
       });
       it("rejects falsy strings", () => {
         const thunk = () => C.null_.parseOrThrow("");
-        expect(thunk).toThrow("expected null, got string");
+        expect(thunk).toThrow('expected null, got ""');
       });
       it("rejects falsy numbers", () => {
         const thunk = () => C.null_.parseOrThrow(0);
-        expect(thunk).toThrow("expected null, got number");
+        expect(thunk).toThrow("expected null, got number 0");
       });
     });
   });
@@ -140,7 +140,7 @@ describe("combo", () => {
       const p /*: C.Parser<Color> */ = C.exactly(["RED", "GREEN", "BLUE"]);
       const thunk = () => p.parseOrThrow("YELLOW");
       expect(thunk).toThrow(
-        'expected one of ["RED","GREEN","BLUE"], got string'
+        'expected one of ["RED","GREEN","BLUE"], got "YELLOW"'
       );
     });
     it("rejects a non-matching value from just one option", () => {
@@ -149,12 +149,12 @@ describe("combo", () => {
         acceptedEula: C.exactly([true]),
       });
       const thunk = () => p.parseOrThrow({ acceptedEula: false });
-      expect(thunk).toThrow("expected true, got boolean");
+      expect(thunk).toThrow("expected true, got boolean false");
     });
     it("rejects a non-matching value from no options", () => {
       const p /*: C.Parser<empty> */ = C.exactly([]);
       const thunk = () => p.parseOrThrow("wat");
-      expect(thunk).toThrow("expected one of [], got string");
+      expect(thunk).toThrow('expected one of [], got "wat"');
     });
   });
 
@@ -421,7 +421,7 @@ describe("combo", () => {
         age: C.number,
       });
       const thunk = () => p.parseOrThrow({ name: "alice", age: "secret" });
-      expect(thunk).toThrow('key "age": expected number, got string');
+      expect(thunk).toThrow('key "age": expected number, got "secret"');
     });
     it("rejects arrays", () => {
       const p = C.object({ name: C.string });
@@ -436,7 +436,7 @@ describe("combo", () => {
     it("rejects strings", () => {
       const p = C.object({ name: C.string });
       const thunk = () => p.parseOrThrow("hmm");
-      expect(thunk).toThrow("expected object, got string");
+      expect(thunk).toThrow('expected object, got "hmm"');
     });
     describe("for objects with some required and some optional fields", () => {
       const p /*: C.Parser<{|
@@ -600,7 +600,7 @@ describe("combo", () => {
       it("rejects an array of proper length but bad values", () => {
         const p /*: C.Parser<[string, number]> */ = makeParser();
         const thunk = () => p.parseOrThrow(["one", "two"]);
-        expect(thunk).toThrow("index 1: expected number, got string");
+        expect(thunk).toThrow('index 1: expected number, got "two"');
       });
       it("accepts a properly typed input", () => {
         const p /*: C.Parser<[string, number]> */ = makeParser();
@@ -643,7 +643,7 @@ describe("combo", () => {
     it("rejects an object with bad values", () => {
       const p = makeParser();
       const thunk = () => p.parseOrThrow({ one: "two?" });
-      expect(thunk).toThrow('value "one": expected number, got string');
+      expect(thunk).toThrow('value "one": expected number, got "two?"');
     });
     describe("with custom key parser", () => {
       /*:: type Color = "RED" | "GREEN" | "BLUE"; */

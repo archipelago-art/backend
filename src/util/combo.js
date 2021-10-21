@@ -71,23 +71,30 @@ function typename(x /*: JsonObject*/) /*: string */ {
   return typeof x;
 }
 
+function pprint(x /*: JsonObject */) /*: string */ {
+  if (typeof x === "number") return `number ${x}`;
+  if (typeof x === "boolean") return `boolean ${String(x)}`;
+  if (typeof x === "string") return JSON.stringify(x);
+  return typename(x);
+}
+
 const string /*: Parser<string> */ = new Parser((x) => {
   if (typeof x !== "string") {
-    return failure("expected string, got " + typename(x));
+    return failure("expected string, got " + pprint(x));
   }
   return success(x);
 });
 
 const number /*: Parser<number> */ = new Parser((x) => {
   if (typeof x !== "number") {
-    return failure("expected number, got " + typename(x));
+    return failure("expected number, got " + pprint(x));
   }
   return success(x);
 });
 
 const boolean /*: Parser<boolean> */ = new Parser((x) => {
   if (typeof x !== "boolean") {
-    return failure("expected boolean, got " + typename(x));
+    return failure("expected boolean, got " + pprint(x));
   }
   return success(x);
 });
@@ -96,7 +103,7 @@ const boolean /*: Parser<boolean> */ = new Parser((x) => {
 // than `null` to avoid conflicting with keyword.)
 const null_ /*: Parser<null> */ = new Parser((x) => {
   if (x !== null) {
-    return failure("expected null, got " + typename(x));
+    return failure("expected null, got " + pprint(x));
   }
   return success(x);
 });
@@ -145,7 +152,7 @@ function exactly /*:: <T: string | number | boolean | null> */(
     }
     const expected /*: string */ =
       ts.length === 1 ? String(ts[0]) : `one of ${JSON.stringify(ts)}`;
-    return failure(`expected ${expected}, got ${typename(x)}`);
+    return failure(`expected ${expected}, got ${pprint(x)}`);
   });
 }
 
@@ -249,7 +256,7 @@ function orElse /*:: <T: $ReadOnlyArray<Parser<mixed>>> */(
 function array /*:: <T> */(p /*: Parser<T> */) /*: Parser<T[]> */ {
   return new Parser((x) => {
     if (!Array.isArray(x)) {
-      return failure("expected array, got " + typename(x));
+      return failure("expected array, got " + pprint(x));
     }
     const result = Array(x.length);
     for (let i = 0; i < result.length; i++) {
@@ -359,7 +366,7 @@ const object /*: PObject */ = (function object(
   }
   return new Parser((x) => {
     if (typeof x !== "object" || Array.isArray(x) || x == null) {
-      return failure("expected object, got " + typename(x));
+      return failure("expected object, got " + pprint(x));
     }
     const result = {};
     for (const { oldKey, newKey, parser, required } of fields) {
@@ -400,7 +407,7 @@ function tuple /*:: <T: Iterable<Parser<mixed>>> */(
   const ps = Array.from(parsers);
   return new Parser((x) => {
     if (!Array.isArray(x)) {
-      return failure("expected array, got " + typename(x));
+      return failure("expected array, got " + pprint(x));
     }
     if (x.length !== ps.length) {
       return failure(`expected array of length ${ps.length}, got ${x.length}`);
@@ -452,7 +459,7 @@ const dict /*: PDict */ = (function dict /*:: <V, K: string> */(
 ) /*: Parser<{[K]: V}> */ {
   return new Parser((x) => {
     if (typeof x !== "object" || Array.isArray(x) || x == null) {
-      return failure("expected object, got " + typename(x));
+      return failure("expected object, got " + pprint(x));
     }
     const rawKeys /*: Map<K, string> */ = new Map();
     const result /*: {|[K]: V|} */ = ({} /*: any */);
