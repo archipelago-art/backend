@@ -9,6 +9,7 @@ const migrationModules = [
   "./0008_tokens_project_id",
   "./0009_projects_num_tokens",
   "./0010_projects_slug",
+  "./0011_features_and_traits",
   // ...
 ];
 
