@@ -320,11 +320,102 @@ describe("db/artblocks", () => {
     "doesn't permit updating token data",
     withTestDb(async ({ client }) => {
       await addTestData(client);
-      await expect(() => artblocks.addToken({
+      await expect(() =>
+        artblocks.addToken({
+          client,
+          tokenId: 1000001,
+          rawTokenData: JSON.stringify({ features: { Size: "weird" } }),
+        })
+      ).rejects.toThrow('unique constraint "tokens_pkey"');
+    })
+  );
+
+  it(
+    "supports getProjectFeaturesAndTraits",
+    withTestDb(async ({ client }) => {
+      await artblocks.addProject({
         client,
-        tokenId: 1000001,
-        rawTokenData: JSON.stringify({ features: { Size: "weird" } }),
-      })).rejects.toThrow("unique constraint \"tokens_pkey\"");
+        project: parseProjectData(
+          snapshots.ARCHETYPE,
+          await sc.project(snapshots.ARCHETYPE)
+        ),
+      });
+      const tokenIds = [
+        snapshots.THE_CUBE,
+        snapshots.ARCH_TRIPTYCH_1,
+        snapshots.ARCH_TRIPTYCH_2,
+        snapshots.ARCH_TRIPTYCH_3,
+      ];
+      for (const tokenId of tokenIds) {
+        await artblocks.addToken({
+          client,
+          tokenId,
+          rawTokenData: await sc.token(tokenId),
+        });
+      }
+      const projectId = snapshots.ARCHETYPE;
+      const res = await artblocks.getProjectFeaturesAndTraits({
+        client,
+        projectId,
+      });
+      const expected = [
+        {
+          id: 1,
+          name: "Scene",
+          traits: [
+            { id: 5, value: "Cube", tokens: [23000250] },
+            { id: 12, value: "Flat", tokens: [23000036, 23000045, 23000467] },
+          ],
+        },
+        {
+          id: 2,
+          name: "Framed",
+          traits: [
+            {
+              id: 2,
+              value: "Yep",
+              tokens: [23000036, 23000045, 23000250, 23000467],
+            },
+          ],
+        },
+        {
+          id: 3,
+          name: "Layout",
+          traits: [
+            { id: 3, value: "Chaos", tokens: [23000250] },
+            { id: 10, value: "Order", tokens: [23000036, 23000045, 23000467] },
+          ],
+        },
+        {
+          id: 4,
+          name: "Palette",
+          traits: [
+            {
+              id: 4,
+              value: "Paddle",
+              tokens: [23000036, 23000045, 23000250, 23000467],
+            },
+          ],
+        },
+        {
+          id: 5,
+          name: "Shading",
+          traits: [
+            { id: 6, value: "Bright Morning", tokens: [23000250] },
+            { id: 13, value: "Noon", tokens: [23000036, 23000045, 23000467] },
+          ],
+        },
+        {
+          id: 6,
+          name: "Coloring strategy",
+          traits: [
+            { id: 1, value: "Single", tokens: [23000250] },
+            { id: 8, value: "Random", tokens: [23000036] },
+            { id: 15, value: "Group", tokens: [23000045, 23000467] },
+          ],
+        },
+      ];
+      expect(res).toEqual(expected);
     })
   );
 });

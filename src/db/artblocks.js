@@ -124,7 +124,109 @@ async function addToken({ client, tokenId, rawTokenData }) {
     `,
     [tokenId]
   );
+
+  if (rawTokenData != null) {
+    const featureData = JSON.parse(rawTokenData).features;
+    const featureNames = Object.keys(featureData);
+    await client.query(
+      `
+      INSERT INTO features (project_id, name)
+      VALUES ($1, unnest($2::text[]))
+      ON CONFLICT DO NOTHING
+      `,
+      [projectId, featureNames]
+    );
+    const featureIdsRes = await client.query(
+      `
+      SELECT feature_id AS "id", name FROM features
+      WHERE project_id = $1 AND name = ANY($2::text[])
+      `,
+      [projectId, featureNames]
+    );
+
+    const featureIds = featureIdsRes.rows.map((r) => r.id);
+    const traitValues = featureIdsRes.rows.map((r) =>
+      JSON.stringify(featureData[r.name])
+    );
+
+    await client.query(
+      `
+      INSERT INTO traits (feature_id, value)
+      VALUES (
+        unnest($1::integer[]),
+        unnest($2::jsonb[])
+      )
+      ON CONFLICT DO NOTHING
+      `,
+      [featureIds, traitValues]
+    );
+
+    const traitIdsRes = await client.query(
+      `
+      SELECT trait_id AS "id"
+      FROM traits JOIN (
+        SELECT feature_id, value
+        FROM unnest($1::integer[], $2::jsonb[]) AS x(feature_id, value)
+      ) AS q USING (feature_id, value)
+      `,
+      [featureIds, traitValues]
+    );
+    await client.query(
+      `
+      INSERT INTO trait_members(trait_id, token_id)
+      VALUES (unnest($1::integer[]), $2)
+      `,
+      [traitIdsRes.rows.map((x) => x.id), tokenId]
+    );
+  }
+
   await client.query("COMMIT");
+}
+
+/*
+ * type Trait = {
+ *   id: integer,
+ *   value: Json,
+ *   tokens: integer[]
+ * }
+ *
+ * type Feature = {
+ *   id: integer,
+ *   name: string,
+ *   traits: Trait[],
+ * }
+ *
+ * returns Feature[]
+ */
+async function getProjectFeaturesAndTraits({ client, projectId }) {
+  const res = await client.query(
+    `
+    SELECT feature_id, name, trait_id, token_id, value
+    FROM features
+      JOIN traits USING (feature_id)
+      JOIN trait_members USING (trait_id)
+    WHERE project_id = $1
+    ORDER BY feature_id, trait_id, token_id
+    `,
+    [projectId]
+  );
+
+  const result = [];
+  let currentTrait = {};
+  let currentFeature = {};
+  for (const row of res.rows) {
+    if (currentFeature.id !== row.feature_id) {
+      currentFeature = { id: row.feature_id, name: row.name, traits: [] };
+      result.push(currentFeature);
+      currentTrait = {};
+    }
+    if (currentTrait.id !== row.trait_id) {
+      currentTrait = { id: row.trait_id, value: row.value, tokens: [] };
+      currentFeature.traits.push(currentTrait);
+    }
+    currentTrait.tokens.push(row.token_id);
+  }
+  return result;
 }
 
 async function getTokenIds({ client }) {
@@ -239,4 +341,5 @@ module.exports = {
   getAllUnfetchedTokenIds,
   getTokensWithFeature,
   getTokenImageUrls,
+  getProjectFeaturesAndTraits,
 };
