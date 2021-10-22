@@ -124,6 +124,45 @@ async function addToken({ client, tokenId, rawTokenData }) {
     `,
     [tokenId]
   );
+
+  if (rawTokenData != null) {
+    // TODO: write into `traits`, `features`, `trait_members`
+    const featureData = JSON.parse(rawTokenData).features;
+    const featureNames = Object.keys(featureData);
+    await client.query(
+      `
+      INSERT INTO features (project_id, name)
+      VALUES ($1, unnest($2::text[]))
+      ON CONFLICT DO NOTHING
+      `,
+      [projectId, featureNames]
+    );
+    const featureIdsRes = await client.query(
+      `
+      SELECT feature_id AS "id", name FROM features
+      WHERE project_id = $1 AND name = ANY($2::text[])
+      `,
+      [projectId, featureNames]
+    );
+
+    await client.query(
+      `
+      INSERT INTO traits (project_id, feature_id, value)
+      VALUES (
+        $1,
+        unnest($2::integer[]),
+        unnest($3::jsonb[])
+      )
+      ON CONFLICT DO NOTHING
+      `,
+      [
+        projectId,
+        featureIdsRes.rows.map((r) => r.feature_id),
+        featureNames.map((k) => JSON.stringify(featureData[k])),
+      ]
+    );
+  }
+
   await client.query("COMMIT");
 }
 
