@@ -317,18 +317,14 @@ describe("db/artblocks", () => {
   );
 
   it(
-    "doesn't bump `num_tokens` when updating a token",
+    "doesn't permit updating token data",
     withTestDb(async ({ client }) => {
       await addTestData(client);
-      const p1NumTokens = async () =>
-        (await artblocks.getProject({ client, projectId: 1 })).numTokens;
-      expect(await p1NumTokens()).toBe(3);
-      await artblocks.addToken({
+      await expect(() => artblocks.addToken({
         client,
         tokenId: 1000001,
         rawTokenData: JSON.stringify({ features: { Size: "weird" } }),
-      });
-      expect(await p1NumTokens()).toBe(3);
+      })).rejects.toThrow("unique constraint \"tokens_pkey\"");
     })
   );
 });

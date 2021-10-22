@@ -90,11 +90,6 @@ async function setProjectSlug({ client, projectId, slug }) {
 
 async function addToken({ client, tokenId, rawTokenData }) {
   await client.query("BEGIN");
-  const deleteResult = await client.query(
-    "DELETE FROM tokens WHERE token_id = $1",
-    [tokenId]
-  );
-  const existed = deleteResult.rowCount !== 0;
   const projectId = Math.floor(tokenId / PROJECT_STRIDE);
   await client.query(
     `
@@ -103,19 +98,14 @@ async function addToken({ client, tokenId, rawTokenData }) {
     `,
     [tokenId, new Date(), rawTokenData, projectId]
   );
-  if (!existed) {
-    await client.query(
-      `
-      UPDATE projects
-      SET num_tokens = num_tokens + 1
-      WHERE project_id = $1
-      `,
-      [projectId]
-    );
-  }
-  await client.query("DELETE FROM token_features WHERE token_id = $1", [
-    tokenId,
-  ]);
+  await client.query(
+    `
+    UPDATE projects
+    SET num_tokens = num_tokens + 1
+    WHERE project_id = $1
+    `,
+    [projectId]
+  );
   await client.query(
     `
     INSERT INTO token_features (token_id, feature_name)
