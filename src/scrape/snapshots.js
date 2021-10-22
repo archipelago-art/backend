@@ -19,12 +19,18 @@ const ARCHETYPE_DESCRIPTION =
   "Archetype explores the use of repetition as a counterweight to unruly, random structures. As each single component look chaotic alone, the repetition brings along a sense of intentionality, ultimately resulting in a complex, yet satisfying expression.";
 
 const PERFECT_CHROMATIC = 7583;
+const ARCH_TRIPTYCH_1 = 23000036;
+const ARCH_TRIPTYCH_2 = 23000045;
+const ARCH_TRIPTYCH_3 = 23000467;
 const THE_CUBE = 23000250;
 const GALAXISS_ZERO = 31000000;
 const BYTEBEATS_SEVEN = 38000007; // has `{"Progressions": null}` in `features`
 const TOKENS = Object.freeze([
   0,
   PERFECT_CHROMATIC,
+  ARCH_TRIPTYCH_1,
+  ARCH_TRIPTYCH_2,
+  ARCH_TRIPTYCH_3,
   THE_CUBE,
   GALAXISS_ZERO,
   BYTEBEATS_SEVEN,
