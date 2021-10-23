@@ -161,22 +161,16 @@ async function addToken({ client, tokenId, rawTokenData }) {
       [featureIds, traitValues]
     );
 
-    const traitIdsRes = await client.query(
-      `
-      SELECT trait_id AS "id"
-      FROM traits JOIN (
-        SELECT feature_id, value
-        FROM unnest($1::integer[], $2::jsonb[]) AS x(feature_id, value)
-      ) AS q USING (feature_id, value)
-      `,
-      [featureIds, traitValues]
-    );
     await client.query(
       `
-      INSERT INTO trait_members(trait_id, token_id)
-      VALUES (unnest($1::integer[]), $2)
+      INSERT INTO trait_members (token_id, trait_id)
+      SELECT $1, trait_id
+      FROM traits JOIN (
+        SELECT feature_id, value
+        FROM unnest($2::integer[], $3::jsonb[]) AS x(feature_id, value)
+      ) AS q USING (feature_id, value)
       `,
-      [traitIdsRes.rows.map((x) => x.id), tokenId]
+      [tokenId, featureIds, traitValues]
     );
   }
 
