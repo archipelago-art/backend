@@ -358,64 +358,69 @@ describe("db/artblocks", () => {
         client,
         projectId,
       });
+      const id = expect.any(Number);
       const expected = [
         {
-          id: 1,
+          id,
           name: "Scene",
           traits: [
-            { id: 5, value: "Cube", tokens: [23000250] },
-            { id: 12, value: "Flat", tokens: [23000036, 23000045, 23000467] },
+            { id, value: "Cube", tokens: [23000250] },
+            { id, value: "Flat", tokens: [23000036, 23000045, 23000467] },
           ],
         },
         {
-          id: 2,
+          id,
           name: "Framed",
           traits: [
             {
-              id: 2,
+              id,
               value: "Yep",
               tokens: [23000036, 23000045, 23000250, 23000467],
             },
           ],
         },
         {
-          id: 3,
+          id,
           name: "Layout",
           traits: [
-            { id: 3, value: "Chaos", tokens: [23000250] },
-            { id: 10, value: "Order", tokens: [23000036, 23000045, 23000467] },
+            { id, value: "Chaos", tokens: [23000250] },
+            { id, value: "Order", tokens: [23000036, 23000045, 23000467] },
           ],
         },
         {
-          id: 4,
+          id,
           name: "Palette",
           traits: [
             {
-              id: 4,
+              id,
               value: "Paddle",
               tokens: [23000036, 23000045, 23000250, 23000467],
             },
           ],
         },
         {
-          id: 5,
+          id,
           name: "Shading",
           traits: [
-            { id: 6, value: "Bright Morning", tokens: [23000250] },
-            { id: 13, value: "Noon", tokens: [23000036, 23000045, 23000467] },
+            { id, value: "Bright Morning", tokens: [23000250] },
+            { id, value: "Noon", tokens: [23000036, 23000045, 23000467] },
           ],
         },
         {
-          id: 6,
+          id,
           name: "Coloring strategy",
           traits: [
-            { id: 1, value: "Single", tokens: [23000250] },
-            { id: 8, value: "Random", tokens: [23000036] },
-            { id: 15, value: "Group", tokens: [23000045, 23000467] },
+            { id, value: "Single", tokens: [23000250] },
+            { id, value: "Random", tokens: [23000036] },
+            { id, value: "Group", tokens: [23000045, 23000467] },
           ],
         },
       ];
       expect(res).toEqual(expected);
+      const featureIds = res.map((f) => f.id);
+      expect(featureIds).toEqual(Array.from(new Set(featureIds)));
+      const traitIds = res.flatMap((f) => f.traits.map((t) => t.id));
+      expect(traitIds).toEqual(Array.from(new Set(traitIds)));
     })
   );
 });
