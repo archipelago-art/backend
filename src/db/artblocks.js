@@ -184,10 +184,9 @@ async function populateTraitMembers({
     `
     INSERT INTO trait_members (token_id, trait_id)
     SELECT $1, trait_id
-    FROM traits JOIN (
-      SELECT feature_id, value
-      FROM unnest($2::integer[], $3::jsonb[]) AS x(feature_id, value)
-    ) AS q USING (feature_id, value)
+    FROM traits
+    JOIN unnest($2::integer[], $3::jsonb[]) AS my_traits(feature_id, value)
+      USING (feature_id, value)
     `,
     [tokenId, featureIds, traitValues]
   );
