@@ -125,56 +125,73 @@ async function addToken({ client, tokenId, rawTokenData }) {
     [tokenId]
   );
 
-  if (rawTokenData != null) {
-    const featureData = JSON.parse(rawTokenData).features;
-    const featureNames = Object.keys(featureData);
-    await client.query(
-      `
-      INSERT INTO features (project_id, name)
-      VALUES ($1, unnest($2::text[]))
-      ON CONFLICT DO NOTHING
-      `,
-      [projectId, featureNames]
-    );
-    const featureIdsRes = await client.query(
-      `
-      SELECT feature_id AS "id", name FROM features
-      WHERE project_id = $1 AND name = ANY($2::text[])
-      `,
-      [projectId, featureNames]
-    );
-
-    const featureIds = featureIdsRes.rows.map((r) => r.id);
-    const traitValues = featureIdsRes.rows.map((r) =>
-      JSON.stringify(featureData[r.name])
-    );
-
-    await client.query(
-      `
-      INSERT INTO traits (feature_id, value)
-      VALUES (
-        unnest($1::integer[]),
-        unnest($2::jsonb[])
-      )
-      ON CONFLICT DO NOTHING
-      `,
-      [featureIds, traitValues]
-    );
-
-    await client.query(
-      `
-      INSERT INTO trait_members (token_id, trait_id)
-      SELECT $1, trait_id
-      FROM traits JOIN (
-        SELECT feature_id, value
-        FROM unnest($2::integer[], $3::jsonb[]) AS x(feature_id, value)
-      ) AS q USING (feature_id, value)
-      `,
-      [tokenId, featureIds, traitValues]
-    );
-  }
+  await populateTraitMembers({
+    client,
+    tokenId,
+    projectId,
+    rawTokenData,
+    alreadyInTransaction: true,
+  });
 
   await client.query("COMMIT");
+}
+
+async function populateTraitMembers({
+  client,
+  tokenId,
+  projectId,
+  rawTokenData,
+  alreadyInTransaction = false,
+}) {
+  if (rawTokenData == null) return;
+  if (!alreadyInTransaction) await client.query("BEGIN");
+  const featureData = JSON.parse(rawTokenData).features;
+  const featureNames = Object.keys(featureData);
+  await client.query(
+    `
+    INSERT INTO features (project_id, name)
+    VALUES ($1, unnest($2::text[]))
+    ON CONFLICT DO NOTHING
+    `,
+    [projectId, featureNames]
+  );
+  const featureIdsRes = await client.query(
+    `
+    SELECT feature_id AS "id", name FROM features
+    WHERE project_id = $1 AND name = ANY($2::text[])
+    `,
+    [projectId, featureNames]
+  );
+
+  const featureIds = featureIdsRes.rows.map((r) => r.id);
+  const traitValues = featureIdsRes.rows.map((r) =>
+    JSON.stringify(featureData[r.name])
+  );
+
+  await client.query(
+    `
+    INSERT INTO traits (feature_id, value)
+    VALUES (
+      unnest($1::integer[]),
+      unnest($2::jsonb[])
+    )
+    ON CONFLICT DO NOTHING
+    `,
+    [featureIds, traitValues]
+  );
+
+  await client.query(
+    `
+    INSERT INTO trait_members (token_id, trait_id)
+    SELECT $1, trait_id
+    FROM traits JOIN (
+      SELECT feature_id, value
+      FROM unnest($2::integer[], $3::jsonb[]) AS x(feature_id, value)
+    ) AS q USING (feature_id, value)
+    `,
+    [tokenId, featureIds, traitValues]
+  );
+  if (!alreadyInTransaction) await client.query("COMMIT");
 }
 
 /*
