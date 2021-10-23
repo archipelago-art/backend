@@ -320,11 +320,32 @@ describe("db/artblocks", () => {
     "doesn't permit updating token data",
     withTestDb(async ({ client }) => {
       await addTestData(client);
-      await expect(() => artblocks.addToken({
+      await expect(() =>
+        artblocks.addToken({
+          client,
+          tokenId: 1000001,
+          rawTokenData: JSON.stringify({ features: { Size: "weird" } }),
+        })
+      ).rejects.toThrow('unique constraint "tokens_pkey"');
+    })
+  );
+
+  it.only(
+    "supports getProjectFeaturesAndTraits",
+    withTestDb(async ({ client }) => {
+      await artblocks.addProject({
         client,
-        tokenId: 1000001,
-        rawTokenData: JSON.stringify({ features: { Size: "weird" } }),
-      })).rejects.toThrow("unique constraint \"tokens_pkey\"");
+        project: parseProjectData(
+          snapshots.ARCHETYPE,
+          await sc.project(snapshots.ARCHETYPE)
+        ),
+      });
+      const projectId = snapshots.ARCHETYPE;
+      const res = await artblocks.getProjectFeaturesAndTraits({
+        client,
+        projectId,
+      });
+      console.error(res);
     })
   );
 });

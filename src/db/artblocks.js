@@ -145,25 +145,84 @@ async function addToken({ client, tokenId, rawTokenData }) {
       [projectId, featureNames]
     );
 
+    const featureIds = featureIdsRes.rows.map((r) => r.feature_id);
+    const traitValues = featureIdsRes.rows.map((r) =>
+      JSON.stringify(featureData[r.name])
+    );
+
     await client.query(
       `
-      INSERT INTO traits (project_id, feature_id, value)
+      INSERT INTO traits (feature_id, value)
       VALUES (
-        $1,
         unnest($2::integer[]),
         unnest($3::jsonb[])
       )
       ON CONFLICT DO NOTHING
       `,
-      [
-        projectId,
-        featureIdsRes.rows.map((r) => r.feature_id),
-        featureNames.map((k) => JSON.stringify(featureData[k])),
-      ]
+      [featureIds, traitValues]
     );
+
+    const traitIdsRes = await client.query(
+      `
+      SELECT trait_id AS "id"
+      FROM traits JOIN (
+        SELECT feature_id, value
+        FROM unnest($1::integer[] AS feature_id, $2::jsonb[] AS value)
+      ) USING (feature_id, value)
+      `,
+      [featureIds, traitValues]
+    );
+    throw "hmm";
+    console.error(traitIdsRes);
   }
 
   await client.query("COMMIT");
+}
+
+/*
+ * type Trait = {
+ *   id: integer,
+ *   value: Json,
+ *   tokens: integer[]
+ * }
+ *
+ * type Feature = {
+ *   id: integer,
+ *   name: string,
+ *   traits: Trait[],
+ * }
+ *
+ * returns Feature[]
+ */
+async function getProjectFeaturesAndTraits({ client, projectId }) {
+  const res = await client.query(
+    `
+    SELECT feature_id, name, trait_id, token_id, value
+    FROM features
+      JOIN traits USING (feature_id)
+      JOIN trait_members USING (trait_id)
+    WHERE project_id = $1
+    ORDER BY feature_id, trait_id, token_id
+    `,
+    [projectId]
+  );
+
+  const result = [];
+  let currentTrait = {};
+  let currentFeature = {};
+  for (const row of res.rows) {
+    if (currentFeature.id !== row.feature_id) {
+      currentFeature = { id: row.feature_id, name: row.name, traits: [] };
+      result.push(currentFeature);
+      currentTrait = {};
+    }
+    if (currentTrait.id !== row.trait_id) {
+      currentTrait = { id: row.trait_id, value: row.value, tokens: [] };
+      currentFeature.traits.push(currentTrait);
+    }
+    currentTrait.tokens.push(row.token_id);
+  }
+  return result;
 }
 
 async function getTokenIds({ client }) {
@@ -278,4 +337,5 @@ module.exports = {
   getAllUnfetchedTokenIds,
   getTokensWithFeature,
   getTokenImageUrls,
+  getProjectFeaturesAndTraits,
 };
