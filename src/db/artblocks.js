@@ -194,6 +194,7 @@ async function populateTraitMembers({
     FROM traits
     JOIN unnest($2::integer[], $3::jsonb[]) AS my_traits(feature_id, value)
       USING (feature_id, value)
+    ON CONFLICT DO NOTHING
     `,
     [tokenId, featureIds, traitValues]
   );
@@ -351,6 +352,7 @@ module.exports = {
   getProject,
   setProjectSlug,
   addToken,
+  populateTraitMembers,
   getTokenIds,
   getTokenFeatures,
   getProjectFeatures,

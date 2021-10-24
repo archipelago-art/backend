@@ -56,11 +56,11 @@ async function migrate(args) {
 // where <backfill-module-name> is the basename of a file in
 // `src/db/backfills`, without the `.js` extension
 async function backfill(args) {
-  const [backfillName] = args;
+  const [backfillName, ...backfillArgs] = args;
   const backfill = backfills[backfillName];
   if (backfill == null) throw new Error("unknown backfill " + backfillName);
   await withDb(async ({ pool }) => {
-    await backfill({ pool, verbose: true });
+    await backfill({ pool, args: backfillArgs, verbose: true });
   });
 }
 
