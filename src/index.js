@@ -59,8 +59,8 @@ async function backfill(args) {
   const [backfillName] = args;
   const backfill = backfills[backfillName];
   if (backfill == null) throw new Error("unknown backfill " + backfillName);
-  await withDb(async ({ client }) => {
-    await backfill({ client, verbose: true });
+  await withDb(async ({ pool }) => {
+    await backfill({ pool, verbose: true });
   });
 }
 

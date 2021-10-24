@@ -26,7 +26,7 @@ describe("backfills/projectSlugs", () => {
 
   it(
     "populates slugs for multiple projects at once",
-    withTestDb(async ({ client }) => {
+    withTestDb(async ({ client, pool }) => {
       await addProject(client, snapshots.SQUIGGLES);
       await addProject(client, snapshots.ARCHETYPE);
       await client.query(`UPDATE projects SET slug = NULL`);
@@ -34,7 +34,7 @@ describe("backfills/projectSlugs", () => {
         { name: "Chromie Squiggle", slug: null },
         { name: "Archetype", slug: null },
       ]);
-      await backfillProjectSlugs({ client });
+      await backfillProjectSlugs({ pool });
       expect(await slugs(client)).toEqual([
         { name: "Chromie Squiggle", slug: "chromie-squiggle" },
         { name: "Archetype", slug: "archetype" },
@@ -44,7 +44,7 @@ describe("backfills/projectSlugs", () => {
 
   it(
     "doesn't overwrite slugs that are already set",
-    withTestDb(async ({ client }) => {
+    withTestDb(async ({ client, pool }) => {
       await addProject(client, snapshots.SQUIGGLES);
       await addProject(client, snapshots.ARCHETYPE);
       await client.query(`UPDATE projects SET slug = NULL`);
@@ -53,7 +53,7 @@ describe("backfills/projectSlugs", () => {
         projectId: snapshots.SQUIGGLES,
         slug: "squigglez",
       });
-      await backfillProjectSlugs({ client });
+      await backfillProjectSlugs({ pool });
       expect(await slugs(client)).toEqual([
         { name: "Chromie Squiggle", slug: "squigglez" },
         { name: "Archetype", slug: "archetype" },

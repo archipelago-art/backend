@@ -1,14 +1,16 @@
 const slug = require("slug");
 
-async function backfillProjectSlugs({ client, verbose }) {
-  const { rows: sluglessProjects } = await client.query(`
+const { acqrel } = require("../util");
+
+async function backfillProjectSlugs({ pool, verbose }) {
+  const { rows: sluglessProjects } = await pool.query(`
     SELECT project_id AS id, name FROM projects WHERE slug IS NULL
   `);
   const updates = sluglessProjects.map(({ id, name }) => ({
     id,
     slug: slug(name),
   }));
-  const res = await client.query(
+  const res = await pool.query(
     `
     UPDATE projects
     SET slug = updates.slug
