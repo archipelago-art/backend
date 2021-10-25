@@ -219,30 +219,34 @@ async function populateTraitMembers({
 async function getProjectFeaturesAndTraits({ client, projectId }) {
   const res = await client.query(
     `
-    SELECT feature_id, name, trait_id, token_id, value
+    SELECT
+      feature_id,
+      name,
+      trait_id,
+      value,
+      array_agg(token_id ORDER BY token_id) AS tokens
     FROM features
       JOIN traits USING (feature_id)
       JOIN trait_members USING (trait_id)
     WHERE project_id = $1
-    ORDER BY feature_id, trait_id, token_id
+    GROUP BY feature_id, trait_id
+    ORDER BY feature_id, trait_id
     `,
     [projectId]
   );
 
   const result = [];
-  let currentTrait = {};
   let currentFeature = {};
   for (const row of res.rows) {
     if (currentFeature.id !== row.feature_id) {
       currentFeature = { id: row.feature_id, name: row.name, traits: [] };
       result.push(currentFeature);
-      currentTrait = {};
     }
-    if (currentTrait.id !== row.trait_id) {
-      currentTrait = { id: row.trait_id, value: row.value, tokens: [] };
-      currentFeature.traits.push(currentTrait);
-    }
-    currentTrait.tokens.push(row.token_id);
+    currentFeature.traits.push({
+      id: row.trait_id,
+      value: row.value,
+      tokens: row.tokens,
+    });
   }
   return result;
 }
