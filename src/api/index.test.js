@@ -55,7 +55,7 @@ describe("api", () => {
   );
 
   it(
-    "provides tokenFeatures",
+    "provides project features and traits",
     withTestDb(async ({ client }) => {
       const archetype = parseProjectData(
         snapshots.ARCHETYPE,
@@ -68,29 +68,12 @@ describe("api", () => {
         const rawTokenData = await sc.token(tokenId);
         await artblocks.addToken({ client, tokenId, rawTokenData });
       }
-      const res = await api.tokenFeatures({ client, collection });
-      const expected = {
-        featureNames: [
-          "Coloring strategy: Random",
-          "Framed: Yep",
-          "Layout: Order",
-          "Palette: Paddle",
-          "Scene: Flat",
-          "Shading: Noon",
-          "Coloring strategy: Group",
-          "Coloring strategy: Single",
-          "Layout: Chaos",
-          "Scene: Cube",
-          "Shading: Bright Morning",
-        ],
-        tokens: {
-          23000036: [0, 1, 2, 3, 4, 5],
-          23000045: [6, 1, 2, 3, 4, 5],
-          23000250: [7, 1, 8, 3, 9, 10],
-          23000467: [6, 1, 2, 3, 4, 5],
-        },
-      };
-      expect(res).toEqual(expected);
+      const res = await api.projectFeaturesAndTraits({ client, collection });
+      expect(
+        res
+          .find((x) => x.name === "Scene")
+          .traits.find((x) => x.value === "Cube").tokens
+      ).toEqual([snapshots.THE_CUBE]);
     })
   );
 });
