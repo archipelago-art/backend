@@ -2,6 +2,7 @@ const slug = require("slug");
 
 const artblocks = require("../db/artblocks");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
+const sortAsciinumeric = require("../util/sortAsciinumeric");
 
 const PROJECT_STRIDE = 1e6;
 
@@ -50,6 +51,7 @@ async function projectFeaturesAndTraits({ client, collection }) {
   });
   for (const feature of res) {
     feature.slug = slug(feature.name);
+    feature.traits = sortAsciinumeric(feature.traits, (t) => String(t.value));
     for (const trait of feature.traits) {
       trait.slug = slug(String(trait.value));
     }
