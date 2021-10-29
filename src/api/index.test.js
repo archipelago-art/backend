@@ -69,11 +69,21 @@ describe("api", () => {
         await artblocks.addToken({ client, tokenId, rawTokenData });
       }
       const res = await api.projectFeaturesAndTraits({ client, collection });
-      expect(
-        res
-          .find((x) => x.name === "Scene")
-          .traits.find((x) => x.value === "Cube").tokens
-      ).toEqual([snapshots.THE_CUBE]);
+      expect(res).toEqual(
+        expect.arrayContaining([
+          {
+            name: "Scene",
+            id: expect.any(Number),
+            traits: expect.arrayContaining([
+              {
+                value: "Cube",
+                id: expect.any(Number),
+                tokens: [snapshots.THE_CUBE],
+              },
+            ]),
+          },
+        ])
+      );
     })
   );
 });
