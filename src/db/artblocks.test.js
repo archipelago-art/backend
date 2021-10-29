@@ -362,10 +362,11 @@ describe("db/artblocks", () => {
       const expected = [
         {
           id,
-          name: "Scene",
+          name: "Coloring strategy",
           traits: [
-            { id, value: "Cube", tokens: [23000250] },
-            { id, value: "Flat", tokens: [23000036, 23000045, 23000467] },
+            { id, value: "Group", tokens: [23000045, 23000467] },
+            { id, value: "Random", tokens: [23000036] },
+            { id, value: "Single", tokens: [23000250] },
           ],
         },
         {
@@ -400,19 +401,18 @@ describe("db/artblocks", () => {
         },
         {
           id,
-          name: "Shading",
+          name: "Scene",
           traits: [
-            { id, value: "Bright Morning", tokens: [23000250] },
-            { id, value: "Noon", tokens: [23000036, 23000045, 23000467] },
+            { id, value: "Cube", tokens: [23000250] },
+            { id, value: "Flat", tokens: [23000036, 23000045, 23000467] },
           ],
         },
         {
           id,
-          name: "Coloring strategy",
+          name: "Shading",
           traits: [
-            { id, value: "Single", tokens: [23000250] },
-            { id, value: "Random", tokens: [23000036] },
-            { id, value: "Group", tokens: [23000045, 23000467] },
+            { id, value: "Bright Morning", tokens: [23000250] },
+            { id, value: "Noon", tokens: [23000036, 23000045, 23000467] },
           ],
         },
       ];

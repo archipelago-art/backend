@@ -230,7 +230,7 @@ async function getProjectFeaturesAndTraits({ client, projectId }) {
       JOIN trait_members USING (trait_id)
     WHERE project_id = $1
     GROUP BY feature_id, trait_id
-    ORDER BY feature_id, trait_id
+    ORDER BY name, value
     `,
     [projectId]
   );
