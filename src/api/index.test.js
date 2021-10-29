@@ -74,11 +74,13 @@ describe("api", () => {
           {
             name: "Scene",
             id: expect.any(Number),
+            slug: "scene",
             traits: expect.arrayContaining([
               {
                 value: "Cube",
                 id: expect.any(Number),
                 tokens: [snapshots.THE_CUBE],
+                slug: "cube",
               },
             ]),
           },

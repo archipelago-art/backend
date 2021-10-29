@@ -1,3 +1,5 @@
+const slug = require("slug");
+
 const artblocks = require("../db/artblocks");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 
@@ -42,7 +44,17 @@ async function collections({ client }) {
 async function projectFeaturesAndTraits({ client, collection }) {
   const projectId = collectionNameToArtblocksProjectId(collection);
   if (projectId == null) throw new Error("bad collection ID: " + collection);
-  return await artblocks.getProjectFeaturesAndTraits({ client, projectId });
+  const res = await artblocks.getProjectFeaturesAndTraits({
+    client,
+    projectId,
+  });
+  for (const feature of res) {
+    feature.slug = slug(feature.name);
+    for (const trait of feature.traits) {
+      trait.slug = slug(String(trait.value));
+    }
+  }
+  return res;
 }
 
 module.exports = {
