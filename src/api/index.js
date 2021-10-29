@@ -57,9 +57,23 @@ async function projectFeaturesAndTraits({ client, collection }) {
   return res;
 }
 
+async function tokenFeaturesAndTraits({ client, tokenId }) {
+  if (!Number.isInteger(tokenId)) throw new Error("bad token ID: " + tokenId);
+  const res = await artblocks.getTokenFeaturesAndTraits({
+    client,
+    tokenId,
+  });
+  for (const row of res) {
+    row.featureSlug = slug(row.name);
+    row.traitSlug = slug(String(row.value));
+  }
+  return res;
+}
+
 module.exports = {
   artblocksProjectIdToCollectionName,
   collectionNameToArtblocksProjectId,
   collections,
   projectFeaturesAndTraits,
+  tokenFeaturesAndTraits,
 };

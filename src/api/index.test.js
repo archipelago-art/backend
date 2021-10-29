@@ -88,4 +88,41 @@ describe("api", () => {
       );
     })
   );
+
+  it(
+    "provides token features and traits",
+    withTestDb(async ({ client }) => {
+      const archetype = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      const collection = api.artblocksProjectIdToCollectionName(
+        archetype.projectId
+      );
+      const tokenId = snapshots.THE_CUBE;
+      const rawTokenData = await sc.token(tokenId);
+      await artblocks.addToken({ client, tokenId, rawTokenData });
+      const res = await api.tokenFeaturesAndTraits({ client, tokenId });
+      expect(res).toEqual(
+        expect.arrayContaining([
+          {
+            name: "Framed",
+            featureId: expect.any(Number),
+            featureSlug: "framed",
+            value: "Yep",
+            traitId: expect.any(Number),
+            traitSlug: "yep",
+          },
+          {
+            name: "Scene",
+            featureId: expect.any(Number),
+            featureSlug: "scene",
+            value: "Cube",
+            traitId: expect.any(Number),
+            traitSlug: "cube",
+          },
+        ])
+      );
+    })
+  );
 });

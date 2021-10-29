@@ -251,6 +251,26 @@ async function getProjectFeaturesAndTraits({ client, projectId }) {
   return result;
 }
 
+async function getTokenFeaturesAndTraits({ client, tokenId }) {
+  const res = await client.query(
+    `
+    SELECT
+      feature_id AS "featureId",
+      name,
+      trait_id AS "traitId",
+      value
+    FROM features
+      JOIN traits USING (feature_id)
+      JOIN trait_members USING (trait_id)
+    WHERE token_id = $1
+    GROUP BY feature_id, trait_id
+    ORDER BY name, value
+    `,
+    [tokenId]
+  );
+  return res.rows;
+}
+
 async function getTokenIds({ client }) {
   const res = await client.query(`
     SELECT token_id AS "tokenId"
@@ -357,6 +377,8 @@ module.exports = {
   setProjectSlug,
   addToken,
   populateTraitMembers,
+  getProjectFeaturesAndTraits,
+  getTokenFeaturesAndTraits,
   getTokenIds,
   getTokenFeatures,
   getProjectFeatures,
@@ -364,5 +386,4 @@ module.exports = {
   getAllUnfetchedTokenIds,
   getTokensWithFeature,
   getTokenImageUrls,
-  getProjectFeaturesAndTraits,
 };

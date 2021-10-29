@@ -423,4 +423,43 @@ describe("db/artblocks", () => {
       expect(traitIds).toEqual(Array.from(new Set(traitIds)));
     })
   );
+
+  it(
+    "supports getTokenFeaturesAndTraits",
+    withTestDb(async ({ client }) => {
+      await artblocks.addProject({
+        client,
+        project: parseProjectData(
+          snapshots.ARCHETYPE,
+          await sc.project(snapshots.ARCHETYPE)
+        ),
+      });
+      const tokenId = snapshots.THE_CUBE;
+      await artblocks.addToken({
+        client,
+        tokenId,
+        rawTokenData: await sc.token(snapshots.THE_CUBE),
+      });
+      const res = await artblocks.getTokenFeaturesAndTraits({
+        client,
+        tokenId,
+      });
+      expect(res).toEqual(
+        expect.arrayContaining([
+          {
+            featureId: expect.any(Number),
+            name: "Framed",
+            traitId: expect.any(Number),
+            value: "Yep",
+          },
+          {
+            featureId: expect.any(Number),
+            name: "Scene",
+            traitId: expect.any(Number),
+            value: "Cube",
+          },
+        ])
+      );
+    })
+  );
 });
