@@ -55,6 +55,38 @@ describe("api", () => {
   );
 
   it(
+    "reads a single project from a multi-project DB",
+    withTestDb(async ({ client }) => {
+      const archetype = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      const squiggles = parseProjectData(
+        snapshots.SQUIGGLES,
+        await sc.project(snapshots.SQUIGGLES)
+      );
+      const theCube = await sc.token(snapshots.THE_CUBE);
+      await artblocks.addProject({ client, project: archetype });
+      await artblocks.addProject({ client, project: squiggles });
+      await artblocks.addToken({
+        client,
+        tokenId: snapshots.THE_CUBE,
+        rawTokenData: theCube,
+      });
+      const res = await api.collection({ client, collection: "ab-23" });
+      expect(res).toEqual({
+        id: "ab-23",
+        name: "Archetype",
+        artistName: "Kjetil Golid",
+        description: expect.stringContaining("repetition as a counterweight"),
+        aspectRatio: 1,
+        numTokens: 1,
+        slug: "archetype",
+      });
+    })
+  );
+
+  it(
     "provides project features and traits",
     withTestDb(async ({ client }) => {
       const archetype = parseProjectData(

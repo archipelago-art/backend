@@ -18,8 +18,15 @@ function collectionNameToArtblocksProjectId(name) {
   return Number(match[1]);
 }
 
-async function collections({ client }) {
-  const res = await client.query(`
+function collectionNameToArtblocksProjectIdUnwrap(name) {
+  const projectId = collectionNameToArtblocksProjectId(name);
+  if (projectId == null) throw new Error("bad collection ID: " + collection);
+  return projectId;
+}
+
+async function _collections({ client, projectId }) {
+  const res = await client.query(
+    `
     SELECT
       project_id AS "id",
       name AS "name",
@@ -29,8 +36,11 @@ async function collections({ client }) {
       num_tokens AS "numTokens",
       slug AS "slug"
     FROM projects
+    WHERE project_id = $1 OR $1 IS NULL
     ORDER BY project_id ASC
-  `);
+    `,
+    [projectId]
+  );
   return res.rows.map((row) => ({
     id: artblocksProjectIdToCollectionName(row.id),
     name: row.name,
@@ -42,9 +52,21 @@ async function collections({ client }) {
   }));
 }
 
+async function collections({ client }) {
+  return await _collections({ client, projectId: null });
+}
+
+async function collection({ client, collection }) {
+  const projectId =
+    collection == null
+      ? null
+      : collectionNameToArtblocksProjectIdUnwrap(collection);
+  const res = await _collections({ client, projectId });
+  return res[0] ?? null;
+}
+
 async function projectFeaturesAndTraits({ client, collection }) {
-  const projectId = collectionNameToArtblocksProjectId(collection);
-  if (projectId == null) throw new Error("bad collection ID: " + collection);
+  const projectId = collectionNameToArtblocksProjectIdUnwrap(collection);
   const res = await artblocks.getProjectFeaturesAndTraits({
     client,
     projectId,
@@ -76,6 +98,7 @@ module.exports = {
   artblocksProjectIdToCollectionName,
   collectionNameToArtblocksProjectId,
   collections,
+  collection,
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
 };
