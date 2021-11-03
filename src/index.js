@@ -4,7 +4,7 @@ const artblocks = require("./db/artblocks");
 const backfills = require("./db/backfills");
 const migrations = require("./db/migrations");
 const { acqrel } = require("./db/util");
-const { downloadImage, resizeImage } = require("./img/downloadImages");
+const images = require("./img");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 
@@ -187,7 +187,7 @@ async function downloadImages(args) {
         if (workUnit == null) return;
         const { tokenId, imageUrl } = workUnit;
         try {
-          const path = await downloadImage(rootDir, imageUrl, tokenId);
+          const path = await images.download(rootDir, imageUrl, tokenId);
           console.log("downloaded image for %s to %s", tokenId, path);
         } catch (e) {
           console.error(`failed to download image for ${tokenId}: ${e}`);
@@ -218,7 +218,7 @@ async function resizeImages(args) {
         const tokenId = tokenIds.shift();
         if (tokenId == null) return;
         try {
-          const outputPath = await resizeImage(
+          const outputPath = await images.resize(
             inputDir,
             outputDir,
             tokenId,
@@ -245,6 +245,28 @@ async function resizeImages(args) {
   });
 }
 
+async function listImages(args) {
+  const gcs = require("@google-cloud/storage");
+  const [bucket, prefix] = args;
+  const storage = new gcs.Storage();
+  const start = process.hrtime.bigint();
+  const res = await images.list(storage.bucket(bucket), prefix);
+  const end = await process.hrtime.bigint();
+  const elapsed = end - start;
+  console.log(
+    "elapsed: %s ns = %s ms",
+    elapsed,
+    (Number(elapsed / 1000n) / 1000).toFixed(3)
+  );
+  const dims = new Set();
+  for (const v of res.values()) {
+    for (const d of v) {
+      dims.add(d);
+    }
+  }
+  console.log("listed %s images, with dimensions: %s", res.size, dims);
+}
+
 async function main() {
   require("dotenv").config();
   const [arg0, ...args] = process.argv.slice(2);
@@ -261,6 +283,7 @@ async function main() {
     ["get-tokens-with-feature", getTokensWithFeature],
     ["download-images", downloadImages],
     ["resize-images", resizeImages],
+    ["list-images", listImages],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
