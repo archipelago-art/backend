@@ -4,7 +4,7 @@ const artblocks = require("./db/artblocks");
 const backfills = require("./db/backfills");
 const migrations = require("./db/migrations");
 const { acqrel } = require("./db/util");
-const { downloadImage, resizeImage } = require("./scrape/downloadImages");
+const { downloadImage, resizeImage } = require("./img/downloadImages");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 
