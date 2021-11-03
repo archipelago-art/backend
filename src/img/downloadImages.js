@@ -5,16 +5,7 @@ const util = require("util");
 
 const fetch = require("node-fetch");
 
-function imagePath(tokenId) {
-  const project = Math.floor(tokenId / 1e6).toFixed(0);
-  const idHigh = Math.floor((tokenId / 1e3) % 1e3)
-    .toFixed(0)
-    .padStart(3, "0");
-  const idLow = Math.floor(tokenId % 1e3)
-    .toFixed(0)
-    .padStart(3, "0");
-  return join(project, idHigh, idLow);
-}
+const { imagePath } = require("./paths");
 
 async function downloadImage(rootDir, url, tokenId) {
   const outputPath = join(rootDir, imagePath(tokenId));
@@ -50,4 +41,4 @@ async function resizeImage(rootDir1, rootDir2, tokenId, outputSizePx) {
   return outputPath;
 }
 
-module.exports = { imagePath, downloadImage, resizeImage };
+module.exports = { downloadImage, resizeImage };

@@ -1,6 +1,6 @@
-const { imagePath } = require("./downloadImages");
+const { imagePath } = require("./paths");
 
-describe("img/downloadImages", () => {
+describe("img/paths", () => {
   describe("imagePath", () => {
     it("pads zeros for token ID parts (but not project ID)", () => {
       expect(imagePath(0)).toEqual("0/000/000");
