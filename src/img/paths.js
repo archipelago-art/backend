@@ -21,4 +21,12 @@ function imagePath(tokenId, options) {
   }
 }
 
-module.exports = { imagePath };
+const RE_IMAGE_PATH = /^([0-9]*)[/\\]([0-9]{3})[/\\]([0-9]{3})$/;
+
+function parseImagePath(path) {
+  const match = path.match(RE_IMAGE_PATH);
+  if (match == null) return null;
+  return parseInt(match[1] + match[2] + match[3], 10);
+}
+
+module.exports = { imagePath, parseImagePath };
