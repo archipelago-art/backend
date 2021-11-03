@@ -9,5 +9,8 @@ describe("img/paths", () => {
     it("properly renders a realistic token ID with all parts nonzero", () => {
       expect(imagePath(12345678)).toEqual("12/345/678");
     });
+    it("returns slash-delimited output", () => {
+      expect(imagePath(12345678)).toEqual("12/345/678");
+    });
   });
 });
