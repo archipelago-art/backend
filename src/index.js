@@ -245,26 +245,25 @@ async function resizeImages(args) {
   });
 }
 
-async function listImages(args) {
+async function ingestImages(args) {
   const gcs = require("@google-cloud/storage");
-  const [bucket, prefix] = args;
-  const storage = new gcs.Storage();
-  const start = process.hrtime.bigint();
-  const res = await images.list(storage.bucket(bucket), prefix);
-  const end = await process.hrtime.bigint();
-  const elapsed = end - start;
-  console.log(
-    "elapsed: %s ns = %s ms",
-    elapsed,
-    (Number(elapsed / 1000n) / 1000).toFixed(3)
+  const [bucketName, prefix, workDir] = args;
+  const ctx = {
+    bucket: new gcs.Storage().bucket(bucketName),
+    prefix,
+    workDir,
+  };
+  console.log("fetching token IDs and download URLs");
+  const tokens = await withDb(({ client }) =>
+    artblocks.getTokenImageUrls({ client })
   );
-  const dims = new Set();
-  for (const v of res.values()) {
-    for (const d of v) {
-      dims.add(d);
-    }
-  }
-  console.log("listed %s images, with dimensions: %s", res.size, dims);
+  console.log(`got ${tokens.length} tokens`);
+  console.log(`listing images in gs://${ctx.bucket.name}/${ctx.prefix}`);
+  const listing = await images.list(ctx.bucket, ctx.prefix);
+  console.log(`got images for ${listing.size} tokens`);
+  await images.ingest(ctx, tokens, listing, {
+    concurrency: IMAGEMAGICK_CONCURRENCY,
+  });
 }
 
 async function main() {
@@ -283,7 +282,7 @@ async function main() {
     ["get-tokens-with-feature", getTokensWithFeature],
     ["download-images", downloadImages],
     ["resize-images", resizeImages],
-    ["list-images", listImages],
+    ["ingest-images", ingestImages],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
