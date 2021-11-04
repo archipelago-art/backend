@@ -247,11 +247,24 @@ async function resizeImages(args) {
 
 async function ingestImages(args) {
   const gcs = require("@google-cloud/storage");
+  let dryRun = false;
+  if (args[0] === "-n" || args[0] === "--dry-run") {
+    console.log("dry run mode enabled");
+    dryRun = true;
+    args.shift();
+  }
+  if (args.length !== 3) {
+    console.error(
+      "usage: ingest-images [-n|--dry-run] <bucket-name> <prefix> <work-dir>"
+    );
+    return 1;
+  }
   const [bucketName, prefix, workDir] = args;
   const ctx = {
     bucket: new gcs.Storage().bucket(bucketName),
     prefix,
     workDir,
+    dryRun,
   };
   console.log("fetching token IDs and download URLs");
   const tokens = await withDb(({ client }) =>

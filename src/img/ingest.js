@@ -63,6 +63,10 @@ async function process(ctx, token, listing) {
   const have = listing.get(token.tokenId) ?? [];
   for (const target of TARGETS) {
     if (have.includes(target.name)) continue;
+    if (ctx.dryRun) {
+      console.log(`would process ${target.name} for token ${token.tokenId}`);
+      continue;
+    }
     try {
       await makeTarget(ctx, token, target);
       console.log(`processed ${target.name} for token ${token.tokenId}`);
