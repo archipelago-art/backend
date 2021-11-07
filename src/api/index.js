@@ -65,6 +65,21 @@ async function collection({ client, collection }) {
   return res[0] ?? null;
 }
 
+async function collectionMintState({ client, collection }) {
+  const projectId = collectionNameToArtblocksProjectIdUnwrap(collection);
+  const res = await client.query(
+    `
+    SELECT
+      num_tokens AS "numTokens",
+      max_invocations AS "maxInvocations"
+    FROM projects
+    WHERE project_id = $1
+    `,
+    [projectId]
+  );
+  return res.rows[0] ?? null;
+}
+
 async function projectFeaturesAndTraits({ client, collection }) {
   const projectId = collectionNameToArtblocksProjectIdUnwrap(collection);
   const res = await artblocks.getProjectFeaturesAndTraits({
@@ -99,6 +114,7 @@ module.exports = {
   collectionNameToArtblocksProjectId,
   collections,
   collection,
+  collectionMintState,
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
 };

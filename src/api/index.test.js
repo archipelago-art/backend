@@ -87,6 +87,31 @@ describe("api", () => {
   );
 
   it(
+    "provides project mint state",
+    withTestDb(async ({ client }) => {
+      const archetype = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      const theCube = await sc.token(snapshots.THE_CUBE);
+      await artblocks.addProject({ client, project: archetype });
+      await artblocks.addToken({
+        client,
+        tokenId: snapshots.THE_CUBE,
+        rawTokenData: theCube,
+      });
+      const res = await api.collectionMintState({
+        client,
+        collection: "ab-23",
+      });
+      expect(res).toEqual({
+        numTokens: 1,
+        maxInvocations: 600,
+      });
+    })
+  );
+
+  it(
     "provides project features and traits",
     withTestDb(async ({ client }) => {
       const archetype = parseProjectData(
