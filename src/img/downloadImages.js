@@ -21,9 +21,7 @@ async function downloadImage(rootDir, url, tokenId) {
   return outputPath;
 }
 
-async function resizeImage(rootDir1, rootDir2, tokenId, outputSizePx) {
-  if (!Number.isSafeInteger(outputSizePx))
-    throw new Error("bad output size: " + outputSizePx);
+async function imagemagick(rootDir1, rootDir2, tokenId, convertOptions) {
   const thisImagePath = imagePath(tokenId);
   const inputPath = join(rootDir1, thisImagePath);
   if (!util.promisify(fs.exists)(inputPath)) {
@@ -34,11 +32,28 @@ async function resizeImage(rootDir1, rootDir2, tokenId, outputSizePx) {
   await util.promisify(fs.mkdir)(dirname(outputPath), { recursive: true });
   await util.promisify(child_process.execFile)("convert", [
     inputPath,
-    "-resize",
-    `${outputSizePx}x${outputSizePx}`,
+    ...convertOptions,
     outputPath,
   ]);
   return outputPath;
 }
 
-module.exports = { downloadImage, resizeImage };
+async function resizeImage(rootDir1, rootDir2, tokenId, outputSizePx) {
+  if (!Number.isSafeInteger(outputSizePx))
+    throw new Error("bad output size: " + outputSizePx);
+  const options = ["-resize", `${outputSizePx}x${outputSizePx}`];
+  return await imagemagick(rootDir1, rootDir2, tokenId, options);
+}
+
+async function letterboxImage(rootDir1, rootDir2, tokenId, letterboxGeometry) {
+  if (typeof letterboxGeometry !== "string")
+    throw new Error("bad letterbox geometry: " + letterboxGeometry);
+  const options = [];
+  options.push("-resize", letterboxGeometry);
+  options.push("-background", "transparent");
+  options.push("-gravity", "Center");
+  options.push("-extent", letterboxGeometry);
+  return await imagemagick(rootDir1, rootDir2, tokenId, options);
+}
+
+module.exports = { downloadImage, resizeImage, letterboxImage };

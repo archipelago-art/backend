@@ -2,11 +2,23 @@ const fs = require("fs");
 const { join, dirname } = require("path");
 const util = require("util");
 
-const { downloadImage, resizeImage } = require("./downloadImages");
+const {
+  downloadImage,
+  resizeImage,
+  letterboxImage,
+} = require("./downloadImages");
 const { imagePath } = require("./paths");
 
 function resizeTarget(dim) {
   return { name: `${dim}p`, type: "RESIZE", dim };
+}
+
+function letterboxTarget(name, geometry) {
+  return {
+    name,
+    type: "LETTERBOX",
+    geometry,
+  };
 }
 
 const ORIG = "orig";
@@ -15,6 +27,7 @@ const ORIG = "orig";
 const TARGETS = [
   { name: ORIG, type: "ORIGINAL" },
   ...[1200, 800, 600, 400, 200].map(resizeTarget),
+  letterboxTarget("social", "1200x628"),
 ];
 
 function uploadMetadata() {
@@ -25,38 +38,45 @@ async function makeTarget(ctx, token, target) {
   const gcsPath = imagePath(token.tokenId, { slash: true });
   const origDir = join(ctx.workDir, ORIG);
   const targetDir = join(ctx.workDir, target.name);
+
+  async function ensureOriginalExists() {
+    const inputPath = join(origDir, imagePath(token.tokenId));
+    if (!(await util.promisify(fs.exists)(inputPath))) {
+      await util.promisify(fs.mkdir)(dirname(inputPath), { recursive: true });
+      await ctx.bucket
+        .file(`${ctx.prefix}${ORIG}/${gcsPath}`)
+        .download({ destination: inputPath });
+    }
+  }
+
+  let img;
   switch (target.type) {
     case "ORIGINAL": {
-      const img = await downloadImage(targetDir, token.imageUrl, token.tokenId);
-      await ctx.bucket.upload(img, {
-        destination: `${ctx.prefix}${target.name}/${gcsPath}`,
-        metadata: uploadMetadata(),
-      });
+      img = await downloadImage(targetDir, token.imageUrl, token.tokenId);
       break;
     }
     case "RESIZE": {
-      const inputPath = join(origDir, imagePath(token.tokenId));
-      if (!(await util.promisify(fs.exists)(inputPath))) {
-        await util.promisify(fs.mkdir)(dirname(inputPath), { recursive: true });
-        await ctx.bucket
-          .file(`${ctx.prefix}${ORIG}/${gcsPath}`)
-          .download({ destination: inputPath });
-      }
-      const img = await resizeImage(
+      await ensureOriginalExists();
+      img = await resizeImage(origDir, targetDir, token.tokenId, target.dim);
+      break;
+    }
+    case "LETTERBOX": {
+      await ensureOriginalExists();
+      img = await letterboxImage(
         origDir,
         targetDir,
         token.tokenId,
-        target.dim
+        target.geometry
       );
-      await ctx.bucket.upload(img, {
-        destination: `${ctx.prefix}${target.name}/${gcsPath}`,
-        metadata: uploadMetadata(),
-      });
       break;
     }
     default:
       throw new Error("unknown image target type: " + target.type);
   }
+  await ctx.bucket.upload(img, {
+    destination: `${ctx.prefix}${target.name}/${gcsPath}`,
+    metadata: uploadMetadata(),
+  });
 }
 
 async function process(ctx, token, listing) {
