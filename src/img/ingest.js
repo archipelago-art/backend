@@ -82,7 +82,8 @@ async function makeTarget(ctx, token, target) {
 }
 
 async function process(ctx, token, listing) {
-  const have = listing.get(token.tokenId) ?? [];
+  if (!listing.has(token.tokenId)) listing.set(token.tokenId, []);
+  const have = listing.get(token.tokenId);
   for (const target of TARGETS) {
     if (have.includes(target.name)) continue;
     if (ctx.dryRun) {
@@ -91,6 +92,7 @@ async function process(ctx, token, listing) {
     }
     try {
       await makeTarget(ctx, token, target);
+      have.push(target.name);
       console.log(`processed ${target.name} for token ${token.tokenId}`);
     } catch (e) {
       console.error(
@@ -101,6 +103,10 @@ async function process(ctx, token, listing) {
   }
 }
 
+/**
+ * Processes images for all specified tokens, and updates the listing to
+ * reflect newly created images.
+ */
 async function processAll(ctx, tokens, listing, options) {
   options = {
     concurrency: 16,

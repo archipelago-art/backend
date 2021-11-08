@@ -11,6 +11,8 @@ const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 const NETWORK_CONCURRENCY = 64;
 const IMAGEMAGICK_CONCURRENCY = 16;
 
+const INGESTION_LATENCY_SECONDS = 15;
+
 async function withDb(callback) {
   const pool = new pg.Pool();
   try {
@@ -266,17 +268,23 @@ async function ingestImages(args) {
     workDir,
     dryRun,
   };
-  console.log("fetching token IDs and download URLs");
-  const tokens = await withDb(({ client }) =>
-    artblocks.getTokenImageUrls({ client })
-  );
-  console.log(`got ${tokens.length} tokens`);
   console.log(`listing images in gs://${ctx.bucket.name}/${ctx.prefix}`);
   const listing = await images.list(ctx.bucket, ctx.prefix);
-  console.log(`got images for ${listing.size} tokens`);
-  await images.ingest(ctx, tokens, listing, {
-    concurrency: IMAGEMAGICK_CONCURRENCY,
-  });
+  while (true) {
+    console.log("fetching token IDs and download URLs");
+    const tokens = await withDb(({ client }) =>
+      artblocks.getTokenImageUrls({ client })
+    );
+    console.log(`got ${tokens.length} tokens`);
+    console.log(`got images for ${listing.size} tokens`);
+    await images.ingest(ctx, tokens, listing, {
+      concurrency: IMAGEMAGICK_CONCURRENCY,
+    });
+    console.log(`sleeping for ${INGESTION_LATENCY_SECONDS} seconds`);
+    await new Promise(
+      (res) => void setTimeout(res, INGESTION_LATENCY_SECONDS * 1000)
+    );
+  }
 }
 
 async function main() {
