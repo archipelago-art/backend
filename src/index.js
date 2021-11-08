@@ -13,6 +13,13 @@ const IMAGEMAGICK_CONCURRENCY = 16;
 
 const INGESTION_LATENCY_SECONDS = 15;
 
+const LIVE_MINT_LATENCY_SECONDS = 5;
+const LIVE_MINT_FANOUT = 8;
+
+async function sleepMs(ms) {
+  await new Promise((res) => void setTimeout(res, ms));
+}
+
 async function withDb(callback) {
   const pool = new pg.Pool();
   try {
@@ -175,6 +182,77 @@ async function addProjectTokens(args) {
   });
 }
 
+async function followLiveMint(args) {
+  const projectId = parseInt(args[0], 10);
+  await withDb(async ({ pool }) => {
+    let ids = await acqrel(pool, (client) =>
+      artblocks.getUnfetchedTokenIds({ client, projectId })
+    );
+    while (true) {
+      if (ids.length === 0) {
+        console.log(`project ${projectId} is fully minted`);
+        return;
+      }
+      console.log(`checking for ${ids[0]}`);
+      if (!(await tryAddToken({ pool, tokenId: ids[0] }))) {
+        console.log(`token ${ids[0]} not ready yet; zzz`);
+        await sleepMs(LIVE_MINT_LATENCY_SECONDS * 1000);
+        continue;
+      }
+      console.log(`added token ${ids[0]}; reaching ahead`);
+      ids.shift();
+      const workItems = [...ids];
+      let bailed = false;
+      async function worker() {
+        while (true) {
+          if (bailed) {
+            console.log(`sibling task bailed; bailing`);
+            return;
+          }
+          const tokenId = workItems.shift();
+          if (tokenId == null) return;
+          if (!(await tryAddToken({ pool, tokenId }))) {
+            console.log(`token ${tokenId} not ready yet; bailing`);
+            bailed = true;
+            return;
+          }
+          console.log(`added token ${tokenId}`);
+          ids = ids.filter((x) => x !== tokenId);
+        }
+      }
+      await Promise.all(
+        Array(LIVE_MINT_FANOUT)
+          .fill()
+          .map(() => worker())
+      );
+      if (ids.length > 0) {
+        console.log("going back to sleep");
+        await sleepMs(LIVE_MINT_LATENCY_SECONDS * 1000);
+      }
+    }
+  });
+}
+
+async function tryAddToken({ pool, tokenId }) {
+  try {
+    const token = await fetchTokenData(tokenId);
+    if (!token.found) return false;
+    await acqrel(pool, (client) =>
+      artblocks.addToken({
+        client,
+        tokenId,
+        rawTokenData: token.raw,
+      })
+    );
+    return true;
+  } catch (e) {
+    console.log("failed to add token " + tokenId);
+    console.error(e);
+    console.error(`failed to add token ${tokenId}: ${e}`);
+    return false;
+  }
+}
+
 async function downloadImages(args) {
   const [rootDir] = args;
   await withDb(async ({ pool }) => {
@@ -281,9 +359,7 @@ async function ingestImages(args) {
       concurrency: IMAGEMAGICK_CONCURRENCY,
     });
     console.log(`sleeping for ${INGESTION_LATENCY_SECONDS} seconds`);
-    await new Promise(
-      (res) => void setTimeout(res, INGESTION_LATENCY_SECONDS * 1000)
-    );
+    await sleepMs(INGESTION_LATENCY_SECONDS * 1000);
   }
 }
 
@@ -300,6 +376,7 @@ async function main() {
     ["get-features-of-token", getFeaturesOfToken],
     ["get-features-of-project", getFeaturesOfProject],
     ["add-project-tokens", addProjectTokens],
+    ["follow-live-mint", followLiveMint],
     ["get-tokens-with-feature", getTokensWithFeature],
     ["download-images", downloadImages],
     ["resize-images", resizeImages],
