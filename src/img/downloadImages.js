@@ -45,12 +45,18 @@ async function resizeImage(rootDir1, rootDir2, tokenId, outputSizePx) {
   return await imagemagick(rootDir1, rootDir2, tokenId, options);
 }
 
-async function letterboxImage(rootDir1, rootDir2, tokenId, letterboxGeometry) {
+async function letterboxImage(
+  rootDir1,
+  rootDir2,
+  tokenId,
+  letterboxGeometry,
+  background
+) {
   if (typeof letterboxGeometry !== "string")
     throw new Error("bad letterbox geometry: " + letterboxGeometry);
   const options = [];
   options.push("-resize", letterboxGeometry);
-  options.push("-background", "transparent");
+  options.push("-background", background);
   options.push("-gravity", "Center");
   options.push("-extent", letterboxGeometry);
   return await imagemagick(rootDir1, rootDir2, tokenId, options);
