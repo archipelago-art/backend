@@ -5,11 +5,15 @@ const { promisify } = require("util");
 const SQUIGGLES = 0;
 const HYPERHASH = 11;
 const ARCHETYPE = 23;
+const GALAXISS = 31;
+const BYTEBEATS = 38;
 const PHANTOM_SEADRAGONS = 155;
 const PROJECTS = Object.freeze([
   SQUIGGLES,
   HYPERHASH,
   ARCHETYPE,
+  GALAXISS,
+  BYTEBEATS,
   PHANTOM_SEADRAGONS,
 ]);
 
@@ -88,6 +92,8 @@ module.exports = {
   ARCHETYPE,
   HYPERHASH_DESCRIPTION,
   ARCHETYPE_DESCRIPTION,
+  GALAXISS,
+  BYTEBEATS,
   PHANTOM_SEADRAGONS,
   PROJECTS,
   PERFECT_CHROMATIC,

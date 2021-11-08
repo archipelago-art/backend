@@ -1,0 +1,335 @@
+<html><body><h1>Name: ♫ ByteBeats</h1><h3>Artist: DADABOTS x KAI</h3><h3>Description: Generative music in 40-140 bytes on-chain. ByteBeats are miniature functions that synthesize audio (and video) via bitwise operations (&amp;^|&lt;&lt;*+/%&gt;&gt;). Because bits form groups in powers of 2, 4/4 beat-driven music emergently self-organizes. Each function in this drop is itself randomly generated, grouped into six families of composition and four families of visualizers. Some ByteBeats loop, some generate new patterns indefinitely. Some are for headbanging, some are for climbing forever through oceans of phase cancelation. (Instructions: click to play ...)</h3><h3>http://dadabots.com/bytebeats/</h3><hr/><p>Script JSON: {&quot;type&quot;:&quot;js&quot;,&quot;aspectRatio&quot;:&quot;1&quot;,&quot;instructions&quot;:&quot;Press any key or select the image to start&quot;,&quot;interactive&quot;:&quot;true&quot;}</p><p>Script Type: js</p><p>Version: </p><p>Script Ratio: 1</p><p>Instructions: Press any key or select the image to start</p><p>Hashes Generated per Token: true</p><p>Dynamic Asset? true</p><hr/><p>Artist Ethereum Address: 0xc5e38233cc0d7cff9340e6139367aba498ec9b18</p><p>Additional Payee: 0xdbaf6f4434a3b60b7461a0ae50c2083fe19d5cdb</p><p>Additional Payee Percentage: 50</p><p>Price: 0.24</p><p>Currency: ETH</p><p>Currency Address: N/A</p><p>Invocations: 512</p><p>Maximum Invocations: 512</p><p>License: NIFTY</p><p>Token Ids: 38000000,38000001,38000002,38000003,38000004,38000005,38000006,38000007,38000008,38000009,38000010,38000011,38000012,38000013,38000014,38000015,38000016,38000017,38000018,38000019,38000020,38000021,38000022,38000023,38000024,38000025,38000026,38000027,38000028,38000029,38000030,38000031,38000032,38000033,38000034,38000035,38000036,38000037,38000038,38000039,38000040,38000041,38000042,38000043,38000044,38000045,38000046,38000047,38000048,38000049,38000050,38000051,38000052,38000053,38000054,38000055,38000056,38000057,38000058,38000059,38000060,38000061,38000062,38000063,38000064,38000065,38000066,38000067,38000068,38000069,38000070,38000071,38000072,38000073,38000074,38000075,38000076,38000077,38000078,38000079,38000080,38000081,38000082,38000083,38000084,38000085,38000086,38000087,38000088,38000089,38000090,38000091,38000092,38000093,38000094,38000095,38000096,38000097,38000098,38000099</p><p>Active? true</p><p>Paused? false</p><hr/><p><strong>Script:</strong></p><pre>var hash, seeds, hashChunks, playing, sound;
+
+function resetSeeds() {
+     (hashChunks = hash.match(/../g)).shift(), seeds = hashChunks.map(t =&gt; parseInt(t, 16))
+}
+
+function notRandom() {
+     return seeds.length &gt; 0 ? seeds.pop() / 256 : 0
+}
+
+function choose(t) {
+     return t[Math.floor(notRandom() * t.length)]
+}
+
+function init() {
+     const t = document.getElementsByTagName(&quot;canvas&quot;)[0];
+     let e = Math.min(document.body.clientWidth, document.body.clientHeight);
+     t.style.position = &quot;fixed&quot;, t.style.top = 0, t.style.left = 0, t.style.imageRendering = &quot;pixelated&quot;, t.style.width = `${e}px`, t.style.height = `${e}px`, t.style.backgroundColor = &quot;#000&quot;;
+     let a = generateParameters(hash = tokenData.hasOwnProperty(&quot;hash&quot;) ? tokenData.hash : tokenData);
+     drawToken(t, hash, a), getMetadata(hash)
+}
+
+function generateParameters(t) {
+     resetSeeds();
+     let e = parseFloat(notRandom());
+     console.log(&quot;hue&quot;, e);
+     let a = choose([&quot;bytes&quot;, &quot;bytes&quot;, &quot;bits&quot;, &quot;waveform&quot;, &quot;starry&quot;]),
+          s = choose(Array(8).fill(&quot;melodic&quot;).concat(Array(6).fill(&quot;heavy&quot;)).concat(Array(3).fill(&quot;wobbly&quot;)).concat(Array(3).fill(&quot;powerclimb&quot;)).concat(Array(3).fill(&quot;absurdities&quot;)).concat(Array(3).fill(&quot;permutations&quot;)).concat(Array(0).fill(&quot;crazy3&quot;))),
+          o = Math.ceil(12 * notRandom()),
+          r = Math.round(3951.07 * Math.pow(2, (o + -6) / 12));
+     console.log(s);
+     let i = bytebeatFamilyFunction(s)(),
+          n = i.match(/\,c\=b\%(\d)/),
+          c = n &amp;&amp; n.length &gt;= 2 ? parseInt(n[1]) : 0;
+     return &quot;powerclimb&quot; == s &amp;&amp; (c = &quot;Infinity&quot;), {
+          hue: e,
+          visual: a,
+          family: s,
+          bytebeat: new_bytebeat(i, r),
+          sr: r,
+          progressions: c,
+          pitch_number: o
+     }
+}
+
+function getMetadata(t) {
+     let e = generateParameters(t),
+          a = parseInt(360 * e.hue),
+          s = a &lt; 36 ? &quot;Fire&quot; : &quot;&quot;;
+     s = a &gt;= 36 &amp;&amp; a &lt;= 63 ? &quot;Goldenrod&quot; : s, s = a &gt;= 64 &amp;&amp; a &lt;= 133 ? &quot;Electric&quot; : s, s = 73 === a ? &quot;Emerald Dragon&quot; : s, s = a &gt;= 134 &amp;&amp; a &lt;= 171 ? &quot;Froggy&quot; : s, s = a &gt;= 172 &amp;&amp; a &lt;= 181 ? &quot;Turquoise&quot; : s, s = a &gt;= 182 &amp;&amp; a &lt;= 191 ? &quot;Sky&quot; : s, s = a &gt;= 192 &amp;&amp; a &lt;= 211 ? &quot;Cobalt&quot; : s, s = a &gt;= 212 &amp;&amp; a &lt;= 255 ? &quot;Royal&quot; : s, s = a &gt;= 256 &amp;&amp; a &lt;= 281 ? &quot;Regal&quot; : s, s = a &gt;= 282 &amp;&amp; a &lt;= 323 ? &quot;Neon&quot; : s, s = a &gt;= 324 &amp;&amp; a &lt;= 333 ? &quot;Sexbomb&quot; : s, s = a &gt; 333 ? &quot;Lipstick&quot; : s, console.log(&quot;hue&quot;, a, &quot;tint&quot;, s);
+     let o = e.visual.capitalize(),
+          r = e.family.capitalize().replace(&quot;_&quot;, &quot; &quot;);
+     &quot;Absurdities&quot; == r ? r = &quot;Inconsistent Absurdities&quot; : &quot;Permutations&quot; == r ? r = &quot;Permutations&quot; : &quot;Crazy3&quot; == r ? r = &quot;####&quot; : &quot;Heavy&quot; == r ? r = &quot;Heavy Melodic&quot; : &quot;Melodic&quot; == r ? r = &quot;Melodic&quot; : &quot;Powerclimb&quot; == r ? r = &quot;Powerclimb&quot; : &quot;Wobbly&quot; == r &amp;&amp; (r = &quot;Wobbly&quot;);
+     let i = {
+          tint: s,
+          visual: o,
+          family: r,
+          sample_rate: e.sr,
+          progressions: e.progressions,
+          code: e.bytebeat.code
+     };
+     return console.table(i), i
+}
+window.addEventListener(&quot;load&quot;, init, !1), window.addEventListener(&quot;keydown&quot;, () =&gt; {
+     playpause()
+}, !1), window.addEventListener(&quot;mousedown&quot;, () =&gt; {
+     playpause()
+}, !1), String.prototype.capitalize = function() {
+     return this.charAt(0).toUpperCase() + this.slice(1)
+};
+class VizSquare {
+     constructor(t, e, a, s, o, r, i) {
+          this.name = e, this.size = a, this.visual = o, this.params = i, this.canvas = t, this.canvas.id = &quot;canvas_&quot; + e, this.canvas.width = a, this.canvas.height = a, this.ctx = this.canvas.getContext(&quot;2d&quot;), this.f = r, &quot;bytes&quot; != o &amp;&amp; &quot;bits&quot; != o || (this.imageData = this.ctx.createImageData(this.size, this.size), this.buffer = new ArrayBuffer(this.imageData.data.length), this.byteArray = new Uint8ClampedArray(this.buffer), this.intArray = new Uint32Array(this.buffer)), this.slow_factor = s, this.last_draw_t = -1
+     }
+     draw(t) {
+          var e = Math.floor(t / this.size / this.slow_factor) * this.size * this.slow_factor,
+               a = e - this.last_draw_t;
+          0 != a &amp;&amp; (this.last_draw_t = e, &quot;bytes&quot; == this.visual ? draw_bytes(this.ctx, this.imageData, this.byteArray, this.intArray, this.f, this.size, this.size, e, a, this.params.r, this.params.g, this.params.b) : &quot;bits&quot; == this.visual ? draw_bits(this.ctx, this.imageData, this.byteArray, this.intArray, this.f, this.size, this.size, e, this.params.r, this.params.g, this.params.b) : &quot;waveform&quot; == this.visual ? draw_waveform(this.ctx, this.f, this.size, this.size, e, this.params.thickness, this.params.color) : &quot;starry&quot; == this.visual &amp;&amp; draw_starry(this.ctx, this.f, this.size, this.size, e, this.params.ppc, this.params.thickness, this.params.color))
+     }
+}
+
+function playpause() {
+     if (playing) return console.log(&quot;STOP PLAYING&quot;), void(playing = !1);
+     sound &amp;&amp; sound.resume(), playing = !0, console.log(&quot;START PLAYING&quot;)
+}
+
+function make_sample_function(t) {
+     try {
+          return new Function('&quot;use strict&quot;; return function(t){             var a=0,b=0,c=0,d=0,e=0;            return ' + t + &quot;;};&quot;)()
+     } catch (t) {
+          return void console.error(&quot;FAILED FUNCTION&quot;)
+     }
+}
+
+function drawToken(t, e, a) {
+     var s;
+     playing = !1, window.playpause = playpause;
+     (sound = new(window.AudioContext || window.webkitAudioContext)({
+          sampleRate: 44100
+     })).createBuffer(1, 1024, sound.sampleRate);
+     var o = sound.createBufferSource(),
+          r = sound.createScriptProcessor(1024, 1, 1),
+          n = sound.createGain();
+     n.gain.setValueAtTime(.25, sound.currentTime), o.connect(r), r.connect(n), n.connect(sound.destination), o.loop = !0;
+     var c = 0,
+          h = 0;
+     r.onaudioprocess = function(t) {
+          var e = t.outputBuffer.getChannelData(0),
+               a = -1,
+               o = 0;
+          l.draw(h);
+          for (var r = 0; r &lt; e.length; r++) {
+               var i = Math.floor(s.sr * c / sound.sampleRate);
+               h = i, playing ? (a != i &amp;&amp; (o = s.f(i), o = ((o &amp;= 255) - 128) / 256), e[r] = o, a = i, c++) : e[r] = 0
+          }
+     }, s = a.bytebeat, console.log(s, s.f(0));
+     let l = null,
+          u = Math.min(document.body.clientWidth, document.body.clientHeight);
+     t.width = u, t.height = u;
+     (l = function() {
+          var e = a.visual,
+               o = a.hue;
+          if (&quot;bytes&quot; == e) {
+               var r = choose([64, 128, 256]),
+                    i = choose([1]),
+                    n = hsvToRgb(o, 1, 1);
+               return new VizSquare(t, &quot;_&quot;, r, i, e, s.f, {
+                    r: n[0],
+                    g: n[1],
+                    b: n[2],
+                    reflect: !1
+               })
+          }
+          if (&quot;bits&quot; == e) return r = choose([64, 128]), i = choose([1]), n = hsvToRgb(o, 1, 1), new VizSquare(t, &quot;_&quot;, r, i, e, s.f, {
+               r: n[0],
+               g: n[1],
+               b: n[2]
+          });
+          if (&quot;waveform&quot; == e) {
+               r = choose([128, 256]);
+               var c = choose([1, 2]);
+               return i = choose([1]), n = hsvToRgb(o, 1, 1), new VizSquare(t, &quot;_&quot;, r, i, e, s.f, {
+                    thickness: c,
+                    color: &quot;rgb(&quot; + n[0] + &quot;,&quot; + n[1] + &quot;,&quot; + n[2] + &quot;)&quot;
+               })
+          }
+          if (&quot;starry&quot; == e) {
+               r = choose([128]), c = choose([1, 2]);
+               var h = choose([2, 4]);
+               return i = choose([1]), n = hsvToRgb(o, 1, 1), new VizSquare(t, &quot;_&quot;, r, i, e, s.f, {
+                    thickness: c,
+                    ppc: h,
+                    color: &quot;rgb(&quot; + n[0] + &quot;,&quot; + n[1] + &quot;,&quot; + n[2] + &quot;)&quot;
+               })
+          }
+     }()).draw(h);
+     let b = 0,
+          d = 0;
+     for (i = 0; i &lt; 1e5; i += 1e3) {
+          l.draw(i);
+          let t = getDensity(l.canvas);
+          t &gt; b &amp;&amp; (b = t, d = i)
+     }
+     l.draw(d), console.log(`FINAL DENSITY: ${getDensity(l.canvas)} at ${d}`)
+}
+
+function getDensity(t) {
+     let e = t.getContext(&quot;2d&quot;),
+          a = t.width;
+     return e.getImageData(0, 0, a, a).data.reduce((t, e) =&gt; e + t, 0) / Math.pow(a, 2)
+}
+
+function bytebeatFamilyFunction(t) {
+     switch (t) {
+          case &quot;melodic&quot;:
+               return make_melodic;
+          case &quot;heavy&quot;:
+               return make_heavy;
+          case &quot;absurdities&quot;:
+               return make_absurdities;
+          case &quot;permutations&quot;:
+               return make_permutations;
+          case &quot;crazy3&quot;:
+               return make_crazy3;
+          case &quot;wobbly&quot;:
+               return make_wobbly;
+          case &quot;powerclimb&quot;:
+               return make_powerclimb
+     }
+}
+
+function make_melodic() {
+     let t = choose([4, 5, 6, 7, 8, 9]),
+          e = choose([18, 18, 18, 17, 17, 17, 15, 14]),
+          a = choose([&quot;c=b%2+1&quot;, &quot;c=b%3+1&quot;, &quot;c=b%3+1&quot;, &quot;c=b%4+1&quot;, &quot;c=b%5+1&quot;, &quot;c=b%6+1&quot;, &quot;c=b%24+1&quot;]),
+          s = choose([7, 6, 5, 4]),
+          o = choose([4, 3, 3, 3, 3, 3, 2]),
+          r = choose([&quot;(t*(a/2)/c&amp;t&gt;&gt;10)|(t*a/c&amp;t&gt;&gt;9)&quot;, &quot;(t*(a/2)/c&amp;t&gt;&gt;10)|(t*a/c&amp;t&gt;&gt;9)&quot;]),
+          i = choose([&quot;|(t*(a*4/c)&amp;t&gt;&gt;8)|(t*(a*5/c)&amp;t&gt;&gt;&quot; + s + &quot;)|(t*(a*6/c)&amp;t&gt;&gt;&quot; + o + &quot;)&quot;, &quot;|(t*(a*4/c)&amp;t&gt;&gt;8)|(t*(a*5/c)&amp;t&gt;&gt;&quot; + s + &quot;)|(t*(a*6/c)&amp;t&gt;&gt;&quot; + o + &quot;)&quot;, &quot;|(t*(a*2/c)&amp;t&gt;&gt;8)|(t*(a*3/c)&amp;t&gt;&gt;&quot; + s + &quot;)|(t*(a*4/c)&amp;t&gt;&gt;&quot; + o + &quot;)&quot;, &quot;|(t*(a*5/c)&amp;t&gt;&gt;8)|(t*(a*6/c)&amp;t&gt;&gt;&quot; + s + &quot;)|(t*(a*7/c)&amp;t&gt;&gt;&quot; + o + &quot;)&quot;]);
+     return bb = &quot;a=&quot; + t + &quot;,&quot;, bb += &quot;b=((t&gt;&gt;&quot; + e + &quot;)&amp;0xFF),&quot;, bb += a + &quot;,&quot;, bb += r, bb += i, bb
+}
+
+function make_absurdities() {
+     let t = choose([5, 6, 7, 8, 9, 10, 11, 12, 13]),
+          e = choose([5, 6, 7, 8, 9, 10, 11, 12, 13]),
+          a = choose([5, 6, 7, 8, 9, 10, 11, 12, 13]),
+          s = choose([5, 6, 7, 8, 9, 10, 11, 12, 13]);
+     return &quot;t*(0x&quot; + choose([69, 9, 4, 5, 6]) + &quot;+(0xABCDEF&amp;t&gt;&gt;10))*((&quot; + t + &quot;&amp;t&gt;&gt;&quot; + e + &quot;)|(&quot; + e + &quot;&amp;t&gt;&gt;&quot; + a + &quot;)|(&quot; + a + &quot;&amp;t&gt;&gt;&quot; + s + &quot;)|(&quot; + s + &quot;&amp;t&gt;&gt;&quot; + t + &quot;))&quot;
+}
+
+function make_permutations() {
+     return &quot;a=0.5,b=&quot; + choose([1, 2]) + &quot;,c=&quot; + choose([1, 2, 10, 20, 40, 50]) + &quot;,(t/a*((-c*(t/a|t/a*b&gt;&gt;5)/4)&gt;&gt;7))&quot;
+}
+
+function make_crazy3() {
+     return &quot;a=&quot; + choose([1, 2, 3, 4, 5, 6, 7, 8, 12, 24]) + &quot;,b=a/&quot; + choose([1, 2, 3]) + &quot;,t=t*a,c=(-(t&gt;&gt;b|t&gt;&gt;10)&gt;&gt;4)/4,t*(&quot; + choose([&quot;(c/8&lt;&lt;8)|(c/4&lt;&lt;4)|(c/2&lt;&lt;3)&quot;, &quot;(c/6&lt;&lt;8)|(c/5&lt;&lt;7)|(c/4&lt;&lt;4)&quot;]) + &quot;)&quot;
+}
+
+function make_powerclimb() {
+     return &quot;a=0xFF,b=&quot; + choose([1.6, 1.7, 1.8]) + &quot;,c=&quot; + choose([.05, .08, .1, .15, .18, .2]) + &quot;,((1*(pow(t,b+c*0))&gt;&gt;14)&amp;a)^((1*(pow(t,b+c*1))&gt;&gt;14)&amp;a)^((1*(pow(t,b+c*2))&gt;&gt;14)&amp;a)^((1*(pow(t,b+c*3))&gt;&gt;14)&amp;a*&quot; + choose([0, 1]) + &quot;)&quot;
+}
+
+function make_heavy() {
+     let t = choose([17, 17, 16, 16, 15, 14]),
+          e = choose([&quot;c=b%2+1&quot;, &quot;c=b%3+1&quot;, &quot;c=b%3+2&quot;, &quot;c=b%3+3&quot;, &quot;c=b%3+4&quot;, &quot;c=b%4+1&quot;, &quot;c=b%6+1&quot;]),
+          a = choose([1, 2, 3, 4, 5, 6, 7, 8, 9, 11]),
+          s = choose([1, 2, 3]);
+     return &quot;b=((t&gt;&gt;(&quot; + t + &quot;))&amp;0xFF),&quot; + e + &quot;,((t&gt;&gt;7)|(t&gt;&gt;&quot; + choose([8, 9]) + &quot;)|(t*&quot; + a + &quot;))*(t/c&lt;&lt;&quot; + s + &quot;)&quot;
+}
+
+function make_wobbly() {
+     return &quot;a=&quot; + choose([2, 3, 4, 5]) + &quot;,f=&quot; + choose([1, 8, 16, 32, 42, 64, 69, 99]) + &quot;,b=(((t&gt;&gt;14)&amp;0xFE)+1+f)%0xFE,d=1/4,((t*a*b*(t*a&gt;&gt;(t*a*d&gt;&gt;10)%16)))&quot;
+}
+
+function new_bytebeat(t, e) {
+     let a = t;
+     return t = replace_all(t, &quot;pow&quot;, &quot;Math.pow&quot;), t = replace_all(t, &quot;sqrt&quot;, &quot;Math.sqrt&quot;), f = make_sample_function(t), {
+          f: f,
+          sr: e,
+          code: t,
+          original_code: a
+     }
+}
+
+function draw_bytes(t, e, a, s, o, r, i, n, c, h, l, u) {
+     for (var b = 0; b &lt; s.length; b++) {
+          var d = samplePos2graph(b, r, i);
+          if (b &lt; c &amp;&amp; c &lt; s.length) s[d] = s[samplePos2graph(b + c, i)];
+          else {
+               let t = 255 &amp; o(b + n);
+               brightness = 2 * Math.abs(t - 128), s[d] = brightness &lt;&lt; 24 | u &lt;&lt; 16 | l &lt;&lt; 8 | h
+          }
+     }
+     e.data.set(a), t.putImageData(e, 0, 0)
+}
+
+function draw_bits(t, e, a, s, o, r, i, n, c, h, l) {
+     for (var u = 0; u &lt; r; u++) {
+          let t = 255 &amp; o(u + n);
+          for (var b = 0; b &lt; i; b++) {
+               let e = 255 * ((t &gt;&gt; Math.floor(b / i * 8)) % 2);
+               e = Math.floor(e), s[b + u * i] = e &lt;&lt; 24 | l &lt;&lt; 16 | h &lt;&lt; 8 | c
+          }
+     }
+     e.data.set(a), t.putImageData(e, 0, 0)
+}
+
+function draw_waveform(t, e, a, s, o, r, i) {
+     t.clearRect(0, 0, a, s), t.beginPath();
+     for (var n = 0; n &lt; a; n++) {
+          let a = 255 &amp; e(n + o);
+          0 == n ? t.moveTo(n, a) : t.lineTo(n, a)
+     }
+     t.lineWidth = r, t.strokeStyle = i, t.stroke()
+}
+
+function draw_starry(t, e, a, s, o, r, i, n) {
+     t.clearRect(0, 0, a, s), t.beginPath();
+     for (var c = 0; c &lt; a; c++)
+          for (var h = 0; h &lt; r; h++) {
+               let a = 255 &amp; e(c * r + h + o);
+               0 == c ? t.moveTo(c, a) : (t.moveTo(c, a), t.fillRect(c, a, i, i))
+          }
+     t.strokeStyle = n, t.fillStyle = n, t.stroke()
+}
+
+function replace_all(t, e, a) {
+     return t.split(e).join(a)
+}
+
+function hsvToRgb(t, e, a) {
+     var s, o, r, i = Math.floor(6 * t),
+          n = 6 * t - i,
+          c = a * (1 - e),
+          h = a * (1 - n * e),
+          l = a * (1 - (1 - n) * e);
+     switch (i % 6) {
+          case 0:
+               s = a, o = l, r = c;
+               break;
+          case 1:
+               s = h, o = a, r = c;
+               break;
+          case 2:
+               s = c, o = a, r = l;
+               break;
+          case 3:
+               s = c, o = h, r = a;
+               break;
+          case 4:
+               s = l, o = c, r = a;
+               break;
+          case 5:
+               s = a, o = c, r = h
+     }
+     return [255 * s, 255 * o, 255 * r]
+}
+
+function samplePos2graph(t, e, a) {
+     return e * (t % a) + Math.floor(t / a)
+}
+
+function graphPos2sample(t, e) {
+     return t.x * e + t.y
+}
+window.addEventListener('touchend', () =&gt; {
+     playpause()
+}, false)
+
+function playpause() {
+     playing = true
+     if (sound) {
+          sound.resume()
+     }
+}</pre></body></html>
