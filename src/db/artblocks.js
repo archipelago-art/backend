@@ -111,24 +111,6 @@ async function addToken({
     `,
     [projectId]
   );
-  await client.query(
-    `
-    INSERT INTO token_features (token_id, feature_name)
-    SELECT token_id, kv.key || ': ' || coalesce(kv.value, 'null')
-    FROM tokens,
-      LATERAL (SELECT token_data->'features' AS features) AS f,
-      LATERAL json_each_text(CASE
-        WHEN json_typeof(features) = 'object' THEN features
-        WHEN json_typeof(features) = 'array' THEN (
-          SELECT json_object_agg(ordinality - 1, value)
-          FROM LATERAL json_array_elements(features) WITH ORDINALITY
-        )
-        ELSE 'null'::json  -- will fail hard
-      END) AS kv
-    WHERE token_id = $1 AND token_data IS NOT NULL
-    `,
-    [tokenId]
-  );
 
   if (includeTraitMembers) {
     await populateTraitMembers({
@@ -153,6 +135,11 @@ async function populateTraitMembers({
   if (rawTokenData == null) return;
   if (!alreadyInTransaction) await client.query("BEGIN");
   const featureData = JSON.parse(rawTokenData).features;
+  if (typeof featureData !== "object" /* arrays are okay */) {
+    throw new Error(
+      "expected object or array for features; got: " + featureData
+    );
+  }
   const featureNames = Object.keys(featureData);
   await client.query(
     `
@@ -280,33 +267,6 @@ async function getTokenIds({ client }) {
   return res.rows.map((row) => row.tokenId);
 }
 
-async function getTokenFeatures({ client, tokenId }) {
-  const res = await client.query(
-    `
-    SELECT feature_name AS "name"
-    FROM token_features
-    WHERE token_id = $1
-    ORDER BY feature_name ASC
-    `,
-    [tokenId]
-  );
-  return res.rows.map((row) => row.name);
-}
-
-async function getProjectFeatures({ client, projectId }) {
-  const { minTokenId, maxTokenId } = tokenBounds(projectId);
-  const res = await client.query(
-    `
-    SELECT DISTINCT feature_name AS "name"
-    FROM token_features
-    WHERE $1 <= token_id AND token_id < $2
-    ORDER BY feature_name ASC
-    `,
-    [minTokenId, maxTokenId]
-  );
-  return res.rows.map((row) => row.name);
-}
-
 async function getUnfetchedTokenIds({ client, projectId }) {
   const res = await client.query(
     `
@@ -348,20 +308,6 @@ async function getAllUnfetchedTokenIds({ client }) {
   return res.rows.map((row) => row.tokenId);
 }
 
-async function getTokensWithFeature({ client, projectId, featureName }) {
-  const { minTokenId, maxTokenId } = tokenBounds(projectId);
-  const res = await client.query(
-    `
-    SELECT token_id AS "tokenId" FROM token_features
-    WHERE $1 <= token_id AND token_id < $2
-      AND feature_name = $3
-    ORDER BY token_id ASC
-    `,
-    [minTokenId, maxTokenId, featureName]
-  );
-  return res.rows.map((row) => row.tokenId);
-}
-
 async function getTokenImageUrls({ client }) {
   const res = await client.query(`
     SELECT token_id AS "tokenId", token_data->'image' AS "imageUrl"
@@ -399,11 +345,8 @@ module.exports = {
   getProjectFeaturesAndTraits,
   getTokenFeaturesAndTraits,
   getTokenIds,
-  getTokenFeatures,
-  getProjectFeatures,
   getUnfetchedTokenIds,
   getAllUnfetchedTokenIds,
-  getTokensWithFeature,
   getTokenImageUrls,
   getTokenSummaries,
 };

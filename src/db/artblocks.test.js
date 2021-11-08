@@ -95,21 +95,6 @@ describe("db/artblocks", () => {
         tokenId: snapshots.THE_CUBE,
         rawTokenData: await sc.token(snapshots.THE_CUBE),
       });
-      const actualFeatures = await artblocks.getTokenFeatures({
-        client,
-        tokenId: snapshots.THE_CUBE,
-      });
-      const expectedFeatures = [
-        "Scene: Cube",
-        "Framed: Yep",
-        "Layout: Chaos",
-        "Palette: Paddle",
-        "Shading: Bright Morning",
-        "Coloring strategy: Single",
-      ];
-      expect(actualFeatures.slice().sort()).toEqual(
-        expectedFeatures.slice().sort()
-      );
       expect(
         await artblocks.getProject({ client, projectId: snapshots.ARCHETYPE })
       ).toEqual(
@@ -123,22 +108,43 @@ describe("db/artblocks", () => {
   it(
     'inserts token data when "features" is an array',
     withTestDb(async ({ client }) => {
+      await artblocks.addProject({
+        client,
+        project: parseProjectData(
+          snapshots.GALAXISS,
+          await sc.project(snapshots.GALAXISS)
+        ),
+      });
       await artblocks.addToken({
         client,
         tokenId: snapshots.GALAXISS_ZERO,
         rawTokenData: await sc.token(snapshots.GALAXISS_ZERO),
       });
-      const actualFeatures = await artblocks.getTokenFeatures({
+      const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
-        tokenId: snapshots.GALAXISS_ZERO,
+        projectId: snapshots.GALAXISS,
       });
-      const expectedFeatures = [
-        "0: Pleasant palette",
-        "1: Night theme",
-        "2: 4 clouds",
-      ];
-      expect(actualFeatures.slice().sort()).toEqual(
-        expectedFeatures.slice().sort()
+      expect(actualFeatures).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: "0",
+            traits: [
+              expect.objectContaining({
+                value: "Pleasant palette",
+                tokens: [snapshots.GALAXISS_ZERO],
+              }),
+            ],
+          }),
+          expect.objectContaining({
+            name: "1",
+            traits: [
+              expect.objectContaining({
+                value: "Night theme",
+                tokens: [snapshots.GALAXISS_ZERO],
+              }),
+            ],
+          }),
+        ])
       );
     })
   );
@@ -151,19 +157,40 @@ describe("db/artblocks", () => {
         tokenId: snapshots.BYTEBEATS_SEVEN,
         rawTokenData: await sc.token(snapshots.BYTEBEATS_SEVEN),
       });
-      const actualFeatures = await artblocks.getTokenFeatures({
+      const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
-        tokenId: snapshots.BYTEBEATS_SEVEN,
+        projectId: snapshots.BYTEBEATS,
       });
-      const expectedFeatures = [
-        "Tint: Electric",
-        "Family: Powerclimb",
-        "Visual: Waveform",
-        "Sample Rate: 4978",
-        "Progressions: null",
-      ];
-      expect(actualFeatures.slice().sort()).toEqual(
-        expectedFeatures.slice().sort()
+      expect(actualFeatures).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: "Tint",
+            traits: [
+              expect.objectContaining({
+                value: "Electric",
+                tokens: [snapshots.BYTEBEATS_SEVEN],
+              }),
+            ],
+          }),
+          expect.objectContaining({
+            name: "Sample Rate",
+            traits: [
+              expect.objectContaining({
+                value: 4978,
+                tokens: [snapshots.BYTEBEATS_SEVEN],
+              }),
+            ],
+          }),
+          expect.objectContaining({
+            name: "Progressions",
+            traits: [
+              expect.objectContaining({
+                value: null,
+                tokens: [snapshots.BYTEBEATS_SEVEN],
+              }),
+            ],
+          }),
+        ])
       );
     })
   );
@@ -179,26 +206,28 @@ describe("db/artblocks", () => {
           tokenId,
           rawTokenData,
         })
-      ).rejects.toEqual(
-        expect.objectContaining({
-          code: "22023",
-          message: "cannot deconstruct a scalar",
-        })
-      );
+      ).rejects.toThrow("expected object or array");
     })
   );
 
   it(
     "inserts token data for 404s",
     withTestDb(async ({ client }) => {
+      await artblocks.addProject({
+        client,
+        project: parseProjectData(
+          snapshots.ARCHETYPE,
+          await sc.project(snapshots.ARCHETYPE)
+        ),
+      });
       await artblocks.addToken({
         client,
         tokenId: snapshots.THE_CUBE,
         rawTokenData: null,
       });
-      const actualFeatures = await artblocks.getTokenFeatures({
+      const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
-        tokenId: snapshots.THE_CUBE,
+        projectId: snapshots.ARCHETYPE,
       });
       expect(actualFeatures).toEqual([]);
     })
@@ -279,40 +308,6 @@ describe("db/artblocks", () => {
         ...[p1 + 2, p1 + 3, p1 + 4],
         ...[p2 + 3, p2 + 4],
       ]);
-    })
-  );
-
-  it(
-    "finds tokens with a feature within a project",
-    withTestDb(async ({ client }) => {
-      await addTestData(client);
-      expect(
-        await artblocks.getTokensWithFeature({
-          client,
-          projectId: 2,
-          featureName: "Size: small",
-        })
-      ).toEqual([2000000, 2000002]);
-    })
-  );
-
-  it(
-    "finds features of a project",
-    withTestDb(async ({ client }) => {
-      await addTestData(client);
-      const features = await artblocks.getProjectFeatures({
-        client,
-        projectId: 2,
-      });
-      expect(features).toEqual(
-        [
-          "Size: small",
-          "Size: large",
-          "Color: red",
-          "Color: green",
-          "Color: blue",
-        ].sort()
-      );
     })
   );
 

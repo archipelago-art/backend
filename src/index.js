@@ -107,38 +107,6 @@ async function addToken(args) {
   });
 }
 
-async function getFeaturesOfToken(args) {
-  const [tokenId] = args;
-  await withDb(async ({ client }) => {
-    const features = await artblocks.getTokenFeatures({ client, tokenId });
-    for (const feature of features) console.log(feature);
-  });
-}
-
-async function getFeaturesOfProject(args) {
-  const projectId = Number(args[0]);
-  await withDb(async ({ client }) => {
-    const features = await artblocks.getProjectFeatures({
-      client,
-      projectId,
-    });
-    for (const feature of features) console.log(feature);
-  });
-}
-
-async function getTokensWithFeature(args) {
-  const projectId = Number(args[0]);
-  const featureName = args[1];
-  await withDb(async ({ client }) => {
-    const tokenIds = await artblocks.getTokensWithFeature({
-      client,
-      projectId,
-      featureName,
-    });
-    for (const tokenId of tokenIds) console.log(String(tokenId));
-  });
-}
-
 async function addProjectTokens(args) {
   const [projectId] = args;
   await withDb(async ({ pool }) => {
@@ -373,11 +341,8 @@ async function main() {
     ["add-project", addProject],
     ["get-project", getProject],
     ["add-token", addToken],
-    ["get-features-of-token", getFeaturesOfToken],
-    ["get-features-of-project", getFeaturesOfProject],
     ["add-project-tokens", addProjectTokens],
     ["follow-live-mint", followLiveMint],
-    ["get-tokens-with-feature", getTokensWithFeature],
     ["download-images", downloadImages],
     ["resize-images", resizeImages],
     ["ingest-images", ingestImages],
