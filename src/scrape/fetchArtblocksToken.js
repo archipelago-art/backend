@@ -4,6 +4,8 @@ const { fetchWithRetries } = require("./retryFetch");
 
 const TOKEN_URL_BASE = "https://api.artblocks.io/token";
 
+const PROJECTS_THAT_MUST_HAVE_FEATURES = [204];
+
 function normalizeTokenId(tokenId) {
   const result = Number.parseInt(tokenId, 10);
   if (!Number.isSafeInteger(result))
@@ -30,11 +32,16 @@ function parseTokenData(text) {
   try {
     const parsed = JSON.parse(text);
     if (!parsed.features) throw new Error(`no "features": ${text}`);
-    // The Art Blocks API has been known to simply omit the features for some
-    // tokens [1]. If this happens again, fail instead of inserting bad data.
-    //
-    // [1]: https://discord.com/channels/411959613370400778/887136427241009253/892503024784793650
-    if (!Object.keys(parsed.features).length)
+    const projectId = Number(parsed.project_id);
+    if (isNaN(projectId))
+      throw new Error(`bad project ID: ${parsed.project_id}`);
+    // Hacky workaround for latency on Art Blocks API, wherein a token mints
+    // and the Art Blocks API returns data for it but omits all features from
+    // the response (???).
+    if (
+      PROJECTS_THAT_MUST_HAVE_FEATURES.includes(projectId) &&
+      !Object.keys(parsed.features).length
+    )
       throw new Error(`empty "features": ${text}`);
     return { found: true, raw: text, parsed };
   } catch (e) {
