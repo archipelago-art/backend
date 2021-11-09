@@ -371,6 +371,20 @@ async function getTokenImageUrls({ client }) {
   return res.rows;
 }
 
+async function getTokenSummaries({ client, tokenIds }) {
+  const res = await client.query(
+    `
+    SELECT token_id as "tokenId", name, artist_name as "artistName", slug, aspect_ratio as "aspectRatio"
+    FROM tokens
+    JOIN projects USING(project_id)
+    WHERE token_id = ANY($1::int[])
+    ORDER BY token_id;
+  `,
+    [tokenIds]
+  );
+  return res.rows;
+}
+
 module.exports = {
   addProject,
   getProject,
@@ -386,4 +400,5 @@ module.exports = {
   getAllUnfetchedTokenIds,
   getTokensWithFeature,
   getTokenImageUrls,
+  getTokenSummaries,
 };

@@ -462,4 +462,48 @@ describe("db/artblocks", () => {
       );
     })
   );
+  it(
+    "supports getTokenSummaries",
+    withTestDb(async ({ client }) => {
+      await artblocks.addProject({
+        client,
+        project: parseProjectData(
+          snapshots.ARCHETYPE,
+          await sc.project(snapshots.ARCHETYPE)
+        ),
+      });
+      const tokenId1 = snapshots.ARCH_TRIPTYCH_1;
+      await artblocks.addToken({
+        client,
+        tokenId: tokenId1,
+        rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_1),
+      });
+      const tokenId2 = snapshots.ARCH_TRIPTYCH_2;
+      await artblocks.addToken({
+        client,
+        tokenId: tokenId2,
+        rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_2),
+      });
+      const res = await artblocks.getTokenSummaries({
+        client,
+        tokenIds: [tokenId1, tokenId2],
+      });
+      expect(res).toEqual([
+        {
+          tokenId: 23000036,
+          name: "Archetype",
+          artistName: "Kjetil Golid",
+          slug: "archetype",
+          aspectRatio: 1,
+        },
+        {
+          tokenId: 23000045,
+          name: "Archetype",
+          artistName: "Kjetil Golid",
+          slug: "archetype",
+          aspectRatio: 1,
+        },
+      ]);
+    })
+  );
 });

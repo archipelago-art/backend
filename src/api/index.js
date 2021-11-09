@@ -109,6 +109,13 @@ async function tokenFeaturesAndTraits({ client, tokenId }) {
   return res;
 }
 
+async function tokenSummaries({ client, tokenIds }) {
+  if (!Array.isArray(tokenIds))
+    throw new Error("tokenSummaries: must pass array of token IDs");
+  const res = await artblocks.getTokenSummaries({ client, tokenIds });
+  return res;
+}
+
 module.exports = {
   artblocksProjectIdToCollectionName,
   collectionNameToArtblocksProjectId,
@@ -117,4 +124,5 @@ module.exports = {
   collectionMintState,
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
+  tokenSummaries,
 };
