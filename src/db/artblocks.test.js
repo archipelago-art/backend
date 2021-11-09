@@ -485,6 +485,12 @@ describe("db/artblocks", () => {
         tokenId: tokenId2,
         rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_2),
       });
+      const tokenId3 = snapshots.ARCH_TRIPTYCH_3;
+      await artblocks.addToken({
+        client,
+        tokenId: tokenId3,
+        rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_3),
+      });
       const res = await artblocks.getTokenSummaries({
         client,
         tokenIds: [tokenId1, tokenId2],
