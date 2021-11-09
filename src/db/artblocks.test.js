@@ -462,6 +462,7 @@ describe("db/artblocks", () => {
       );
     })
   );
+
   it(
     "supports getTokenSummaries",
     withTestDb(async ({ client }) => {

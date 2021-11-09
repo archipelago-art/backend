@@ -374,12 +374,17 @@ async function getTokenImageUrls({ client }) {
 async function getTokenSummaries({ client, tokenIds }) {
   const res = await client.query(
     `
-    SELECT token_id as "tokenId", name, artist_name as "artistName", slug, aspect_ratio as "aspectRatio"
+    SELECT
+      token_id AS "tokenId",
+      name,
+      artist_name AS "artistName",
+      slug,
+      aspect_ratio AS "aspectRatio"
     FROM tokens
     JOIN projects USING(project_id)
     WHERE token_id = ANY($1::int[])
-    ORDER BY token_id;
-  `,
+    ORDER BY token_id
+    `,
     [tokenIds]
   );
   return res.rows;
