@@ -4,7 +4,7 @@ const { fetchWithRetries } = require("./retryFetch");
 
 const TOKEN_URL_BASE = "https://api.artblocks.io/token";
 
-const PROJECTS_THAT_MUST_HAVE_FEATURES = [204];
+const PROJECTS_THAT_MUST_HAVE_FEATURES = [194, 204];
 
 function normalizeTokenId(tokenId) {
   const result = Number.parseInt(tokenId, 10);
