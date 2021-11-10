@@ -3,47 +3,51 @@ const util = require("util");
 const api = require("../api");
 const artblocks = require("../db/artblocks");
 const { acqrel } = require("../db/util");
+const C = require("../util/combo");
 
-/*::
-type PingMessage = {
-  type: "PING",
-  nonce: string,
-};
-type PongMessage = {
-  type: "PONG",
-  nonce: string,
-};
+const types = {};
+types.tokenData = C.object({
+  tokenId: C.number,
+  traits: C.array(
+    C.object({
+      featureId: C.number,
+      name: C.string,
+      traitId: C.number,
+      value: C.raw,
+    })
+  ),
+});
+types.collectionId = C.fmap(C.string, (s) => {
+  const result = api.collectionNameToArtblocksProjectId(s);
+  if (result == null) throw new Error("invalid collection ID: " + s);
+  return result;
+});
 
-// Sent from server to client when new tokens are minted.
-type NewTokensMessage = {
-  type: "NEW_TOKENS",
-  tokens: TokenData[],
-};
+const requestParser = C.sum("type", {
+  PING: {
+    nonce: C.string,
+  },
+  // Sent to request tokens for a collection.
+  GET_LATEST_TOKENS: {
+    projectId: C.rename("collection", types.collectionId),
+    lastTokenId: C.orElse([C.null_, C.number]),
+  },
+});
 
-// Sent from client to server to request tokens for a collection.
-type GetLatestTokensMessage = {
-  type: "GET_LATEST_TOKENS",
-  collection: string,
-  lastTokenId: number | null,  // fetch only token IDs higher than this one
-}
-
-// Sent from server to client to indicate a bad incoming message.
-type ErrorMessage = {
-  type: "ERROR",
-  httpStatus: number,
-  message: string,
-}
-
-type TokenData = {
-  tokenId: number,
-  traits: {
-    featureId: number,
-    name: string,
-    traitId: number,
-    value: JsonValue,
-  }
-};
-*/
+const responseParser = C.sum("type", {
+  PONG: {
+    nonce: C.string,
+  },
+  // Sent when new tokens are minted or in response to a `GET_LATEST_TOKENS`
+  // request.
+  NEW_TOKENS: {
+    tokens: C.array(types.tokenData),
+  },
+  ERROR: {
+    httpStatus: C.number,
+    message: C.string,
+  },
+});
 
 async function attach(server, pool) {
   let alive = true;
@@ -80,28 +84,38 @@ async function attach(server, pool) {
     await artblocks.newTokensChannel.listen(listenClient);
 
     server.on("connection", (ws) => {
-      ws.on("message", (msg) => {
-        let payload;
+      ws.on("message", (msgRaw) => {
+        let msgJson;
         try {
-          payload = JSON.parse(msg);
+          msgJson = JSON.parse(msgRaw);
         } catch (e) {
           console.warn(
             "ignoring invalid-JSON message from client: %s%s",
-            msg.slice(0, 32),
-            msg.length > 32 ? "[...]" : ""
+            msgRaw.slice(0, 32),
+            msgRaw.length > 32 ? "[...]" : ""
           );
           return;
         }
-        switch (payload.type) {
+        let request;
+        try {
+          request = requestParser.parseOrThrow(msgJson);
+        } catch (e) {
+          sendJson(ws, {
+            type: "ERROR",
+            httpStatus: 400,
+            message: "invalid request: " + e.message,
+          });
+          return;
+        }
+        switch (request.type) {
           case "PING":
-            handlePing(ws, pool, payload);
+            handlePing(ws, pool, request);
             break;
           case "GET_LATEST_TOKENS":
-            handleGetLatestTokens(ws, pool, payload);
+            handleGetLatestTokens(ws, pool, request);
             break;
-
           default:
-            console.warn("ignoring unknown message type: %s", payload.type);
+            console.error("unhandled request type: %s", request.type);
         }
       });
     });
@@ -112,40 +126,12 @@ async function attach(server, pool) {
   }
 }
 
-function handlePing(ws, pool, payload) {
-  sendJson(ws, { type: "PONG", nonce: payload.nonce });
+function handlePing(ws, pool, request) {
+  sendJson(ws, { type: "PONG", nonce: request.nonce });
 }
 
-async function handleGetLatestTokens(ws, pool, payload) {
-  const { collection, lastTokenId } = payload;
-  if (typeof collection !== "string") {
-    sendJson(ws, {
-      type: "ERROR",
-      httpStatus: 400,
-      message: "collection should be a string",
-    });
-    return;
-  }
-  const projectId = api.collectionNameToArtblocksProjectId(collection);
-  if (projectId == null) {
-    sendJson(ws, {
-      type: "ERROR",
-      httpStatus: 400,
-      message: "invalid collection ID",
-    });
-    return;
-  }
-  if (
-    lastTokenId !== null &&
-    (!Number.isInteger(lastTokenId) || !(lastTokenId >= 0))
-  ) {
-    sendJson(ws, {
-      type: "ERROR",
-      httpStatus: 400,
-      message: "lastTokenId should be a non-negative integer or null",
-    });
-    return;
-  }
+async function handleGetLatestTokens(ws, pool, request) {
+  const { projectId, lastTokenId } = request;
   const minTokenId = lastTokenId == null ? 0 : lastTokenId + 1;
   const tokens = await acqrel(pool, async (client) => {
     return artblocks.getTokenFeaturesAndTraits({
