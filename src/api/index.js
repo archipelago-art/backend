@@ -102,11 +102,13 @@ async function tokenFeaturesAndTraits({ client, tokenId }) {
     client,
     tokenId,
   });
-  for (const row of res) {
+  if (res.length !== 1) return [];
+  const result = res[0].traits;
+  for (const row of result) {
     row.featureSlug = slug(row.name);
     row.traitSlug = slug(String(row.value));
   }
-  return res;
+  return result;
 }
 
 async function tokenSummaries({ client, tokenIds }) {

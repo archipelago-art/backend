@@ -454,22 +454,81 @@ describe("db/artblocks", () => {
         client,
         tokenId,
       });
-      expect(res).toEqual(
-        expect.arrayContaining([
-          {
-            featureId: expect.any(Number),
-            name: "Framed",
-            traitId: expect.any(Number),
-            value: "Yep",
-          },
-          {
-            featureId: expect.any(Number),
-            name: "Scene",
-            traitId: expect.any(Number),
-            value: "Cube",
-          },
-        ])
+      expect(res).toEqual([
+        {
+          tokenId: snapshots.THE_CUBE,
+          traits: expect.arrayContaining([
+            {
+              featureId: expect.any(Number),
+              name: "Framed",
+              traitId: expect.any(Number),
+              value: "Yep",
+            },
+            {
+              featureId: expect.any(Number),
+              name: "Scene",
+              traitId: expect.any(Number),
+              value: "Cube",
+            },
+          ]),
+        },
+      ]);
+    })
+  );
+
+  it(
+    "supports getting features from a certain token ID upward",
+    withTestDb(async ({ client }) => {
+      for (const projectId of [snapshots.ARCHETYPE, snapshots.BYTEBEATS]) {
+        await artblocks.addProject({
+          client,
+          project: parseProjectData(projectId, await sc.project(projectId)),
+        });
+      }
+      expect(snapshots.BYTEBEATS_SEVEN).toBeGreaterThan(
+        snapshots.ARCH_TRIPTYCH_3
       );
+      for (const tokenId of [
+        snapshots.ARCH_TRIPTYCH_1,
+        snapshots.ARCH_TRIPTYCH_2,
+        snapshots.ARCH_TRIPTYCH_3,
+        snapshots.BYTEBEATS_SEVEN,
+      ]) {
+        await artblocks.addToken({
+          client,
+          tokenId,
+          rawTokenData: await sc.token(tokenId),
+        });
+      }
+      const res = await artblocks.getTokenFeaturesAndTraits({
+        client,
+        projectId: snapshots.ARCHETYPE,
+        minTokenId: snapshots.ARCH_TRIPTYCH_2,
+      });
+      expect(res).toEqual([
+        {
+          tokenId: snapshots.ARCH_TRIPTYCH_2,
+          traits: expect.arrayContaining([
+            {
+              featureId: expect.any(Number),
+              name: "Scene",
+              traitId: expect.any(Number),
+              value: "Flat",
+            },
+          ]),
+        },
+        {
+          tokenId: snapshots.ARCH_TRIPTYCH_3,
+          traits: expect.arrayContaining([
+            {
+              featureId: expect.any(Number),
+              name: "Scene",
+              traitId: expect.any(Number),
+              value: "Flat",
+            },
+          ]),
+        },
+      ]);
     })
   );
 

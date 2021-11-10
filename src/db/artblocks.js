@@ -234,10 +234,19 @@ async function getProjectFeaturesAndTraits({ client, projectId }) {
   return result;
 }
 
-async function getTokenFeaturesAndTraits({ client, tokenId }) {
+async function getTokenFeaturesAndTraits({
+  client,
+  tokenId,
+  minTokenId,
+  projectId,
+}) {
+  if (tokenId == null && projectId == null) {
+    throw new Error("must filter by either project ID or token ID");
+  }
   const res = await client.query(
     `
     SELECT
+      token_id AS "tokenId",
       feature_id AS "featureId",
       name,
       trait_id AS "traitId",
@@ -245,13 +254,30 @@ async function getTokenFeaturesAndTraits({ client, tokenId }) {
     FROM features
       JOIN traits USING (feature_id)
       JOIN trait_members USING (trait_id)
-    WHERE token_id = $1
-    GROUP BY feature_id, trait_id
-    ORDER BY name, value
+    WHERE true
+      AND (token_id = $1 OR $1 IS NULL)
+      AND (token_id >= $2 OR $2 IS NULL)
+      AND (project_id = $3 OR $3 IS NULL)
+    ORDER BY token_id, feature_id, trait_id
     `,
-    [tokenId]
+    [tokenId, minTokenId, projectId]
   );
-  return res.rows;
+
+  const result = [];
+  let currentToken = {};
+  for (const row of res.rows) {
+    if (currentToken.tokenId !== row.tokenId) {
+      currentToken = { tokenId: row.tokenId, traits: [] };
+      result.push(currentToken);
+    }
+    currentToken.traits.push({
+      featureId: row.featureId,
+      name: row.name,
+      traitId: row.traitId,
+      value: row.value,
+    });
+  }
+  return result;
 }
 
 async function getTokenIds({ client }) {
