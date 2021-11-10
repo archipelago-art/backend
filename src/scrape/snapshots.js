@@ -3,6 +3,7 @@ const path = require("path");
 const { promisify } = require("util");
 
 const SQUIGGLES = 0;
+const ELEVATED_DECONSTRUCTIONS = 7; // has no features for any token
 const HYPERHASH = 11;
 const ARCHETYPE = 23;
 const GALAXISS = 31;
@@ -10,6 +11,7 @@ const BYTEBEATS = 38;
 const PHANTOM_SEADRAGONS = 155;
 const PROJECTS = Object.freeze([
   SQUIGGLES,
+  ELEVATED_DECONSTRUCTIONS,
   HYPERHASH,
   ARCHETYPE,
   GALAXISS,
@@ -23,21 +25,25 @@ const ARCHETYPE_DESCRIPTION =
   "Archetype explores the use of repetition as a counterweight to unruly, random structures. As each single component look chaotic alone, the repetition brings along a sense of intentionality, ultimately resulting in a complex, yet satisfying expression.";
 
 const PERFECT_CHROMATIC = 7583;
+const ELEVATED_DECONSTRUCTIONS_EMPTY_FEATURES = 7000000;
 const ARCH_TRIPTYCH_1 = 23000036;
 const ARCH_TRIPTYCH_2 = 23000045;
 const ARCH_TRIPTYCH_3 = 23000467;
 const THE_CUBE = 23000250;
 const GALAXISS_FEATURES_ARRAY = 31000000;
 const BYTEBEATS_NULL_FEATURE = 38000007; // has `{"Progressions": null}` in `features`
+const BYTEBEATS_EMPTY_FEATURES = 38000212; // empty `features`, presumably due to Art Blocks bug
 const TOKENS = Object.freeze([
   0,
   PERFECT_CHROMATIC,
+  ELEVATED_DECONSTRUCTIONS_EMPTY_FEATURES,
   ARCH_TRIPTYCH_1,
   ARCH_TRIPTYCH_2,
   ARCH_TRIPTYCH_3,
   THE_CUBE,
   GALAXISS_FEATURES_ARRAY,
   BYTEBEATS_NULL_FEATURE,
+  BYTEBEATS_EMPTY_FEATURES,
 ]);
 
 function baseDir() {
@@ -88,6 +94,7 @@ class SnapshotCache {
 
 module.exports = {
   SQUIGGLES,
+  ELEVATED_DECONSTRUCTIONS,
   HYPERHASH,
   ARCHETYPE,
   HYPERHASH_DESCRIPTION,
@@ -97,12 +104,14 @@ module.exports = {
   PHANTOM_SEADRAGONS,
   PROJECTS,
   PERFECT_CHROMATIC,
+  ELEVATED_DECONSTRUCTIONS_EMPTY_FEATURES,
   THE_CUBE,
   ARCH_TRIPTYCH_1,
   ARCH_TRIPTYCH_2,
   ARCH_TRIPTYCH_3,
   GALAXISS_FEATURES_ARRAY,
   BYTEBEATS_NULL_FEATURE,
+  BYTEBEATS_EMPTY_FEATURES,
   TOKENS,
   readProject,
   readToken,
