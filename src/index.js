@@ -1,3 +1,4 @@
+const http = require("http");
 const pg = require("pg");
 const ws = require("ws");
 
@@ -337,9 +338,14 @@ async function tokenFeedWss(args) {
   const port = Number(args[0]);
   if (!Number.isInteger(port) || port < 0 || port > 0xffff)
     throw new Error("expected port argument; got: " + args[0]);
-  const server = new ws.WebSocketServer({ port, clientTracking: true });
+  const httpServer = http.createServer({});
+  const wsServer = new ws.WebSocketServer({
+    server: httpServer,
+    clientTracking: true,
+  });
   const pool = new pg.Pool();
-  await attach(server, pool);
+  await attach(wsServer, pool);
+  httpServer.listen(port);
 }
 
 async function main() {
