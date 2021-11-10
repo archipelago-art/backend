@@ -1,4 +1,5 @@
 const pg = require("pg");
+const ws = require("ws");
 
 const artblocks = require("./db/artblocks");
 const backfills = require("./db/backfills");
@@ -7,6 +8,7 @@ const { acqrel } = require("./db/util");
 const images = require("./img");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
+const attach = require("./ws");
 
 const NETWORK_CONCURRENCY = 64;
 const IMAGEMAGICK_CONCURRENCY = 16;
@@ -331,6 +333,15 @@ async function ingestImages(args) {
   }
 }
 
+async function tokenFeedWss(args) {
+  const port = Number(args[0]);
+  if (!Number.isInteger(port) || port < 0 || port > 0xffff)
+    throw new Error("expected port argument; got: " + args[0]);
+  const server = new ws.WebSocketServer({ port, clientTracking: true });
+  const pool = new pg.Pool();
+  await attach(server, pool);
+}
+
 async function main() {
   require("dotenv").config();
   const [arg0, ...args] = process.argv.slice(2);
@@ -346,6 +357,7 @@ async function main() {
     ["download-images", downloadImages],
     ["resize-images", resizeImages],
     ["ingest-images", ingestImages],
+    ["token-feed-wss", tokenFeedWss],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
