@@ -84,7 +84,7 @@ async function attach(server, pool) {
     await artblocks.newTokensChannel.listen(listenClient);
 
     server.on("connection", (ws) => {
-      ws.on("message", (msgRaw) => {
+      ws.on("message", async (msgRaw) => {
         let msgJson;
         try {
           msgJson = JSON.parse(msgRaw);
@@ -107,15 +107,24 @@ async function attach(server, pool) {
           });
           return;
         }
-        switch (request.type) {
-          case "PING":
-            handlePing(ws, pool, request);
-            break;
-          case "GET_LATEST_TOKENS":
-            handleGetLatestTokens(ws, pool, request);
-            break;
-          default:
-            console.error("unhandled request type: %s", request.type);
+        try {
+          switch (request.type) {
+            case "PING":
+              await handlePing(ws, pool, request);
+              break;
+            case "GET_LATEST_TOKENS":
+              await handleGetLatestTokens(ws, pool, request);
+              break;
+            default:
+              console.error("unhandled request type: %s", request.type);
+          }
+        } catch (e) {
+          console.error(e);
+          sendJson(ws, {
+            type: "ERROR",
+            httpStatus: 500,
+            message: `internal error handling ${request.type} request`,
+          });
         }
       });
     });
