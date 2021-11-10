@@ -4,7 +4,9 @@ const { fetchWithRetries } = require("./retryFetch");
 
 const TOKEN_URL_BASE = "https://api.artblocks.io/token";
 
-const PROJECTS_THAT_MUST_HAVE_FEATURES = [194, 204];
+const PROJECTS_THAT_MAY_OMIT_FEATURES = new Set([
+  5, 6, 7, 67, 79, 80, 81, 94, 136, 189, 199,
+]);
 
 function normalizeTokenId(tokenId) {
   const result = Number.parseInt(tokenId, 10);
@@ -25,7 +27,7 @@ async function fetchTokenJsonText(tokenId) {
   }
 }
 
-function parseTokenData(text) {
+function parseTokenData(text, { checkFeaturesPresent = false } = {}) {
   if (text == null) {
     return { found: false };
   }
@@ -37,10 +39,14 @@ function parseTokenData(text) {
       throw new Error(`bad project ID: ${parsed.project_id}`);
     // Hacky workaround for latency on Art Blocks API, wherein a token mints
     // and the Art Blocks API returns data for it but omits all features from
-    // the response (???).
+    // the response (???). Gated behind `checkFeaturesPresent` because for some
+    // tokens this is not a transient error but a persistent one (?????): e.g.,
+    // at time of writing, 38000212 is the unique token in its collection (of
+    // size 512) that has no features.
     if (
-      PROJECTS_THAT_MUST_HAVE_FEATURES.includes(projectId) &&
-      !Object.keys(parsed.features).length
+      checkFeaturesPresent &&
+      Object.keys(parsed.features).length === 0 &&
+      !PROJECTS_THAT_MAY_OMIT_FEATURES.has(projectId)
     )
       throw new Error(`empty "features": ${text}`);
     return { found: true, raw: text, parsed };
@@ -49,8 +55,8 @@ function parseTokenData(text) {
   }
 }
 
-async function fetchTokenData(tokenId) {
-  return parseTokenData(await fetchTokenJsonText(tokenId));
+async function fetchTokenData(tokenId, options) {
+  return parseTokenData(await fetchTokenJsonText(tokenId), options);
 }
 
 module.exports = {

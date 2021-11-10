@@ -164,7 +164,7 @@ async function followLiveMint(args) {
         return;
       }
       console.log(`checking for ${ids[0]}`);
-      if (!(await tryAddToken({ pool, tokenId: ids[0] }))) {
+      if (!(await tryAddTokenLive({ pool, tokenId: ids[0] }))) {
         console.log(`token ${ids[0]} not ready yet; zzz`);
         await sleepMs(LIVE_MINT_LATENCY_SECONDS * 1000);
         continue;
@@ -181,7 +181,7 @@ async function followLiveMint(args) {
           }
           const tokenId = workItems.shift();
           if (tokenId == null) return;
-          if (!(await tryAddToken({ pool, tokenId }))) {
+          if (!(await tryAddTokenLive({ pool, tokenId }))) {
             console.log(`token ${tokenId} not ready yet; bailing`);
             bailed = true;
             return;
@@ -203,9 +203,9 @@ async function followLiveMint(args) {
   });
 }
 
-async function tryAddToken({ pool, tokenId }) {
+async function tryAddTokenLive({ pool, tokenId }) {
   try {
-    const token = await fetchTokenData(tokenId);
+    const token = await fetchTokenData(tokenId, { checkFeaturesPresent: true });
     if (!token.found) return false;
     await acqrel(pool, (client) =>
       artblocks.addToken({
