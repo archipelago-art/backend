@@ -23,7 +23,8 @@
     "dotenv": "^10.0.0",
     "node-html-parser": "^4.1.4",
     "pg": "^8.7.1",
-    "slug": "^5.1.0"
+    "slug": "^5.1.0",
+    "ws": "^8.2.3"
   },
   "jest": {
     "setupFiles": [
