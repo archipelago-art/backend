@@ -683,4 +683,53 @@ describe("combo", () => {
       });
     });
   });
+
+  describe("sum", () => {
+    const makeParser = () =>
+      C.sum("type", {
+        ONE: { x: C.string },
+        TWO: { y: C.fmap(C.number, (n) => n + 100) },
+      });
+
+    it("rejects null", () => {
+      const p = makeParser();
+      const thunk = () => p.parseOrThrow(null);
+      expect(thunk).toThrow("expected object, got null");
+    });
+    it("rejects arrays", () => {
+      const p = makeParser();
+      const thunk = () => p.parseOrThrow([1, 2, 3]);
+      expect(thunk).toThrow("expected object, got array");
+    });
+    it("accepts valid values from any variant", () => {
+      const p = makeParser();
+      expect(p.parseOrThrow({ type: "ONE", x: "x" })).toEqual({
+        type: "ONE",
+        x: "x",
+      });
+      expect(p.parseOrThrow({ type: "TWO", y: 42 })).toEqual({
+        type: "TWO",
+        y: 142,
+      });
+    });
+    it("allows custom variant parsers", () => {
+      const p = C.sum("type", {
+        ONE: { x: C.string },
+        TWO: C.fmap(C.raw, (x) => Object.keys(x).length + " keys!"),
+      });
+      expect(p.parseOrThrow({ type: "TWO", y: 42, z: 234 })).toEqual("3 keys!");
+    });
+    it("rejects unknown variants", () => {
+      const p = makeParser();
+      const thunk = () => p.parseOrThrow({ type: "THREE", z: false });
+      expect(thunk).toThrow('unknown type: "THREE"');
+    });
+    it("rejects non-string variants", () => {
+      const p = makeParser();
+      const thunk = () => p.parseOrThrow({ type: false });
+      expect(thunk).toThrow(
+        'expected "type" to be a string, got boolean false'
+      );
+    });
+  });
 });

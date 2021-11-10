@@ -488,6 +488,56 @@ const dict /*: PDict */ = (function dict /*:: <V, K: string> */(
   });
 } /*: any */);
 
+// Create a parser for sum types implemented as a union of objects with
+// a fixed-key string discriminant. For instance, the following parser:
+//
+//    C.sum("type", {
+//      STREAM: {
+//        fd: C.number,
+//      },
+//      DISK: {
+//        path: C.string,
+//      },
+//    })
+//
+// would parse an input like `{type: "STREAM", fd: 0}` to itself. Each
+// value of `variants` is a dict of fields expected on the object (in
+// addition to its discriminant, which is passed through unchanged
+// unless overridden explicitly). A value of `variants` may instead be
+// an arbitrary `Parser` for additional flexibility.
+function sum(discriminantKey, variants) {
+  const variantParsers = {};
+  for (const [k, v] of Object.entries(variants)) {
+    variantParsers[k] =
+      v instanceof Parser
+        ? v
+        : object({
+            [discriminantKey]: exactly([k]),
+            ...v,
+          });
+  }
+  return new Parser((x) => {
+    if (typeof x !== "object" || Array.isArray(x) || x == null) {
+      return failure("expected object, got " + pprint(x));
+    }
+    const discriminant = x[discriminantKey];
+    if (discriminant == null) {
+      return failure(`missing "${discriminantKey}" field`);
+    }
+    if (typeof discriminant !== "string") {
+      return failure(
+        `expected "${discriminantKey}" to be a string, got ` +
+          pprint(discriminant)
+      );
+    }
+    const parser = variantParsers[discriminant];
+    if (parser == null) {
+      return failure("unknown type: " + pprint(discriminant));
+    }
+    return parser.parse(x);
+  });
+}
+
 module.exports = {
   Parser,
   string,
@@ -505,4 +555,5 @@ module.exports = {
   shape,
   tuple,
   dict,
+  sum,
 };
