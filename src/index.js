@@ -1,5 +1,8 @@
+const fs = require("fs");
 const http = require("http");
+const https = require("https");
 const pg = require("pg");
+const util = require("util");
 const ws = require("ws");
 
 const artblocks = require("./db/artblocks");
@@ -338,7 +341,19 @@ async function tokenFeedWss(args) {
   const port = Number(args[0]);
   if (!Number.isInteger(port) || port < 0 || port > 0xffff)
     throw new Error("expected port argument; got: " + args[0]);
-  const httpServer = http.createServer({});
+  let httpServer;
+  const certFile = process.env.TLS_CERT_FILE;
+  const keyFile = process.env.TLS_KEY_FILE;
+  if (certFile && keyFile) {
+    [cert, key] = await Promise.all(
+      [certFile, keyFile].map((f) => util.promisify(fs.readFile)(f))
+    );
+    console.log("serving over TLS");
+    httpServer = https.createServer({ cert, key });
+  } else {
+    console.log("serving without TLS certificate");
+    httpServer = http.createServer({});
+  }
   const wsServer = new ws.WebSocketServer({
     server: httpServer,
     clientTracking: true,
@@ -346,6 +361,7 @@ async function tokenFeedWss(args) {
   const pool = new pg.Pool();
   await attach(wsServer, pool);
   httpServer.listen(port);
+  console.log("listening on port %s", port);
 }
 
 async function main() {
