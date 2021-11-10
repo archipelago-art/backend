@@ -49,6 +49,14 @@ const responseParser = C.sum("type", {
   },
 });
 
+function formatResponse(json) {
+  const parseResult = responseParser.parse(json);
+  if (!parseResult.ok) {
+    throw new Error("invalid response: " + parseResult.err);
+  }
+  return JSON.stringify(json);
+}
+
 async function attach(server, pool) {
   let alive = true;
   let listenClientKeepalive;
@@ -76,7 +84,7 @@ async function attach(server, pool) {
       const tokens = await acqrel(pool, async (client) => {
         return artblocks.getTokenFeaturesAndTraits({ client, tokenId });
       });
-      const msg = JSON.stringify({ type: "NEW_TOKENS", tokens });
+      const msg = formatResponse({ type: "NEW_TOKENS", tokens });
       for (const ws of server.clients) {
         send(ws, msg);
       }
@@ -161,7 +169,7 @@ function send(ws, msg) {
     });
 }
 function sendJson(ws, json) {
-  send(ws, JSON.stringify(json));
+  send(ws, formatResponse(json));
 }
 
 module.exports = attach;
