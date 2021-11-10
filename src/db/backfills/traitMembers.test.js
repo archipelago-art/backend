@@ -31,13 +31,28 @@ describe("backfills/traitMembers", () => {
       client,
       tokenId: snapshots.ARCH_TRIPTYCH_1,
       rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_1),
-      includeTraitMembers: false,
     });
+    // Manually patch DB to simulate old state with no traits, but first, make
+    // absolutely sure that this isn't accidentally being run on a non-test DB.
+    const numTokensRes = await client.query(
+      "SELECT COUNT(1) AS cnt FROM tokens"
+    );
+    const numTokens = numTokensRes.rows[0].cnt;
+    if (numTokens !== "1") {
+      throw new Error(
+        "refusing to delete from test DB: expected exactly 1 token, but got " +
+          numTokens
+      );
+    }
+    await client.query(`
+      DELETE FROM trait_members;
+      DELETE FROM traits;
+      DELETE FROM features;
+    `);
     await artblocks.addToken({
       client,
       tokenId: snapshots.ARCH_TRIPTYCH_2,
       rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_2),
-      includeTraitMembers: true,
     });
   }
 

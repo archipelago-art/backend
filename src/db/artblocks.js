@@ -88,12 +88,7 @@ async function setProjectSlug({ client, projectId, slug }) {
     throw new Error("no project found by ID " + projectId);
 }
 
-async function addToken({
-  client,
-  tokenId,
-  rawTokenData,
-  includeTraitMembers = true,
-}) {
+async function addToken({ client, tokenId, rawTokenData }) {
   await client.query("BEGIN");
   const projectId = Math.floor(tokenId / PROJECT_STRIDE);
   await client.query(
@@ -111,17 +106,13 @@ async function addToken({
     `,
     [projectId]
   );
-
-  if (includeTraitMembers) {
-    await populateTraitMembers({
-      client,
-      tokenId,
-      projectId,
-      rawTokenData,
-      alreadyInTransaction: true,
-    });
-  }
-
+  await populateTraitMembers({
+    client,
+    tokenId,
+    projectId,
+    rawTokenData,
+    alreadyInTransaction: true,
+  });
   await client.query("COMMIT");
 }
 
