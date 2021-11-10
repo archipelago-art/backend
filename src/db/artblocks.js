@@ -1,8 +1,12 @@
 const slug = require("slug");
 
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
+const events = require("./events");
 
 const PROJECT_STRIDE = 1e6;
+
+// Event payloads are JSON `{ projectId: number, tokenId: number }`.
+const newTokensChannel = events.channel("new_tokens");
 
 function tokenBounds(projectId) {
   const minTokenId = projectId * PROJECT_STRIDE;
@@ -113,6 +117,7 @@ async function addToken({ client, tokenId, rawTokenData }) {
     rawTokenData,
     alreadyInTransaction: true,
   });
+  await newTokensChannel.send(client, { projectId, tokenId });
   await client.query("COMMIT");
 }
 
@@ -328,6 +333,7 @@ async function getTokenSummaries({ client, tokenIds }) {
 }
 
 module.exports = {
+  newTokensChannel,
   addProject,
   getProject,
   setProjectSlug,

@@ -1,4 +1,5 @@
-const { testDbProvider } = require("./testUtil");
+const { acqrel } = require("./util");
+const { adHocPromise, testDbProvider } = require("./testUtil");
 
 const artblocks = require("./artblocks");
 const snapshots = require("../scrape/snapshots");
@@ -82,26 +83,40 @@ describe("db/artblocks", () => {
 
   it(
     "inserts token data for successful fetches",
-    withTestDb(async ({ client }) => {
-      await artblocks.addProject({
-        client,
-        project: parseProjectData(
-          snapshots.ARCHETYPE,
-          await sc.project(snapshots.ARCHETYPE)
-        ),
+    withTestDb(async ({ pool, client }) => {
+      await acqrel(pool, async (listenClient) => {
+        const postgresEvent = adHocPromise();
+        listenClient.on("notification", (n) => {
+          if (n.channel === artblocks.newTokensChannel.name) {
+            postgresEvent.resolve(n.payload);
+          } else {
+            postgresEvent.reject("unexpected channel: " + n.channel);
+          }
+        });
+        await artblocks.newTokensChannel.listen(listenClient);
+
+        const projectId = snapshots.ARCHETYPE;
+        const tokenId = snapshots.THE_CUBE;
+        await artblocks.addProject({
+          client,
+          project: parseProjectData(projectId, await sc.project(projectId)),
+        });
+        await artblocks.addToken({
+          client,
+          tokenId,
+          rawTokenData: await sc.token(tokenId),
+        });
+
+        expect(
+          await artblocks.getProject({ client, projectId: snapshots.ARCHETYPE })
+        ).toEqual(
+          expect.objectContaining({
+            numTokens: 1,
+          })
+        );
+        const eventValue = await postgresEvent.promise;
+        expect(JSON.parse(eventValue)).toEqual({ projectId, tokenId });
       });
-      await artblocks.addToken({
-        client,
-        tokenId: snapshots.THE_CUBE,
-        rawTokenData: await sc.token(snapshots.THE_CUBE),
-      });
-      expect(
-        await artblocks.getProject({ client, projectId: snapshots.ARCHETYPE })
-      ).toEqual(
-        expect.objectContaining({
-          numTokens: 1,
-        })
-      );
     })
   );
 
