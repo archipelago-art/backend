@@ -73,14 +73,14 @@ async function attach(server, pool) {
         return artblocks.getTokenFeaturesAndTraits({ client, tokenId });
       });
       const msg = JSON.stringify({ type: "NEW_TOKENS", tokens });
-      for (const client of server.clients) {
-        send(client, msg);
+      for (const ws of server.clients) {
+        send(ws, msg);
       }
     });
     await artblocks.newTokensChannel.listen(listenClient);
 
-    server.on("connection", (client) => {
-      client.on("message", (msg) => {
+    server.on("connection", (ws) => {
+      ws.on("message", (msg) => {
         let payload;
         try {
           payload = JSON.parse(msg);
@@ -94,10 +94,10 @@ async function attach(server, pool) {
         }
         switch (payload.type) {
           case "PING":
-            handlePing(client, pool, payload);
+            handlePing(ws, pool, payload);
             break;
           case "GET_LATEST_TOKENS":
-            handleGetLatestTokens(client, pool, payload);
+            handleGetLatestTokens(ws, pool, payload);
             break;
 
           default:
@@ -112,14 +112,14 @@ async function attach(server, pool) {
   }
 }
 
-function handlePing(client, pool, payload) {
+function handlePing(ws, pool, payload) {
   sendJson(ws, { type: "PONG", nonce: payload.nonce });
 }
 
-async function handleGetLatestTokens(client, pool, payload) {
+async function handleGetLatestTokens(ws, pool, payload) {
   const { collection, lastTokenId } = payload;
   if (typeof collection !== "string") {
-    sendJson(client, {
+    sendJson(ws, {
       type: "ERROR",
       httpStatus: 400,
       message: "collection should be a string",
@@ -128,7 +128,7 @@ async function handleGetLatestTokens(client, pool, payload) {
   }
   const projectId = api.collectionNameToArtblocksProjectId(collection);
   if (projectId == null) {
-    sendJson(client, {
+    sendJson(ws, {
       type: "ERROR",
       httpStatus: 400,
       message: "invalid collection ID",
@@ -139,7 +139,7 @@ async function handleGetLatestTokens(client, pool, payload) {
     lastTokenId !== null &&
     (!Number.isInteger(lastTokenId) || !(lastTokenId >= 0))
   ) {
-    sendJson(client, {
+    sendJson(ws, {
       type: "ERROR",
       httpStatus: 400,
       message: "lastTokenId should be a non-negative integer or null",
@@ -155,18 +155,18 @@ async function handleGetLatestTokens(client, pool, payload) {
     });
   });
 
-  sendJson(client, { type: "NEW_TOKENS", tokens });
+  sendJson(ws, { type: "NEW_TOKENS", tokens });
 }
 
-function send(client, msg) {
+function send(ws, msg) {
   util
-    .promisify(client.send.bind(client))(msg)
+    .promisify(ws.send.bind(ws))(msg)
     .catch((e) => {
       console.error("failed to send message (%s) to client:", msg, e);
     });
 }
-function sendJson(client, json) {
-  send(client, JSON.stringify(json));
+function sendJson(ws, json) {
+  send(ws, JSON.stringify(json));
 }
 
 module.exports = attach;
