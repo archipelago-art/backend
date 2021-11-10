@@ -27,8 +27,8 @@ const ARCH_TRIPTYCH_1 = 23000036;
 const ARCH_TRIPTYCH_2 = 23000045;
 const ARCH_TRIPTYCH_3 = 23000467;
 const THE_CUBE = 23000250;
-const GALAXISS_ZERO = 31000000;
-const BYTEBEATS_SEVEN = 38000007; // has `{"Progressions": null}` in `features`
+const GALAXISS_FEATURES_ARRAY = 31000000;
+const BYTEBEATS_NULL_FEATURE = 38000007; // has `{"Progressions": null}` in `features`
 const TOKENS = Object.freeze([
   0,
   PERFECT_CHROMATIC,
@@ -36,8 +36,8 @@ const TOKENS = Object.freeze([
   ARCH_TRIPTYCH_2,
   ARCH_TRIPTYCH_3,
   THE_CUBE,
-  GALAXISS_ZERO,
-  BYTEBEATS_SEVEN,
+  GALAXISS_FEATURES_ARRAY,
+  BYTEBEATS_NULL_FEATURE,
 ]);
 
 function baseDir() {
@@ -101,8 +101,8 @@ module.exports = {
   ARCH_TRIPTYCH_1,
   ARCH_TRIPTYCH_2,
   ARCH_TRIPTYCH_3,
-  GALAXISS_ZERO,
-  BYTEBEATS_SEVEN,
+  GALAXISS_FEATURES_ARRAY,
+  BYTEBEATS_NULL_FEATURE,
   TOKENS,
   readProject,
   readToken,
