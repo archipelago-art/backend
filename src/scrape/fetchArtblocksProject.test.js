@@ -18,6 +18,10 @@ describe("scrape/fetchArtblocksProject", () => {
         '{"type":"p5js","version":"1.0.0","aspectRatio":"1","curation_status":"curated"}',
       name: "Archetype",
       maxInvocations: 600,
+      script: expect.stringMatching(
+        // Make sure that HTML entities like "&amp;" and "&lt;" get decoded.
+        /^(?:let seed =).*(?:is_bright && rng\(\) < \.25).*(?:})$/s
+      ),
     });
   });
 
@@ -35,6 +39,7 @@ describe("scrape/fetchArtblocksProject", () => {
         '{"type":"p5js","version":"1.0.0","aspectRatio":"1","curation_status":"curated"}',
       name: "HyperHash",
       maxInvocations: 369,
+      script: expect.stringContaining("return new p5.Shader"),
     });
   });
 

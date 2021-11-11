@@ -39,6 +39,7 @@ function parseProjectData(projectId, html) {
       findByInnerText(body, "p", /^Maximum Invocations: ([0-9]+)$/s)[1],
       10
     ),
+    script: findByInnerText(body, "pre", /.*/s)[0],
   };
 }
 
