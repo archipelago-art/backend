@@ -29,6 +29,35 @@ async function evalUntrustedHtml(files, options) {
   return body.text;
 }
 
+// Evaluates untrusted HTML and JavaScript in a Chromium sandbox and saves a
+// screenshot of the page to the given path.
+//
+// The `files` argument should be a dict mapping URL paths like "/index.html"
+// to file contents like "<!DOCTYPE html>...". Paths ending with ".html" or
+// ".js" will be served with appropriate Content-Type headers; other files will
+// have "application/octet-stream".
+//
+// The `options` may include a `windowSize: { width: number, height: number }`.
+async function screenshotUntrustedHtml(files, outputPath, options) {
+  options = {
+    entry: "/index.html",
+    chromiumBinary: "chromium",
+    windowSize: { width: 640, height: 480 },
+    ...options,
+  };
+  const windowSizeFlagValue = [
+    options.windowSize.width,
+    options.windowSize.height,
+  ].join(",");
+  await withFileServer(files, (port) =>
+    spawnChromiumHeadless(options.chromiumBinary, [
+      `--window-size=${windowSizeFlagValue}`,
+      `--screenshot=${outputPath}`,
+      `http://localhost:${port}${options.entry}`,
+    ])
+  );
+}
+
 async function spawnChromiumHeadless(chromium, args) {
   return new Promise((res, rej) => {
     child_process.execFile(
@@ -79,4 +108,4 @@ async function withFileServer(files, callback) {
   }
 }
 
-module.exports = evalUntrustedHtml;
+module.exports = { evalUntrustedHtml, screenshotUntrustedHtml };
