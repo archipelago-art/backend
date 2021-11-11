@@ -85,6 +85,14 @@ async function process(ctx, token, listing) {
 /**
  * Processes images for all specified tokens, and updates the listing to
  * reflect newly created images.
+ *
+ * `ctx` should be an object with:
+ *
+ *    - `workDir`: a string like "/mnt/images"
+ *    - `bucket`: a `require("gcs").Bucket` instance
+ *    - `prefix`: a GCS path prefix, either an empty string or a string ending
+ *      with a slash
+ *    - `dryRun`: optional bool; defaults to false
  */
 async function processAll(ctx, tokens, listing, options) {
   options = {
