@@ -14,6 +14,7 @@ const migrationModules = [
   "./0013_index_trait_members_token_id",
   "./0014_deprecate_token_features",
   "./0015_drop_token_features",
+  "./0016_projects_script",
   // ...
 ];
 
