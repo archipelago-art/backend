@@ -15,6 +15,7 @@ const migrationModules = [
   "./0014_deprecate_token_features",
   "./0015_drop_token_features",
   "./0016_projects_script",
+  "./0017_image_progress",
   // ...
 ];
 
