@@ -364,6 +364,27 @@ async function tokenFeedWss(args) {
   console.log("listening on port %s", port);
 }
 
+async function generateImage(args) {
+  if (args.length !== 2) {
+    throw new Error("usage: generate-image <token-id> <outfile>");
+  }
+  const tokenId = Number(args[0]);
+  if (!Number.isInteger(tokenId) || tokenId < 0)
+    throw new Error("expected tokenId argument; got: " + args[0]);
+  const outfile = args[1];
+  const projectId = Math.floor(tokenId / 1e6);
+  const { script, library, hash } = await withDb(async ({ client }) => {
+    const { script, library } = await artblocks.getProjectScript({
+      client,
+      projectId,
+    });
+    const hash = await artblocks.getTokenHash({ client, tokenId });
+    return { script, library, hash };
+  });
+  const tokenData = { tokenId: String(tokenId), hash };
+  await images.generate({ script, library, tokenData }, outfile);
+}
+
 async function main() {
   require("dotenv").config();
   const [arg0, ...args] = process.argv.slice(2);
@@ -379,6 +400,7 @@ async function main() {
     ["download-images", downloadImages],
     ["resize-images", resizeImages],
     ["ingest-images", ingestImages],
+    ["generate-image", generateImage],
     ["token-feed-wss", tokenFeedWss],
   ];
   for (const [name, fn] of commands) {

@@ -370,6 +370,31 @@ async function getTokenSummaries({ client, tokenIds }) {
   return res.rows;
 }
 
+async function getProjectScript({ client, projectId }) {
+  const res = await client.query(
+    `
+    SELECT script, script_json->>'type' AS library
+    FROM projects
+    WHERE project_id = $1
+    `,
+    [projectId]
+  );
+  return res.rows[0] ?? null;
+}
+
+async function getTokenHash({ client, tokenId }) {
+  const res = await client.query(
+    `
+    SELECT token_data->>'token_hash' AS hash
+    FROM tokens
+    WHERE token_id = $1
+    `,
+    [tokenId]
+  );
+  if (res.rows.length === 0) return null;
+  return res.rows[0].hash;
+}
+
 module.exports = {
   newTokensChannel,
   addProject,
@@ -384,4 +409,6 @@ module.exports = {
   getAllUnfetchedTokenIds,
   getTokenImageUrls,
   getTokenSummaries,
+  getProjectScript,
+  getTokenHash,
 };
