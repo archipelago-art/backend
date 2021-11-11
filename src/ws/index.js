@@ -66,6 +66,11 @@ async function attach(server, pool) {
     clearInterval(listenClientKeepalive);
     listenClient.release(true);
   }
+  const imageProgress = new Map(
+    (
+      await acqrel(pool, (client) => artblocks.getImageProgress({ client }))
+    ).map((row) => [row.projectId, row.completedThroughTokenId])
+  );
 
   try {
     listenClientKeepalive = setInterval(async () => {
@@ -74,22 +79,34 @@ async function attach(server, pool) {
     }, 30 * 1000);
 
     listenClient.on("notification", async (n) => {
-      if (n.channel !== artblocks.newTokensChannel.name) return;
-      const { projectId, tokenId } = JSON.parse(n.payload);
-      console.log(
-        "pg->ws: new_tokens { projectId: %s, tokenId: %s }",
-        projectId,
-        tokenId
+      if (n.channel !== artblocks.imageProgressChannel.name) return;
+      const { projectId, completedThroughTokenId: newProgress } = JSON.parse(
+        n.payload
       );
+      const oldProgress = imageProgress.get(projectId);
+      console.log(
+        "pg->ws: image progress for %s changing from %s to %s",
+        projectId,
+        oldProgress,
+        newProgress
+      );
+      if (oldProgress === newProgress) return;
+      imageProgress.set(projectId, newProgress);
+      if (newProgress == null) return;
       const tokens = await acqrel(pool, async (client) => {
-        return artblocks.getTokenFeaturesAndTraits({ client, tokenId });
+        return artblocks.getTokenFeaturesAndTraits({
+          client,
+          projectId,
+          minTokenId: oldProgress ?? -1,
+          maxTokenId: newProgress,
+        });
       });
       const msg = formatResponse({ type: "NEW_TOKENS", tokens });
       for (const ws of server.clients) {
         send(ws, msg);
       }
     });
-    await artblocks.newTokensChannel.listen(listenClient);
+    await artblocks.imageProgressChannel.listen(listenClient);
 
     server.on("connection", (ws) => {
       ws.on("message", async (msgRaw) => {
@@ -121,7 +138,7 @@ async function attach(server, pool) {
               await handlePing(ws, pool, request);
               break;
             case "GET_LATEST_TOKENS":
-              await handleGetLatestTokens(ws, pool, request);
+              await handleGetLatestTokens(ws, pool, imageProgress, request);
               break;
             default:
               console.error("unhandled request type: %s", request.type);
@@ -139,6 +156,7 @@ async function attach(server, pool) {
 
     return shutDown;
   } catch (e) {
+    console.error(e);
     await shutDown();
   }
 }
@@ -147,14 +165,16 @@ function handlePing(ws, pool, request) {
   sendJson(ws, { type: "PONG", nonce: request.nonce });
 }
 
-async function handleGetLatestTokens(ws, pool, request) {
+async function handleGetLatestTokens(ws, pool, imageProgress, request) {
   const { projectId, lastTokenId } = request;
   const minTokenId = lastTokenId == null ? 0 : lastTokenId + 1;
+  const maxTokenId = imageProgress.get(projectId) ?? -1;
   const tokens = await acqrel(pool, async (client) => {
     return artblocks.getTokenFeaturesAndTraits({
       client,
       projectId,
       minTokenId,
+      maxTokenId,
     });
   });
 

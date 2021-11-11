@@ -10,7 +10,7 @@ function channel(name) {
   return Object.freeze({
     name,
     async listen(client) {
-      return await client.query(listenSql);
+      await client.query(listenSql);
     },
     async unlisten(client) {
       return await client.query(unlistenSql);
