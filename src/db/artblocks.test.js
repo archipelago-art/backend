@@ -628,4 +628,78 @@ describe("db/artblocks", () => {
       ]);
     })
   );
+
+  it(
+    "notifies for image progress",
+    withTestDb(async ({ pool, client }) => {
+      for (const projectId of [
+        snapshots.SQUIGGLES,
+        snapshots.ELEVATED_DECONSTRUCTIONS,
+        snapshots.ARCHETYPE,
+        snapshots.BYTEBEATS,
+        snapshots.GALAXISS,
+      ]) {
+        await artblocks.addProject({
+          client,
+          project: parseProjectData(projectId, await sc.project(projectId)),
+        });
+      }
+
+      function progress(projectId, completedThroughTokenId) {
+        return { projectId, completedThroughTokenId };
+      }
+
+      await artblocks.updateImageProgress({
+        client,
+        progress: [
+          progress(snapshots.SQUIGGLES, 2),
+          progress(snapshots.ELEVATED_DECONSTRUCTIONS, 7000001),
+          progress(snapshots.ARCHETYPE, null),
+        ],
+      });
+
+      await acqrel(pool, async (listenClient) => {
+        const progressEvents = [];
+        const done = adHocPromise();
+        listenClient.on("notification", (n) => {
+          if (n.channel !== artblocks.imageProgressChannel.name) {
+            return;
+          }
+          const payload = JSON.parse(n.payload);
+          if (payload == null) {
+            done.resolve();
+          } else {
+            progressEvents.push(payload);
+          }
+        });
+        await artblocks.imageProgressChannel.listen(listenClient);
+
+        await artblocks.updateImageProgress({
+          client,
+          progress: [
+            // updated
+            progress(snapshots.SQUIGGLES, 3),
+            // unchanged
+            progress(snapshots.ELEVATED_DECONSTRUCTIONS, 7000001),
+            // updated from null to non-null
+            progress(snapshots.ARCHETYPE, 23000005),
+            // new
+            progress(snapshots.GALAXISS, 31000001),
+            // new, null
+            progress(snapshots.BYTEBEATS, null),
+          ],
+        });
+        await artblocks.imageProgressChannel.send(client, null);
+        await done.promise;
+        expect(
+          progressEvents.sort((a, b) => a.projectId - b.projectId)
+        ).toEqual([
+          progress(snapshots.SQUIGGLES, 3),
+          progress(snapshots.ARCHETYPE, 23000005),
+          progress(snapshots.GALAXISS, 31000001),
+          progress(snapshots.BYTEBEATS, null),
+        ]);
+      });
+    })
+  );
 });

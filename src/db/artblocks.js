@@ -8,6 +8,9 @@ const PROJECT_STRIDE = 1e6;
 // Event payloads are JSON `{ projectId: number, tokenId: number }`.
 const newTokensChannel = events.channel("new_tokens");
 
+// Event payloads are JSON `{ projectId: number, completedThroughTokenId: number }`.
+const imageProgressChannel = events.channel("image_progress");
+
 function tokenBounds(projectId) {
   const minTokenId = projectId * PROJECT_STRIDE;
   const maxTokenId = minTokenId + PROJECT_STRIDE;
@@ -395,8 +398,64 @@ async function getTokenHash({ client, tokenId }) {
   return res.rows[0].hash;
 }
 
+async function getImageProgress({ client }) {
+  const res = await client.query(`
+    SELECT
+      project_id AS "projectId",
+      completed_through_token_id AS "completedThroughTokenId"
+    FROM image_progress
+    ORDER BY project_id ASC
+  `);
+  return res.rows;
+}
+
+// Insert-or-update each given progress event. `progress` should be an array of
+// objects like `{ projectId: number, completedThroughTokenId: number }`. Sends
+// notifications along `imageProgressChannel` for changes that are not no-ops.
+async function updateImageProgress({ client, progress }) {
+  const projectIds = progress.map((x) => x.projectId);
+  const progressValues = progress.map((x) => x.completedThroughTokenId);
+  await client.query("BEGIN");
+  const updatesRes = await client.query(
+    `
+    UPDATE image_progress
+    SET completed_through_token_id = updates.completed_through_token_id
+    FROM (
+      SELECT
+        unnest($1::int[]) AS project_id,
+        unnest($2::int[]) AS completed_through_token_id
+    ) AS updates
+    WHERE
+      image_progress.project_id = updates.project_id
+      AND
+        -- only send NOTIFY events when necessary
+        image_progress.completed_through_token_id
+        IS DISTINCT FROM updates.completed_through_token_id
+    RETURNING
+      updates.project_id AS "projectId",
+      updates.completed_through_token_id AS "completedThroughTokenId"
+    `,
+    [projectIds, progressValues]
+  );
+  const insertsRes = await client.query(
+    `
+    INSERT INTO image_progress (project_id, completed_through_token_id)
+    VALUES (unnest($1::integer[]), unnest($2::integer[]))
+    ON CONFLICT DO NOTHING
+    RETURNING
+      project_id AS "projectId",
+      completed_through_token_id AS "completedThroughTokenId"
+    `,
+    [projectIds, progressValues]
+  );
+  const changes = [...updatesRes.rows, ...insertsRes.rows];
+  await imageProgressChannel.sendMany(client, changes);
+  await client.query("COMMIT");
+}
+
 module.exports = {
   newTokensChannel,
+  imageProgressChannel,
   addProject,
   getProject,
   setProjectSlug,
@@ -411,4 +470,6 @@ module.exports = {
   getTokenSummaries,
   getProjectScript,
   getTokenHash,
+  getImageProgress,
+  updateImageProgress,
 };

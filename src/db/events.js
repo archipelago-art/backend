@@ -21,6 +21,12 @@ function channel(name) {
         JSON.stringify(payload),
       ]);
     },
+    async sendMany(client, payloads) {
+      return await client.query("SELECT pg_notify($1, unnest($2::text[]))", [
+        name,
+        payloads.map((p) => JSON.stringify(p)),
+      ]);
+    },
   });
 }
 
