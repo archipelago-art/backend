@@ -22,8 +22,8 @@ async function fetchProjectHtml(projectId) {
 function parseProjectData(projectId, html) {
   const body = htmlParser.parse(html);
   if (html === ENOENT) return null;
-  const artistName = findByInnerText(body, "h3", /^Artist: (.*)$/m)[1];
-  const description = findByInnerText(body, "h3", /^Description: (.*)$/m)[1];
+  const artistName = findByInnerText(body, "h3", /^Artist: (.*)$/s)[1];
+  const description = findByInnerText(body, "h3", /^Description: (.*)$/s)[1];
   if (artistName.length === 0 && description.length === 0) {
     // Projects like 128 and 155 appear to be abandoned drafts or something.
     // They have obscenely high invocation counts but no actual data or tokens.
@@ -33,10 +33,10 @@ function parseProjectData(projectId, html) {
     projectId: normalizeProjectId(projectId),
     artistName,
     description,
-    scriptJson: findByInnerText(body, "p", /^Script JSON: (.*)$/m)[1],
-    name: findByInnerText(body, "h1", /^Name: (.*)$/m)[1],
+    scriptJson: findByInnerText(body, "p", /^Script JSON: (.*)$/s)[1],
+    name: findByInnerText(body, "h1", /^Name: (.*)$/s)[1],
     maxInvocations: Number.parseInt(
-      findByInnerText(body, "p", /^Maximum Invocations: ([0-9]+)$/m)[1],
+      findByInnerText(body, "p", /^Maximum Invocations: ([0-9]+)$/s)[1],
       10
     ),
   };
