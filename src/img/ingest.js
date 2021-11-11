@@ -8,28 +8,7 @@ const {
   letterboxImage,
 } = require("./downloadImages");
 const { imagePath } = require("./paths");
-
-function resizeTarget(dim) {
-  return { name: `${dim}p`, type: "RESIZE", dim };
-}
-
-function letterboxTarget({ name, geometry, bg }) {
-  return {
-    name,
-    type: "LETTERBOX",
-    geometry,
-    background: bg,
-  };
-}
-
-const ORIG = "orig";
-
-// Order matters: the `ORIGINAL` target should come first.
-const TARGETS = [
-  { name: ORIG, type: "ORIGINAL" },
-  ...[1200, 800, 600, 400, 200].map(resizeTarget),
-  letterboxTarget({ name: "social", geometry: "1200x628", bg: "black" }),
-];
+const { ORIG, targets } = require("./ingestTargets");
 
 function uploadMetadata() {
   return { contentType: "image/png" };
@@ -84,7 +63,7 @@ async function makeTarget(ctx, token, target) {
 async function process(ctx, token, listing) {
   if (!listing.has(token.tokenId)) listing.set(token.tokenId, []);
   const have = listing.get(token.tokenId);
-  for (const target of TARGETS) {
+  for (const target of targets()) {
     if (have.includes(target.name)) continue;
     if (ctx.dryRun) {
       console.log(`would process ${target.name} for token ${token.tokenId}`);
