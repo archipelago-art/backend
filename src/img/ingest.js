@@ -2,13 +2,16 @@ const fs = require("fs");
 const { join, dirname } = require("path");
 const util = require("util");
 
+const artblocks = require("../db/artblocks");
+const { acqrel } = require("../db/util");
 const {
   downloadImage,
   resizeImage,
   letterboxImage,
 } = require("./downloadImages");
-const { imagePath } = require("./paths");
 const { ORIG, targets } = require("./ingestTargets");
+const { listingProgress } = require("./list");
+const { imagePath } = require("./paths");
 
 function uploadMetadata() {
   return { contentType: "image/png" };
@@ -63,8 +66,10 @@ async function makeTarget(ctx, token, target) {
 async function process(ctx, token, listing) {
   if (!listing.has(token.tokenId)) listing.set(token.tokenId, []);
   const have = listing.get(token.tokenId);
-  for (const target of targets()) {
-    if (have.includes(target.name)) continue;
+  const notHave = targets().filter((t) => !have.includes(t.name));
+  if (notHave.length === 0) return;
+  let allOkay = true;
+  for (const target of notHave) {
     if (ctx.dryRun) {
       console.log(`would process ${target.name} for token ${token.tokenId}`);
       continue;
@@ -74,10 +79,31 @@ async function process(ctx, token, listing) {
       have.push(target.name);
       console.log(`processed ${target.name} for token ${token.tokenId}`);
     } catch (e) {
+      allOkay = false;
       console.error(
         `failed to process ${target.name} for token ${token.tokenId}:`,
         e
       );
+    }
+  }
+  if (allOkay) {
+    const projectId = Math.floor(token.tokenId / 1e6);
+    const completedThroughTokenId = listingProgress(listing).get(projectId); // wasteful, yes
+    if (completedThroughTokenId !== undefined) {
+      console.log(
+        "updating progress for project %s to token %s%s",
+        projectId,
+        completedThroughTokenId,
+        ctx.dryRun ? " (skipping for dry run)" : ""
+      );
+      if (!ctx.dryRun) {
+        await acqrel(ctx.pool, (client) =>
+          artblocks.updateImageProgress({
+            client,
+            progress: [{ projectId, completedThroughTokenId }],
+          })
+        );
+      }
     }
   }
 }
@@ -92,6 +118,7 @@ async function process(ctx, token, listing) {
  *    - `bucket`: a `require("gcs").Bucket` instance
  *    - `prefix`: a GCS path prefix, either an empty string or a string ending
  *      with a slash
+ *    - `pool`: a `require("pg").Pool`, used to update image progress
  *    - `dryRun`: optional bool; defaults to false
  */
 async function processAll(ctx, tokens, listing, options) {

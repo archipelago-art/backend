@@ -314,43 +314,46 @@ async function ingestImages(args) {
     return 1;
   }
   const [bucketName, prefix, workDir] = args;
-  const ctx = {
-    bucket: new gcs.Storage().bucket(bucketName),
-    prefix,
-    workDir,
-    dryRun,
-  };
-  console.log(`listing images in gs://${ctx.bucket.name}/${ctx.prefix}`);
-  const listing = await images.list(ctx.bucket, ctx.prefix);
-  while (true) {
-    console.log(
-      dryRun
-        ? "would update image progress table (skipping for dry run)"
-        : "updating image progress table"
-    );
-    const progress = Array.from(images.listingProgress(listing)).map(
-      ([k, v]) => ({
-        projectId: k,
-        completedThroughTokenId: v,
-      })
-    );
-    if (!dryRun) {
-      await withDb(({ client }) =>
-        artblocks.updateImageProgress({ client, progress })
+  await withDb(async ({ pool }) => {
+    const ctx = {
+      bucket: new gcs.Storage().bucket(bucketName),
+      prefix,
+      workDir,
+      dryRun,
+      pool,
+    };
+    console.log(`listing images in gs://${ctx.bucket.name}/${ctx.prefix}`);
+    const listing = await images.list(ctx.bucket, ctx.prefix);
+    while (true) {
+      console.log(
+        dryRun
+          ? "would update image progress table (skipping for dry run)"
+          : "updating image progress table"
       );
+      const progress = Array.from(images.listingProgress(listing)).map(
+        ([k, v]) => ({
+          projectId: k,
+          completedThroughTokenId: v,
+        })
+      );
+      if (!dryRun) {
+        await acqrel(pool, (client) =>
+          artblocks.updateImageProgress({ client, progress })
+        );
+      }
+      console.log("fetching token IDs and download URLs");
+      const tokens = await acqrel(pool, (client) =>
+        artblocks.getTokenImageUrls({ client })
+      );
+      console.log(`got ${tokens.length} tokens`);
+      console.log(`got images for ${listing.size} tokens`);
+      await images.ingest(ctx, tokens, listing, {
+        concurrency: IMAGEMAGICK_CONCURRENCY,
+      });
+      console.log(`sleeping for ${INGESTION_LATENCY_SECONDS} seconds`);
+      await sleepMs(INGESTION_LATENCY_SECONDS * 1000);
     }
-    console.log("fetching token IDs and download URLs");
-    const tokens = await withDb(({ client }) =>
-      artblocks.getTokenImageUrls({ client })
-    );
-    console.log(`got ${tokens.length} tokens`);
-    console.log(`got images for ${listing.size} tokens`);
-    await images.ingest(ctx, tokens, listing, {
-      concurrency: IMAGEMAGICK_CONCURRENCY,
-    });
-    console.log(`sleeping for ${INGESTION_LATENCY_SECONDS} seconds`);
-    await sleepMs(INGESTION_LATENCY_SECONDS * 1000);
-  }
+  });
 }
 
 async function tokenFeedWss(args) {
