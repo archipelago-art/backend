@@ -1,6 +1,6 @@
 const child_process = require("child_process");
 
-const evalUntrustedHtml = require("./evalUntrustedHtml");
+const evalUntrustedHtml = require("./untrustedHtml");
 
 let hasChromium = true;
 try {
