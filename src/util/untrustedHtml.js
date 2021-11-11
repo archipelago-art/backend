@@ -18,6 +18,34 @@ async function evalUntrustedHtml(files, options) {
     chromiumBinary: "chromium",
     ...options,
   };
+  const rawHtml = await withFileServer(files, (port) =>
+    spawnChromiumHeadless(options.chromiumBinary, [
+      "--dump-dom",
+      `http://localhost:${port}${options.entry}`,
+    ])
+  );
+  const html = htmlParser.parse(rawHtml);
+  const body = html.querySelector("body");
+  return body.text;
+}
+
+async function spawnChromiumHeadless(chromium, args) {
+  return new Promise((res, rej) => {
+    child_process.execFile(
+      chromium,
+      ["--headless", "--temp-profile", ...args],
+      (err, stdout, stderr) => {
+        if (err != null) {
+          rej(err);
+          return;
+        }
+        res(stdout);
+      }
+    );
+  });
+}
+
+async function withFileServer(files, callback) {
   const app = new Koa();
   app.use((ctx) => {
     const { url } = ctx;
@@ -42,34 +70,13 @@ async function evalUntrustedHtml(files, options) {
     server.once("error", rej);
   });
   server.listen(0);
-  let rawHtml;
   try {
     await listening;
     const port = server.address().port;
-    rawHtml = await new Promise((res, rej) => {
-      child_process.execFile(
-        options.chromiumBinary,
-        [
-          "--headless",
-          "--temp-profile",
-          "--dump-dom",
-          `http://localhost:${port}${options.entry}`,
-        ],
-        (err, stdout, stderr) => {
-          if (err != null) {
-            rej(err);
-            return;
-          }
-          res(stdout);
-        }
-      );
-    });
+    return await callback(port);
   } finally {
     await util.promisify(server.close.bind(server))();
   }
-  const html = htmlParser.parse(rawHtml);
-  const body = html.querySelector("body");
-  return body.text;
 }
 
 module.exports = evalUntrustedHtml;
