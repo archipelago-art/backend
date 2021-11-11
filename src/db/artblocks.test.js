@@ -44,17 +44,60 @@ describe("db/artblocks", () => {
   );
 
   it(
-    "fails on duplicate project ID",
+    "updates project data, preserving `num_tokens` and leaving other projects alone",
     withTestDb(async ({ client }) => {
-      const project = {
+      const squiggles = parseProjectData(
+        snapshots.SQUIGGLES,
+        await sc.project(snapshots.SQUIGGLES)
+      );
+      const archetype1 = {
         projectId: 23,
         name: "Archetype",
         maxInvocations: 600,
         scriptJson: JSON.stringify({ aspectRatio: "3/2" }),
+        script: null,
+      };
+      const archetype2 = {
+        projectId: 23,
+        name: "Archetypo",
+        maxInvocations: 678,
+        scriptJson: JSON.stringify({ aspectRatio: "2/3" }),
         script: "let seed = 1; // ...",
       };
-      await artblocks.addProject({ client, project });
-      await expect(artblocks.addProject({ client, project })).rejects.toThrow();
+      await artblocks.addProject({ client, project: squiggles });
+      await artblocks.addProject({ client, project: archetype1 });
+      await artblocks.addProject({ client, project: archetype2 });
+      for (const tokenId of [
+        snapshots.PERFECT_CHROMATIC,
+        snapshots.ARCH_TRIPTYCH_1,
+        snapshots.ARCH_TRIPTYCH_2,
+      ]) {
+        await artblocks.addToken({
+          client,
+          tokenId,
+          rawTokenData: await sc.token(tokenId),
+        });
+      }
+      expect(
+        await artblocks.getProject({ client, projectId: snapshots.SQUIGGLES })
+      ).toEqual(
+        expect.objectContaining({
+          projectId: snapshots.SQUIGGLES,
+          name: squiggles.name,
+          numTokens: 1,
+        })
+      );
+      expect(
+        await artblocks.getProject({ client, projectId: snapshots.ARCHETYPE })
+      ).toEqual(
+        expect.objectContaining({
+          projectId: snapshots.ARCHETYPE,
+          name: "Archetypo",
+          numTokens: 2, // preserved
+          scriptJson: { aspectRatio: "2/3" },
+          script: "let seed = 1; // ...",
+        })
+      );
     })
   );
 

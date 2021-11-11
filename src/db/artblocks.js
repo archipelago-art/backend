@@ -41,6 +41,15 @@ async function addProject({ client, project, slugOverride }) {
       $1, $2, $3, $4, $5, $6, $7,
       (SELECT count(1) FROM tokens WHERE project_id = $1),
       $8, $9
+    ON CONFLICT (project_id) DO UPDATE SET
+      name = $2,
+      max_invocations = $3,
+      artist_name = $4,
+      description = $5,
+      script_json = $6,
+      aspect_ratio = $7,
+      slug = $8,
+      script = $9
     `,
     [
       project.projectId,
