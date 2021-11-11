@@ -34,12 +34,13 @@ async function addProject({ client, project, slugOverride }) {
       script_json,
       aspect_ratio,
       num_tokens,
-      slug
+      slug,
+      script
     )
     SELECT
       $1, $2, $3, $4, $5, $6, $7,
       (SELECT count(1) FROM tokens WHERE project_id = $1),
-      $8
+      $8, $9
     `,
     [
       project.projectId,
@@ -50,6 +51,7 @@ async function addProject({ client, project, slugOverride }) {
       project.scriptJson,
       aspectRatio,
       slugOverride ?? slug(project.name),
+      project.script,
     ]
   );
 }
@@ -66,7 +68,8 @@ async function getProject({ client, projectId }) {
       script_json AS "scriptJson",
       aspect_ratio AS "aspectRatio",
       num_tokens AS "numTokens",
-      slug AS "slug"
+      slug AS "slug",
+      script AS "script"
     FROM projects
     WHERE project_id = $1
     `,

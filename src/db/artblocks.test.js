@@ -12,7 +12,11 @@ describe("db/artblocks", () => {
   it(
     "writes and reads a project",
     withTestDb(async ({ client }) => {
-      const project = {
+      const input = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      const expected = {
         projectId: 23,
         artistName: "Kjetil Golid",
         name: "Archetype",
@@ -27,17 +31,15 @@ describe("db/artblocks", () => {
         aspectRatio: 1,
         numTokens: 0,
         slug: "archetype",
+        script: input.script,
       };
       await artblocks.addProject({
         client,
-        project: parseProjectData(
-          snapshots.ARCHETYPE,
-          await sc.project(snapshots.ARCHETYPE)
-        ),
+        project: input,
       });
       expect(
         await artblocks.getProject({ client, projectId: snapshots.ARCHETYPE })
-      ).toEqual(project);
+      ).toEqual(expected);
     })
   );
 
@@ -49,6 +51,7 @@ describe("db/artblocks", () => {
         name: "Archetype",
         maxInvocations: 600,
         scriptJson: JSON.stringify({ aspectRatio: "3/2" }),
+        script: "let seed = 1; // ...",
       };
       await artblocks.addProject({ client, project });
       await expect(artblocks.addProject({ client, project })).rejects.toThrow();
