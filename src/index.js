@@ -323,6 +323,22 @@ async function ingestImages(args) {
   console.log(`listing images in gs://${ctx.bucket.name}/${ctx.prefix}`);
   const listing = await images.list(ctx.bucket, ctx.prefix);
   while (true) {
+    console.log(
+      dryRun
+        ? "would update image progress table (skipping for dry run)"
+        : "updating image progress table"
+    );
+    const progress = Array.from(images.listingProgress(listing)).map(
+      ([k, v]) => ({
+        projectId: k,
+        completedThroughTokenId: v,
+      })
+    );
+    if (!dryRun) {
+      await withDb(({ client }) =>
+        artblocks.updateImageProgress({ client, progress })
+      );
+    }
     console.log("fetching token IDs and download URLs");
     const tokens = await withDb(({ client }) =>
       artblocks.getTokenImageUrls({ client })
