@@ -21,6 +21,7 @@
   "dependencies": {
     "@google-cloud/storage": "^5.15.4",
     "dotenv": "^10.0.0",
+    "koa": "^2.13.4",
     "node-html-parser": "^4.1.4",
     "pg": "^8.7.1",
     "slug": "^5.1.0",
