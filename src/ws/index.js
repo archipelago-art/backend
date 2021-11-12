@@ -1,5 +1,7 @@
 const util = require("util");
 
+const slug = require("slug");
+
 const api = require("../api");
 const artblocks = require("../db/artblocks");
 const { acqrel } = require("../db/util");
@@ -12,8 +14,10 @@ types.tokenData = C.object({
     C.object({
       featureId: C.number,
       name: C.string,
+      featureSlug: C.string,
       traitId: C.number,
       value: C.raw,
+      traitSlug: C.string,
     })
   ),
 });
@@ -94,12 +98,14 @@ async function attach(server, pool) {
       imageProgress.set(projectId, newProgress);
       if (newProgress == null) return;
       const tokens = await acqrel(pool, async (client) => {
-        return artblocks.getTokenFeaturesAndTraits({
-          client,
-          projectId,
-          minTokenId: oldProgress ?? -1,
-          maxTokenId: newProgress,
-        });
+        return addSlugs(
+          await artblocks.getTokenFeaturesAndTraits({
+            client,
+            projectId,
+            minTokenId: oldProgress ?? -1,
+            maxTokenId: newProgress,
+          })
+        );
       });
       const msg = formatResponse({ type: "NEW_TOKENS", tokens });
       for (const ws of server.clients) {
@@ -170,15 +176,28 @@ async function handleGetLatestTokens(ws, pool, imageProgress, request) {
   const minTokenId = lastTokenId == null ? 0 : lastTokenId + 1;
   const maxTokenId = imageProgress.get(projectId) ?? -1;
   const tokens = await acqrel(pool, async (client) => {
-    return artblocks.getTokenFeaturesAndTraits({
-      client,
-      projectId,
-      minTokenId,
-      maxTokenId,
-    });
+    return addSlugs(
+      await artblocks.getTokenFeaturesAndTraits({
+        client,
+        projectId,
+        minTokenId,
+        maxTokenId,
+      })
+    );
   });
 
   sendJson(ws, { type: "NEW_TOKENS", tokens });
+}
+
+function addSlugs(tokenFeaturesAndTraits) {
+  return tokenFeaturesAndTraits.map((token) => ({
+    ...token,
+    traits: token.traits.map((trait) => ({
+      ...trait,
+      featureSlug: slug(trait.name),
+      traitSlug: slug(String(trait.value)),
+    })),
+  }));
 }
 
 function send(ws, msg) {
