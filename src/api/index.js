@@ -127,4 +127,5 @@ module.exports = {
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
   tokenSummaries,
+  sortAsciinumeric,
 };

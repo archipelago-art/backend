@@ -182,4 +182,18 @@ describe("api", () => {
       );
     })
   );
+
+  it("exposes a trait-sorting function", () => {
+    const input = [
+      { id: 123, value: "1 in 23" },
+      { id: 999, value: "1 in 9" },
+      { id: 0, value: "1 in 100" },
+    ];
+    const output = api.sortAsciinumeric(input, (trait) => trait.value);
+    expect(output).toEqual([
+      { id: 999, value: "1 in 9" },
+      { id: 123, value: "1 in 23" },
+      { id: 0, value: "1 in 100" },
+    ]);
+  });
 });
