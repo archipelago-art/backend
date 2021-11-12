@@ -9,6 +9,7 @@ const {
   resizeImage,
   letterboxImage,
 } = require("./downloadImages");
+const generate = require("./generator");
 const { ORIG, targets } = require("./ingestTargets");
 const { listingProgress } = require("./list");
 const { imagePath } = require("./paths");
@@ -35,7 +36,32 @@ async function makeTarget(ctx, token, target) {
   let img;
   switch (target.type) {
     case "ORIGINAL": {
-      img = await downloadImage(targetDir, token.imageUrl, token.tokenId);
+      const projectId = Math.floor(token.tokenId / 1e6);
+      const generatorData = ctx.generatorProjects.get(projectId);
+      if (generatorData == null) {
+        img = await downloadImage(targetDir, token.imageUrl, token.tokenId);
+      } else {
+        const { script, library } = generatorData;
+        img = join(targetDir, imagePath(token.tokenId));
+        await util.promisify(fs.mkdir)(dirname(img), { recursive: true });
+        const tokenData = { tokenId: token.tokenId, hash: token.tokenHash };
+        console.log(
+          "using generator for %s -> %s: %s",
+          token.tokenId,
+          img,
+          JSON.stringify(tokenData)
+        );
+        try {
+          await generate({ script, library, tokenData }, img);
+        } catch (e) {
+          console.error(
+            "failed to generate image for %s:",
+            tokenData.tokenId,
+            e
+          );
+        }
+        console.log("generated image for %s", tokenData.tokenId);
+      }
       break;
     }
     case "RESIZE": {
@@ -112,6 +138,12 @@ async function process(ctx, token, listing) {
  * Processes images for all specified tokens, and updates the listing to
  * reflect newly created images.
  *
+ * `tokens` should be a list of objects with:
+ *
+ *    - `tokenId`: number, like `23000250`
+ *    - `imageUrl`: string from which to download the image
+ *    - `tokenHash`: string ("0x...") from which to generate the image
+ *
  * `ctx` should be an object with:
  *
  *    - `workDir`: a string like "/mnt/images"
@@ -119,6 +151,9 @@ async function process(ctx, token, listing) {
  *    - `prefix`: a GCS path prefix, either an empty string or a string ending
  *      with a slash
  *    - `pool`: a `require("pg").Pool`, used to update image progress
+ *    - `generatorProjects`: map from project ID (number) to objects with
+ *      fields `script: string` and `library: string`; tokens for these
+ *      projects will be generated rather than downloaded
  *    - `dryRun`: optional bool; defaults to false
  */
 async function processAll(ctx, tokens, listing, options) {

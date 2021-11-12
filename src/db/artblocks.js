@@ -347,9 +347,12 @@ async function getAllUnfetchedTokenIds({ client }) {
   return res.rows.map((row) => row.tokenId);
 }
 
-async function getTokenImageUrls({ client }) {
+async function getTokenImageData({ client }) {
   const res = await client.query(`
-    SELECT token_id AS "tokenId", token_data->'image' AS "imageUrl"
+    SELECT
+      token_id AS "tokenId",
+      token_data->'image' AS "imageUrl",
+      token_data->'token_hash' AS "tokenHash"
     FROM tokens
     ORDER BY token_id ASC
   `);
@@ -385,6 +388,18 @@ async function getProjectScript({ client, projectId }) {
     [projectId]
   );
   return res.rows[0] ?? null;
+}
+
+async function getAllProjectScripts({ client }) {
+  const res = await client.query(`
+    SELECT
+      project_id AS "projectId",
+      script,
+      script_json->>'type' AS library
+    FROM projects
+    ORDER BY project_id ASC
+  `);
+  return res.rows;
 }
 
 async function getTokenHash({ client, tokenId }) {
@@ -468,9 +483,10 @@ module.exports = {
   getTokenIds,
   getUnfetchedTokenIds,
   getAllUnfetchedTokenIds,
-  getTokenImageUrls,
+  getTokenImageData,
   getTokenSummaries,
   getProjectScript,
+  getAllProjectScripts,
   getTokenHash,
   getImageProgress,
   updateImageProgress,

@@ -22,6 +22,8 @@ const INGESTION_LATENCY_SECONDS = 15;
 const LIVE_MINT_LATENCY_SECONDS = 5;
 const LIVE_MINT_FANOUT = 8;
 
+const GENERATOR_WHITELIST = [23 /* Archetype */, 200 /* Saturazione */];
+
 async function sleepMs(ms) {
   await new Promise((res) => void setTimeout(res, ms));
 }
@@ -231,7 +233,7 @@ async function downloadImages(args) {
   const [rootDir] = args;
   await withDb(async ({ pool }) => {
     const tokens = await acqrel(pool, (client) =>
-      artblocks.getTokenImageUrls({ client })
+      artblocks.getTokenImageData({ client })
     );
     console.log(`got ${tokens.length} token image URLs`);
     const chunks = [];
@@ -315,10 +317,20 @@ async function ingestImages(args) {
   }
   const [bucketName, prefix, workDir] = args;
   await withDb(async ({ pool }) => {
+    console.log("collecting project scripts");
+    const allScripts = await acqrel(pool, (client) =>
+      artblocks.getAllProjectScripts({ client })
+    );
+    const generatorProjects = new Map(
+      allScripts
+        .filter((x) => GENERATOR_WHITELIST.includes(x.projectId))
+        .map((x) => [x.projectId, { library: x.library, script: x.script }])
+    );
     const ctx = {
       bucket: new gcs.Storage().bucket(bucketName),
       prefix,
       workDir,
+      generatorProjects,
       dryRun,
       pool,
     };
@@ -343,7 +355,7 @@ async function ingestImages(args) {
       }
       console.log("fetching token IDs and download URLs");
       const tokens = await acqrel(pool, (client) =>
-        artblocks.getTokenImageUrls({ client })
+        artblocks.getTokenImageData({ client })
       );
       console.log(`got ${tokens.length} tokens`);
       console.log(`got images for ${listing.size} tokens`);
