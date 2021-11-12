@@ -32,4 +32,14 @@ describe("util/sortAsciinumeric", () => {
       { value: "1 in 100", id: "c" },
     ]);
   });
+
+  it("reports a nice error if the key extractor fails", () => {
+    const input = [
+      { value: "1 in 23", id: "a" },
+      { notValue: "1 in 100", id: "c" },
+    ];
+    expect(() => sortAsciinumeric(input, (x) => x.value)).toThrow(
+      "key function returned non-string: undefined"
+    );
+  });
 });

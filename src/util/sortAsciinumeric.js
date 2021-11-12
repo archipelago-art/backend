@@ -1,5 +1,10 @@
 function sortAsciinumeric(xs, key = (s) => s) {
-  const schwartz = xs.map((x) => ({ key: canonicalize(key(x)), value: x }));
+  const schwartz = xs.map((x) => {
+    const k = key(x);
+    if (typeof k !== "string")
+      throw new Error("key function returned non-string: " + k);
+    return { key: canonicalize(k), value: x };
+  });
   return schwartz.sort((a, b) => cmp(a.key, b.key)).map((x) => x.value);
 }
 
