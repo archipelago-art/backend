@@ -1,9 +1,10 @@
 const { acqrel } = require("./util");
-const { adHocPromise, testDbProvider } = require("./testUtil");
+const { testDbProvider } = require("./testUtil");
 
 const artblocks = require("./artblocks");
 const snapshots = require("../scrape/snapshots");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
+const adHocPromise = require("../util/adHocPromise");
 
 describe("db/artblocks", () => {
   const withTestDb = testDbProvider();
