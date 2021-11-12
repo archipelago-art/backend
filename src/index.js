@@ -13,6 +13,7 @@ const images = require("./img");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 const attach = require("./ws");
+const adHocPromise = require("./util/adHocPromise");
 
 const NETWORK_CONCURRENCY = 64;
 const IMAGEMAGICK_CONCURRENCY = 16;
@@ -316,7 +317,16 @@ async function ingestImages(args) {
     return 1;
   }
   const [bucketName, prefix, workDir] = args;
+  let newTokens = adHocPromise();
   await withDb(async ({ pool }) => {
+    const listenClient = await pool.connect();
+    listenClient.on("notification", (n) => {
+      if (n.channel !== artblocks.newTokensChannel.name) return;
+      console.log("scheduling wake for new token event: %s", n.payload);
+      newTokens.resolve();
+    });
+    await artblocks.newTokensChannel.listen(listenClient);
+
     console.log("collecting project scripts");
     const allScripts = await acqrel(pool, (client) =>
       artblocks.getAllProjectScripts({ client })
@@ -362,8 +372,16 @@ async function ingestImages(args) {
       await images.ingest(ctx, tokens, listing, {
         concurrency: IMAGEMAGICK_CONCURRENCY,
       });
-      console.log(`sleeping for ${INGESTION_LATENCY_SECONDS} seconds`);
-      await sleepMs(INGESTION_LATENCY_SECONDS * 1000);
+      console.log(`sleeping for up to ${INGESTION_LATENCY_SECONDS} seconds`);
+      console.log(
+        await Promise.race([
+          sleepMs(INGESTION_LATENCY_SECONDS * 1000).then(
+            () => "woke from sleep"
+          ),
+          newTokens.promise.then(() => "woke from new tokens notification"),
+        ])
+      );
+      newTokens = adHocPromise();
     }
   });
 }
