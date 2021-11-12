@@ -16,7 +16,7 @@ const attach = require("./ws");
 const adHocPromise = require("./util/adHocPromise");
 
 const NETWORK_CONCURRENCY = 64;
-const IMAGEMAGICK_CONCURRENCY = 16;
+const IMAGEMAGICK_CONCURRENCY = 8;
 
 const INGESTION_LATENCY_SECONDS = 15;
 
