@@ -16,6 +16,7 @@ const migrationModules = [
   "./0015_drop_token_features",
   "./0016_projects_script",
   "./0017_image_progress",
+  "./0018_uint256_address_types",
   // ...
 ];
 
