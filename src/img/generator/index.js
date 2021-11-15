@@ -42,7 +42,7 @@ canvas {
 }
 `;
 
-async function template({ script, library, tokenData }) {
+async function template({ script, library }, tokenData) {
   const files = {};
 
   const libraryData = await readLibraryData(library);
@@ -70,11 +70,21 @@ async function template({ script, library, tokenData }) {
   return files;
 }
 
-async function generate({ script, library, tokenData }, outfile) {
-  const files = await template({ script, library, tokenData });
-  await screenshotUntrustedHtml(files, outfile, {
-    windowSize: { width: 2400, height: 2400 },
-  });
+function computeWindowSize(aspectRatio, dim = 2400) {
+  if (typeof aspectRatio !== "number")
+    throw new Error("windowSize: " + aspectRatio);
+  if (aspectRatio <= 1) {
+    return { width: Math.round(dim * aspectRatio), height: dim };
+  } else {
+    return { width: dim, height: Math.round(dim / aspectRatio) };
+  }
+}
+
+// generatorData: { script: string, library: string, aspectRatio: number }
+async function generate(generatorData, tokenData, outfile) {
+  const files = await template(generatorData, tokenData);
+  const windowSize = computeWindowSize(generatorData.aspectRatio);
+  await screenshotUntrustedHtml(files, outfile, { windowSize });
 }
 
 module.exports = generate;

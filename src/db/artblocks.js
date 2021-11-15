@@ -381,7 +381,10 @@ async function getTokenSummaries({ client, tokenIds }) {
 async function getProjectScript({ client, projectId }) {
   const res = await client.query(
     `
-    SELECT script, script_json->>'type' AS library
+    SELECT
+      script,
+      script_json->>'type' AS library,
+      aspect_ratio AS "aspectRatio"
     FROM projects
     WHERE project_id = $1
     `,
@@ -395,7 +398,8 @@ async function getAllProjectScripts({ client }) {
     SELECT
       project_id AS "projectId",
       script,
-      script_json->>'type' AS library
+      script_json->>'type' AS library,
+      aspect_ratio AS "aspectRatio"
     FROM projects
     ORDER BY project_id ASC
   `);

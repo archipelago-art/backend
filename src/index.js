@@ -422,16 +422,16 @@ async function generateImage(args) {
     throw new Error("expected tokenId argument; got: " + args[0]);
   const outfile = args[1];
   const projectId = Math.floor(tokenId / 1e6);
-  const { script, library, hash } = await withDb(async ({ client }) => {
-    const { script, library } = await artblocks.getProjectScript({
+  const { generatorData, hash } = await withDb(async ({ client }) => {
+    const generatorData = await artblocks.getProjectScript({
       client,
       projectId,
     });
     const hash = await artblocks.getTokenHash({ client, tokenId });
-    return { script, library, hash };
+    return { generatorData, hash };
   });
   const tokenData = { tokenId: String(tokenId), hash };
-  await images.generate({ script, library, tokenData }, outfile);
+  await images.generate(generatorData, tokenData, outfile);
 }
 
 async function main() {

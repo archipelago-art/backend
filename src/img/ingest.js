@@ -41,7 +41,6 @@ async function makeTarget(ctx, token, target) {
       if (generatorData == null) {
         img = await downloadImage(targetDir, token.imageUrl, token.tokenId);
       } else {
-        const { script, library } = generatorData;
         img = join(targetDir, imagePath(token.tokenId));
         await util.promisify(fs.mkdir)(dirname(img), { recursive: true });
         const tokenData = { tokenId: token.tokenId, hash: token.tokenHash };
@@ -52,7 +51,7 @@ async function makeTarget(ctx, token, target) {
           JSON.stringify(tokenData)
         );
         try {
-          await generate({ script, library, tokenData }, img);
+          await generate(generatorData, tokenData, img);
         } catch (e) {
           console.error(
             "failed to generate image for %s:",
