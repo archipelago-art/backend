@@ -23,7 +23,11 @@ const INGESTION_LATENCY_SECONDS = 15;
 const LIVE_MINT_LATENCY_SECONDS = 5;
 const LIVE_MINT_FANOUT = 8;
 
-const GENERATOR_WHITELIST = [23 /* Archetype */, 200 /* Saturazione */];
+const GENERATOR_WHITELIST = [
+  23, // Archetype
+  200, // Saturazione
+  206, // Asemica
+];
 
 async function sleepMs(ms) {
   await new Promise((res) => void setTimeout(res, ms));
