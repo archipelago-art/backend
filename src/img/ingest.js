@@ -31,6 +31,9 @@ async function makeTarget(ctx, token, target) {
         .file(`${ctx.prefix}${ORIG}/${gcsPath}`)
         .download({ destination: inputPath });
     }
+    if (!(await util.promisify(fs.exists)(inputPath))) {
+      throw new Error("no original image: " + inputPath);
+    }
   }
 
   let img;
