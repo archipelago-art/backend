@@ -157,7 +157,7 @@ async function process(ctx, token, listing) {
  */
 async function processAll(ctx, tokens, listing, options) {
   options = {
-    concurrency: 8,
+    concurrency: 16,
     ...options,
   };
   const q = [...tokens];
