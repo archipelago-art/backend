@@ -338,7 +338,10 @@ async function ingestImages(args) {
     const generatorProjects = new Map(
       allScripts
         .filter((x) => GENERATOR_WHITELIST.includes(x.projectId))
-        .map((x) => [x.projectId, { library: x.library, script: x.script }])
+        .map((x) => [
+          x.projectId,
+          { library: x.library, script: x.script, aspectRatio: x.aspectRatio },
+        ])
     );
     const ctx = {
       bucket: new gcs.Storage().bucket(bucketName),
