@@ -17,6 +17,7 @@ const migrationModules = [
   "./0016_projects_script",
   "./0017_image_progress",
   "./0018_uint256_address_types",
+  "./0019_email_signups",
   // ...
 ];
 
