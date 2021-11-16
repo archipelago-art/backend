@@ -119,6 +119,8 @@ async function tokenSummaries({ client, tokenIds }) {
   return res;
 }
 
+// Adds a new email address to the signups list. Returns `true` if this made a
+// change or `false` if the email already existed in the database. Idempotent.
 async function addEmailSignup({ client, email }) {
   return emails.addEmailSignup({ client, email });
 }
