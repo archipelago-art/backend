@@ -2,6 +2,7 @@ const { testDbProvider } = require("../db/testUtil");
 
 const api = require(".");
 const artblocks = require("../db/artblocks");
+const emails = require("../db/emails");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 
@@ -196,4 +197,15 @@ describe("api", () => {
       { id: 0, value: "1 in 100" },
     ]);
   });
+
+  it(
+    "permits adding emails",
+    withTestDb(async ({ client }) => {
+      const email = "alice@example.com";
+      expect(await api.addEmailSignup({ client, email })).toBe(true);
+      expect(await emails.getEmailSignups({ client })).toEqual([
+        { email, createTime: expect.any(Date) },
+      ]);
+    })
+  );
 });

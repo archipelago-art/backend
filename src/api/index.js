@@ -1,6 +1,7 @@
 const slug = require("slug");
 
 const artblocks = require("../db/artblocks");
+const emails = require("../db/emails");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const sortAsciinumeric = require("../util/sortAsciinumeric");
 
@@ -118,6 +119,10 @@ async function tokenSummaries({ client, tokenIds }) {
   return res;
 }
 
+async function addEmailSignup({ client, email }) {
+  return emails.addEmailSignup({ client, email });
+}
+
 module.exports = {
   artblocksProjectIdToCollectionName,
   collectionNameToArtblocksProjectId,
@@ -128,4 +133,5 @@ module.exports = {
   tokenFeaturesAndTraits,
   tokenSummaries,
   sortAsciinumeric,
+  addEmailSignup,
 };
