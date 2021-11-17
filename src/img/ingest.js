@@ -4,6 +4,7 @@ const util = require("util");
 
 const artblocks = require("../db/artblocks");
 const { acqrel } = require("../db/util");
+const downloadAtomic = require("../util/gcsDownloadAtomic");
 const {
   downloadImage,
   resizeImage,
@@ -27,9 +28,9 @@ async function makeTarget(ctx, token, target) {
     const inputPath = join(origDir, imagePath(token.tokenId));
     if (!(await util.promisify(fs.exists)(inputPath))) {
       await util.promisify(fs.mkdir)(dirname(inputPath), { recursive: true });
-      await ctx.bucket
-        .file(`${ctx.prefix}${ORIG}/${gcsPath}`)
-        .download({ destination: inputPath });
+      await downloadAtomic(ctx.bucket.file(`${ctx.prefix}${ORIG}/${gcsPath}`), {
+        destination: inputPath,
+      });
     }
     if (!(await util.promisify(fs.exists)(inputPath))) {
       throw new Error("no original image: " + inputPath);
