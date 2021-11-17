@@ -512,6 +512,61 @@ describe("db/artblocks", () => {
   );
 
   it(
+    "includes tokens in range queries even if they have no traits",
+    withTestDb(async ({ client }) => {
+      await addProjects(client, [snapshots.ARCHETYPE]);
+      await addTokens(client, [
+        snapshots.ARCH_TRIPTYCH_1,
+        snapshots.ARCH_TRIPTYCH_3,
+      ]);
+      const triptych2RawData = await sc.token(snapshots.ARCH_TRIPTYCH_2);
+      const triptych2WithoutTraits = JSON.stringify({
+        ...JSON.parse(triptych2RawData),
+        features: {},
+      });
+      await artblocks.addToken({
+        client,
+        tokenId: snapshots.ARCH_TRIPTYCH_2,
+        rawTokenData: triptych2WithoutTraits,
+      });
+      const res = await artblocks.getTokenFeaturesAndTraits({
+        client,
+        projectId: snapshots.ARCHETYPE,
+        minTokenId: snapshots.ARCH_TRIPTYCH_1,
+        maxTokenId: snapshots.ARCH_TRIPTYCH_3,
+      });
+      expect(res).toEqual([
+        {
+          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          traits: expect.arrayContaining([
+            {
+              featureId: expect.any(Number),
+              name: "Scene",
+              traitId: expect.any(Number),
+              value: "Flat",
+            },
+          ]),
+        },
+        {
+          tokenId: snapshots.ARCH_TRIPTYCH_2,
+          traits: [],
+        },
+        {
+          tokenId: snapshots.ARCH_TRIPTYCH_3,
+          traits: expect.arrayContaining([
+            {
+              featureId: expect.any(Number),
+              name: "Scene",
+              traitId: expect.any(Number),
+              value: "Flat",
+            },
+          ]),
+        },
+      ]);
+    })
+  );
+
+  it(
     "supports getTokenSummaries",
     withTestDb(async ({ client }) => {
       await addProjects(client, [snapshots.ARCHETYPE]);

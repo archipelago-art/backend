@@ -267,12 +267,17 @@ async function getTokenFeaturesAndTraits({
       name,
       trait_id AS "traitId",
       value
-    FROM features
+    FROM
+      features
       JOIN traits USING (feature_id)
       JOIN trait_members USING (trait_id)
+      RIGHT OUTER JOIN tokens USING (token_id)
     WHERE true
       AND (token_id = $1 OR $1 IS NULL)
-      AND (project_id = $2 OR $2 IS NULL)
+      AND (
+        features.project_id = $2 OR $2 IS NULL
+        OR features.project_id IS NULL  -- OUTER JOIN
+      )
       AND (token_id >= $3 OR $3 IS NULL)
       AND (token_id <= $4 OR $4 IS NULL)
     ORDER BY token_id, feature_id, trait_id
@@ -287,6 +292,7 @@ async function getTokenFeaturesAndTraits({
       currentToken = { tokenId: row.tokenId, traits: [] };
       result.push(currentToken);
     }
+    if (row.traitId == null) continue; // OUTER JOIN
     currentToken.traits.push({
       featureId: row.featureId,
       name: row.name,
