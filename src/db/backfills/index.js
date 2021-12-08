@@ -1,6 +1,5 @@
 const backfillModules = [
   "./projectSlugs",
-  "./traitMembers",
   // ...
 ];
 
