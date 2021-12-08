@@ -20,6 +20,7 @@ const migrationModules = [
   "./0019_email_signups",
   "./0020_deprecate_trait_members_backfill",
   "./0021_drop_trait_members_backfill",
+  "./0022_token_contract_and_on_chain_ids",
   // ...
 ];
 
