@@ -1,5 +1,5 @@
 const { testDbProvider } = require("./testUtil");
-const { acqrel } = require("./util");
+const { acqrel, hexToBuf, bufToHex, bufToAddress } = require("./util");
 
 describe("db/util", () => {
   const withTestDb = testDbProvider();
@@ -55,6 +55,52 @@ describe("db/util", () => {
           const { rows } = await client.query("SELECT 2 AS two");
           expect(rows).toEqual([{ two: 2 }]);
         });
+      })
+    );
+  });
+
+  describe("hexToBuf", () => {
+    it(
+      "properly encodes a bytestring for `pg`",
+      withTestDb(async ({ client }) => {
+        const res = await client.query("SELECT $1::bytea AS val", [
+          hexToBuf("0xabCD"),
+        ]);
+        expect(res.rows[0].val).toEqual(Buffer.from([0xab, 0xcd]));
+      })
+    );
+
+    it("rejects a string not starting with '0x'", () => {
+      expect(() => hexToBuf("abcd")).toThrow("expected 0x-string; got: abcd");
+    });
+
+    it("silently ignores non-hex characters", () => {
+      expect(hexToBuf("0xabczde")).toEqual(Buffer.from([0xab]));
+    });
+  });
+
+  describe("bufToHex", () => {
+    it(
+      "properly parses a bytestring from `pg`",
+      withTestDb(async ({ client }) => {
+        const res = await client.query("SELECT $1::bytea AS val", [
+          Buffer.from("abcd", "hex"),
+        ]);
+        expect(bufToHex(res.rows[0].val)).toEqual("0xabcd");
+      })
+    );
+  });
+
+  describe("bufToAddress", () => {
+    it(
+      "properly parses a bytestring from `pg`",
+      withTestDb(async ({ client }) => {
+        const res = await client.query("SELECT $1::bytea AS val", [
+          Buffer.from("a7d8d9ef8d8ce8992df33d8b8cf4aebabd5bd270", "hex"),
+        ]);
+        expect(bufToAddress(res.rows[0].val)).toEqual(
+          "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270"
+        );
       })
     );
   });

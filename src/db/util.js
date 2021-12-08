@@ -1,3 +1,4 @@
+const ethers = require("ethers");
 const pg = require("pg");
 
 // `pg` doesn't provide much introspection: can't tell whether a client has
@@ -33,4 +34,30 @@ async function acqrel(pool, callback) {
   }
 }
 
-module.exports = { acqrel };
+/**
+ * Converts a string starting with "0x" to a buffer representing its contents.
+ * Uses `Buffer.from` semantics: any data after the last hex byte will be
+ * silently ignored (...).
+ *
+ * Useful for passing values to Postgres query parameters of `bytea` type.
+ */
+function hexToBuf(s) {
+  if (typeof s !== "string" || !s.startsWith("0x"))
+    throw new Error("expected 0x-string; got: " + String(s));
+  return Buffer.from(s.slice(2), "hex");
+}
+
+function bufToHex(buf) {
+  return "0x" + buf.toString("hex");
+}
+
+function bufToAddress(buf) {
+  return ethers.utils.getAddress(bufToHex(buf));
+}
+
+module.exports = {
+  acqrel,
+  hexToBuf,
+  bufToHex,
+  bufToAddress,
+};
