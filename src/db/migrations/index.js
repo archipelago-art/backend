@@ -18,6 +18,7 @@ const migrationModules = [
   "./0017_image_progress",
   "./0018_uint256_address_types",
   "./0019_email_signups",
+  "./0020_deprecate_trait_members_backfill",
   // ...
 ];
 
