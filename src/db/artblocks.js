@@ -2,8 +2,21 @@ const slug = require("slug");
 
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const events = require("./events");
+const { hexToBuf, bufToAddress } = require("./util");
 
 const PROJECT_STRIDE = 1e6;
+
+const CONTRACT_ARTBLOCKS_LEGACY = "0x059EDD72Cd353dF5106D2B9cC5ab83a52287aC3a";
+const CONTRACT_ARTBLOCKS_STANDARD =
+  "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270";
+// Projects below this threshold are legacy, above are standard.
+const ARTBLOCKS_CONTRACT_THRESHOLD = 3;
+
+function artblocksContractAddress(projectId) {
+  return projectId < ARTBLOCKS_CONTRACT_THRESHOLD
+    ? CONTRACT_ARTBLOCKS_LEGACY
+    : CONTRACT_ARTBLOCKS_STANDARD;
+}
 
 // Event payloads are JSON `{ projectId: number, tokenId: number }`.
 const newTokensChannel = events.channel("new_tokens");
@@ -38,12 +51,13 @@ async function addProject({ client, project, slugOverride }) {
       aspect_ratio,
       num_tokens,
       slug,
-      script
+      script,
+      token_contract
     )
     SELECT
       $1, $2, $3, $4, $5, $6, $7,
       (SELECT count(1) FROM tokens WHERE project_id = $1),
-      $8, $9
+      $8, $9, $10
     ON CONFLICT (project_id) DO UPDATE SET
       name = $2,
       max_invocations = $3,
@@ -52,7 +66,8 @@ async function addProject({ client, project, slugOverride }) {
       script_json = $6,
       aspect_ratio = $7,
       slug = $8,
-      script = $9
+      script = $9,
+      token_contract = $10
     `,
     [
       project.projectId,
@@ -64,6 +79,7 @@ async function addProject({ client, project, slugOverride }) {
       aspectRatio,
       slugOverride ?? slug(project.name),
       project.script,
+      hexToBuf(artblocksContractAddress(project.projectId)),
     ]
   );
 }
@@ -81,14 +97,17 @@ async function getProject({ client, projectId }) {
       aspect_ratio AS "aspectRatio",
       num_tokens AS "numTokens",
       slug AS "slug",
-      script AS "script"
+      script AS "script",
+      token_contract AS "tokenContract"
     FROM projects
     WHERE project_id = $1
     `,
     [projectId]
   );
   if (res.rows.length === 0) return null;
-  return res.rows[0];
+  const row = res.rows[0];
+  row.tokenContract = bufToAddress(row.tokenContract);
+  return row;
 }
 
 async function setProjectSlug({ client, projectId, slug }) {
@@ -481,6 +500,8 @@ async function updateImageProgress({ client, progress }) {
 }
 
 module.exports = {
+  CONTRACT_ARTBLOCKS_LEGACY,
+  CONTRACT_ARTBLOCKS_STANDARD,
   newTokensChannel,
   imageProgressChannel,
   addProject,

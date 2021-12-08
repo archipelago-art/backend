@@ -35,7 +35,10 @@ describe("db/artblocks", () => {
   it(
     "writes and reads a project",
     withTestDb(async ({ client }) => {
-      const [input] = await addProjects(client, [snapshots.ARCHETYPE]);
+      const [archetypeInput, _] = await addProjects(client, [
+        snapshots.ARCHETYPE,
+        snapshots.SQUIGGLES,
+      ]);
       const expected = {
         projectId: 23,
         artistName: "Kjetil Golid",
@@ -51,11 +54,19 @@ describe("db/artblocks", () => {
         aspectRatio: 1,
         numTokens: 0,
         slug: "archetype",
-        script: input.script,
+        script: archetypeInput.script,
+        tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
       };
       expect(
         await artblocks.getProject({ client, projectId: snapshots.ARCHETYPE })
       ).toEqual(expected);
+      expect(
+        await artblocks.getProject({ client, projectId: snapshots.SQUIGGLES })
+      ).toEqual(
+        expect.objectContaining({
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
+        })
+      );
     })
   );
 
