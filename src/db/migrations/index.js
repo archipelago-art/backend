@@ -19,6 +19,7 @@ const migrationModules = [
   "./0018_uint256_address_types",
   "./0019_email_signups",
   "./0020_deprecate_trait_members_backfill",
+  "./0021_drop_trait_members_backfill",
   // ...
 ];
 
