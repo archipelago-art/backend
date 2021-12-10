@@ -146,6 +146,12 @@ describe("api", () => {
                 value: "Cube",
                 id: expect.any(Number),
                 tokens: [snapshots.THE_CUBE],
+                tokensOnChain: [
+                  {
+                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+                    onChainId: String(snapshots.THE_CUBE),
+                  },
+                ],
                 slug: "cube",
               },
             ]),

@@ -165,6 +165,12 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: "Pleasant palette",
                 tokens: [snapshots.GALAXISS_FEATURES_ARRAY],
+                tokensOnChain: [
+                  {
+                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+                    onChainId: String(snapshots.GALAXISS_FEATURES_ARRAY),
+                  },
+                ],
               }),
             ],
           }),
@@ -174,6 +180,12 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: "Night theme",
                 tokens: [snapshots.GALAXISS_FEATURES_ARRAY],
+                tokensOnChain: [
+                  {
+                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+                    onChainId: String(snapshots.GALAXISS_FEATURES_ARRAY),
+                  },
+                ],
               }),
             ],
           }),
@@ -199,6 +211,12 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: "Electric",
                 tokens: [snapshots.BYTEBEATS_NULL_FEATURE],
+                tokensOnChain: [
+                  {
+                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+                    onChainId: String(snapshots.BYTEBEATS_NULL_FEATURE),
+                  },
+                ],
               }),
             ],
           }),
@@ -208,6 +226,12 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: 4978,
                 tokens: [snapshots.BYTEBEATS_NULL_FEATURE],
+                tokensOnChain: [
+                  {
+                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+                    onChainId: String(snapshots.BYTEBEATS_NULL_FEATURE),
+                  },
+                ],
               }),
             ],
           }),
@@ -217,6 +241,12 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: null,
                 tokens: [snapshots.BYTEBEATS_NULL_FEATURE],
+                tokensOnChain: [
+                  {
+                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+                    onChainId: String(snapshots.BYTEBEATS_NULL_FEATURE),
+                  },
+                ],
               }),
             ],
           }),
@@ -365,61 +395,63 @@ describe("db/artblocks", () => {
         client,
         projectId,
       });
-      const id = expect.any(Number);
+      function expectedTrait(value, tokens) {
+        return {
+          id: expect.any(Number),
+          value,
+          tokens,
+          tokensOnChain: tokens.map((id) => ({
+            address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+            onChainId: String(id),
+          })),
+        };
+      }
       const expected = [
         {
-          id,
+          id: expect.any(Number),
           name: "Coloring strategy",
           traits: [
-            { id, value: "Group", tokens: [23000045, 23000467] },
-            { id, value: "Random", tokens: [23000036] },
-            { id, value: "Single", tokens: [23000250] },
+            expectedTrait("Group", [23000045, 23000467]),
+            expectedTrait("Random", [23000036]),
+            expectedTrait("Single", [23000250]),
           ],
         },
         {
-          id,
+          id: expect.any(Number),
           name: "Framed",
           traits: [
-            {
-              id,
-              value: "Yep",
-              tokens: [23000036, 23000045, 23000250, 23000467],
-            },
+            expectedTrait("Yep", [23000036, 23000045, 23000250, 23000467]),
           ],
         },
         {
-          id,
+          id: expect.any(Number),
           name: "Layout",
           traits: [
-            { id, value: "Chaos", tokens: [23000250] },
-            { id, value: "Order", tokens: [23000036, 23000045, 23000467] },
+            expectedTrait("Chaos", [23000250]),
+            expectedTrait("Order", [23000036, 23000045, 23000467]),
           ],
         },
         {
-          id,
+          id: expect.any(Number),
           name: "Palette",
           traits: [
-            {
-              id,
-              value: "Paddle",
-              tokens: [23000036, 23000045, 23000250, 23000467],
-            },
+            expectedTrait("Paddle", [23000036, 23000045, 23000250, 23000467]),
           ],
         },
         {
-          id,
+          id: expect.any(Number),
           name: "Scene",
           traits: [
-            { id, value: "Cube", tokens: [23000250] },
-            { id, value: "Flat", tokens: [23000036, 23000045, 23000467] },
+            expectedTrait("Cube", [23000250]),
+            expectedTrait("Flat", [23000036, 23000045, 23000467]),
           ],
         },
         {
-          id,
+          id: expect.any(Number),
           name: "Shading",
           traits: [
-            { id, value: "Bright Morning", tokens: [23000250] },
-            { id, value: "Noon", tokens: [23000036, 23000045, 23000467] },
+            expectedTrait("Bright Morning", [23000250]),
+            expectedTrait("Noon", [23000036, 23000045, 23000467]),
           ],
         },
       ];

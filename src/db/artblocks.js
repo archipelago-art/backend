@@ -144,10 +144,22 @@ async function addToken({ client, tokenId, rawTokenData }) {
   }
   await client.query(
     `
-    INSERT INTO tokens (token_id, fetch_time, token_data, project_id)
-    VALUES ($1, $2, $3, $4)
+    INSERT INTO tokens (
+      token_id,
+      fetch_time,
+      token_data,
+      project_id,
+      token_contract,
+      on_chain_token_id,
+      token_index
+    )
+    VALUES (
+      $1::int, $2, $3, $4,
+      (SELECT token_contract FROM projects WHERE project_id = $4),
+      $1::uint256, $5
+    )
     `,
-    [tokenId, new Date(), rawTokenData, projectId]
+    [tokenId, new Date(), rawTokenData, projectId, tokenId % PROJECT_STRIDE]
   );
   await populateTraitMembers({
     client,
@@ -211,8 +223,12 @@ async function populateTraitMembers({
 
   await client.query(
     `
-    INSERT INTO trait_members (token_id, trait_id)
-    SELECT $1, trait_id
+    INSERT INTO trait_members (trait_id, token_id, token_contract, on_chain_token_id)
+    SELECT
+      trait_id,
+      $1,
+      (SELECT token_contract FROM tokens WHERE token_id = $1),
+      (SELECT on_chain_token_id FROM tokens WHERE token_id = $1)
     FROM traits
     JOIN unnest($2::integer[], $3::jsonb[]) AS my_traits(feature_id, value)
       USING (feature_id, value)
@@ -227,7 +243,8 @@ async function populateTraitMembers({
  * type Trait = {
  *   id: integer,
  *   value: Json,
- *   tokens: integer[]
+ *   tokens: integer[],
+ *   tokensOnChain: {address: string, onChainId: string<BigNumber>},
  * }
  *
  * type Feature = {
@@ -246,7 +263,9 @@ async function getProjectFeaturesAndTraits({ client, projectId }) {
       name,
       trait_id,
       value,
-      array_agg(token_id ORDER BY token_id) AS tokens
+      array_agg(token_id ORDER BY token_id) AS tokens,
+      array_agg(token_contract::bytea ORDER BY token_id) AS "tokenContracts",
+      array_agg(on_chain_token_id::text ORDER BY token_id) AS "onChainTokenIds"
     FROM features
       JOIN traits USING (feature_id)
       JOIN trait_members USING (trait_id)
@@ -268,6 +287,10 @@ async function getProjectFeaturesAndTraits({ client, projectId }) {
       id: row.trait_id,
       value: row.value,
       tokens: row.tokens,
+      tokensOnChain: row.tokenContracts.map((address, i) => ({
+        address: address == null ? null : bufToAddress(address),
+        onChainId: row.onChainTokenIds[i],
+      })),
     });
   }
   return result;
