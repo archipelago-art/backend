@@ -56,7 +56,7 @@ async function addProject({ client, project, slugOverride }) {
     )
     SELECT
       $1, $2, $3, $4, $5, $6, $7,
-      (SELECT count(1) FROM tokens WHERE project_id = $1),
+      0,  -- no tokens to start: tokens must be added after project
       $8, $9, $10
     ON CONFLICT (project_id) DO UPDATE SET
       name = $2,
@@ -129,20 +129,25 @@ async function setProjectSlug({ client, projectId, slug }) {
 async function addToken({ client, tokenId, rawTokenData }) {
   await client.query("BEGIN");
   const projectId = Math.floor(tokenId / PROJECT_STRIDE);
-  await client.query(
-    `
-    INSERT INTO tokens (token_id, fetch_time, token_data, project_id)
-    VALUES ($1, $2, $3, $4)
-    `,
-    [tokenId, new Date(), rawTokenData, projectId]
-  );
-  await client.query(
+  const updateProjectsRes = await client.query(
     `
     UPDATE projects
     SET num_tokens = num_tokens + 1
     WHERE project_id = $1
     `,
     [projectId]
+  );
+  if (updateProjectsRes.rowCount !== 1) {
+    throw new Error(
+      `expected project ${projectId} to exist for token ${tokenId}`
+    );
+  }
+  await client.query(
+    `
+    INSERT INTO tokens (token_id, fetch_time, token_data, project_id)
+    VALUES ($1, $2, $3, $4)
+    `,
+    [tokenId, new Date(), rawTokenData, projectId]
   );
   await populateTraitMembers({
     client,

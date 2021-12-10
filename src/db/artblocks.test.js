@@ -119,22 +119,6 @@ describe("db/artblocks", () => {
   );
 
   it(
-    "populates `num_tokens` when tokens already exist",
-    withTestDb(async ({ client }) => {
-      await addTokens(client, [snapshots.THE_CUBE]);
-      await addProjects(client, [snapshots.ARCHETYPE]);
-      expect(
-        await artblocks.getProject({ client, projectId: snapshots.ARCHETYPE })
-      ).toEqual(
-        expect.objectContaining({
-          projectId: 23,
-          numTokens: 1,
-        })
-      );
-    })
-  );
-
-  it(
     "inserts token data for successful fetches",
     withTestDb(async ({ pool, client }) => {
       await acqrel(pool, async (listenClient) => {
@@ -201,6 +185,7 @@ describe("db/artblocks", () => {
   it(
     "inserts data whose features are strings, numbers, or null",
     withTestDb(async ({ client }) => {
+      await addProjects(client, [snapshots.BYTEBEATS]);
       await addTokens(client, [snapshots.BYTEBEATS_NULL_FEATURE]);
       const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
@@ -243,7 +228,8 @@ describe("db/artblocks", () => {
   it(
     'rejects token data when "features" is not an array or object',
     withTestDb(async ({ client }) => {
-      const tokenId = 999000000;
+      const tokenId = snapshots.PERFECT_CHROMATIC;
+      await addProjects(client, [snapshots.SQUIGGLES]);
       const rawTokenData = JSON.stringify({ features: "hmm" });
       await expect(
         artblocks.addToken({

@@ -122,6 +122,14 @@ describe("api", () => {
       const collection = api.artblocksProjectIdToCollectionName(
         archetype.projectId
       );
+      for (const projectId of snapshots.PROJECTS) {
+        if (projectId === snapshots.PHANTOM_SEADRAGONS) continue;
+        const project = parseProjectData(
+          projectId,
+          await sc.project(projectId)
+        );
+        await artblocks.addProject({ client, project });
+      }
       for (const tokenId of snapshots.TOKENS) {
         const rawTokenData = await sc.token(tokenId);
         await artblocks.addToken({ client, tokenId, rawTokenData });
@@ -159,6 +167,7 @@ describe("api", () => {
       );
       const tokenId = snapshots.THE_CUBE;
       const rawTokenData = await sc.token(tokenId);
+      await artblocks.addProject({ client, project: archetype });
       await artblocks.addToken({ client, tokenId, rawTokenData });
       const res = await api.tokenFeaturesAndTraits({ client, tokenId });
       expect(res).toEqual(
