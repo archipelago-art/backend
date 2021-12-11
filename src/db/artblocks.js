@@ -30,7 +30,12 @@ function tokenBounds(projectId) {
   return { minTokenId, maxTokenId };
 }
 
-async function addProject({ client, project, slugOverride }) {
+async function addProject({
+  client,
+  project,
+  slugOverride,
+  omitTokenContract = false,
+}) {
   if (typeof project.scriptJson !== "string") {
     throw new Error(
       "project.scriptJson should be a raw JSON string; got: " +
@@ -79,7 +84,9 @@ async function addProject({ client, project, slugOverride }) {
       aspectRatio,
       slugOverride ?? slug(project.name),
       project.script,
-      hexToBuf(artblocksContractAddress(project.projectId)),
+      omitTokenContract
+        ? null
+        : hexToBuf(artblocksContractAddress(project.projectId)),
     ]
   );
 }
@@ -126,7 +133,12 @@ async function setProjectSlug({ client, projectId, slug }) {
     throw new Error("no project found by ID " + projectId);
 }
 
-async function addToken({ client, tokenId, rawTokenData }) {
+async function addToken({
+  client,
+  tokenId,
+  rawTokenData,
+  omitTokenContractAndOnChainId = false,
+}) {
   await client.query("BEGIN");
   const projectId = Math.floor(tokenId / PROJECT_STRIDE);
   const updateProjectsRes = await client.query(
@@ -155,11 +167,25 @@ async function addToken({ client, tokenId, rawTokenData }) {
     )
     VALUES (
       $1::int, $2, $3, $4,
-      (SELECT token_contract FROM projects WHERE project_id = $4),
-      $1::uint256, $5
+      CASE
+        WHEN $6 THEN NULL
+        ELSE (SELECT token_contract FROM projects WHERE project_id = $4)
+      END,
+      CASE
+        WHEN $6 THEN NULL
+        ELSE $1::uint256
+      END,
+      $5
     )
     `,
-    [tokenId, new Date(), rawTokenData, projectId, tokenId % PROJECT_STRIDE]
+    [
+      tokenId,
+      new Date(),
+      rawTokenData,
+      projectId,
+      tokenId % PROJECT_STRIDE,
+      omitTokenContractAndOnChainId
+    ]
   );
   await populateTraitMembers({
     client,
@@ -530,6 +556,8 @@ async function updateImageProgress({ client, progress }) {
 module.exports = {
   CONTRACT_ARTBLOCKS_LEGACY,
   CONTRACT_ARTBLOCKS_STANDARD,
+  ARTBLOCKS_CONTRACT_THRESHOLD,
+  PROJECT_STRIDE,
   newTokensChannel,
   imageProgressChannel,
   addProject,
