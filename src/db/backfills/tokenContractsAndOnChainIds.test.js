@@ -11,6 +11,7 @@ describe("backfills/tokenContractsAndOnChainIds", () => {
   const sc = new snapshots.SnapshotCache();
 
   const nonstandardAddress = "0xEfa7bDD92B5e9CD9dE9b54AC0e3dc60623F1C989";
+  const nonstandardTokenIndex = "456789";
   const nonstandardOnChainTokenId = "123456789";
 
   async function dump(client) {
@@ -21,6 +22,7 @@ describe("backfills/tokenContractsAndOnChainIds", () => {
     const tokensRes = await client.query(`
       SELECT
         token_id AS id,
+        token_index AS index,
         token_contract AS address,
         on_chain_token_id AS "onChainId"
       FROM tokens
@@ -42,6 +44,7 @@ describe("backfills/tokenContractsAndOnChainIds", () => {
       })),
       tokens: tokensRes.rows.map((r) => ({
         id: r.id,
+        index: r.index,
         address: r.address && bufToAddress(r.address),
         onChainId: r.onChainId,
       })),
@@ -94,10 +97,16 @@ describe("backfills/tokenContractsAndOnChainIds", () => {
       await client.query(
         `
         UPDATE tokens
-        SET on_chain_token_id = $1
-        WHERE token_id = $2
+        SET
+          on_chain_token_id = $1,
+          token_index = $2
+        WHERE token_id = $3
         `,
-        [nonstandardOnChainTokenId, snapshots.PERFECT_CHROMATIC]
+        [
+          nonstandardOnChainTokenId,
+          nonstandardTokenIndex,
+          snapshots.PERFECT_CHROMATIC,
+        ]
       );
       await client.query(
         `
@@ -131,11 +140,15 @@ describe("backfills/tokenContractsAndOnChainIds", () => {
           tokens: [
             {
               id: snapshots.PERFECT_CHROMATIC,
+              index: nonstandardTokenIndex,
               address: nonstandardAddress,
               onChainId: nonstandardOnChainTokenId,
             },
             {
               id: snapshots.GENESIS_ZERO,
+              index: beforeBackfill
+                ? null
+                : String(snapshots.GENESIS_ZERO % 1e6),
               address: beforeBackfill
                 ? null
                 : artblocks.CONTRACT_ARTBLOCKS_LEGACY,
@@ -143,6 +156,7 @@ describe("backfills/tokenContractsAndOnChainIds", () => {
             },
             {
               id: snapshots.THE_CUBE,
+              index: beforeBackfill ? null : String(snapshots.THE_CUBE % 1e6),
               address: beforeBackfill
                 ? null
                 : artblocks.CONTRACT_ARTBLOCKS_STANDARD,

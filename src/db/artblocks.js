@@ -175,7 +175,10 @@ async function addToken({
         WHEN $6 THEN NULL
         ELSE $1::uint256
       END,
-      $5
+      CASE
+        WHEN $6 THEN NULL
+        ELSE $5::int8
+      END
     )
     `,
     [

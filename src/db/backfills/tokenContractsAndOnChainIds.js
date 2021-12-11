@@ -38,6 +38,18 @@ async function backfillTokenContractsAndOnChainIds({ pool, verbose }) {
     console.log("updated %s tokens", tokensRes.rowCount);
   }
 
+  const tokenIndicesRes = await pool.query(
+    `
+    UPDATE tokens
+    SET token_index = token_id % $1
+    WHERE token_index IS NULL
+    `,
+    [artblocks.PROJECT_STRIDE]
+  );
+  if (verbose) {
+    console.log("updated %s token indices", tokenIndicesRes.rowCount);
+  }
+
   const traitMembersRes = await pool.query(
     `
     UPDATE trait_members
