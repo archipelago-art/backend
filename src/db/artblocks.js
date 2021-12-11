@@ -184,7 +184,7 @@ async function addToken({
       rawTokenData,
       projectId,
       tokenId % PROJECT_STRIDE,
-      omitTokenContractAndOnChainId
+      omitTokenContractAndOnChainId,
     ]
   );
   await populateTraitMembers({
