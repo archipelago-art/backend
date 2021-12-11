@@ -496,6 +496,28 @@ describe("db/artblocks", () => {
   );
 
   it(
+    "respects token-feature project filters even for tokens with no traits",
+    withTestDb(async ({ client }) => {
+      await addProjects(client, [
+        snapshots.ARCHETYPE,
+        snapshots.ELEVATED_DECONSTRUCTIONS,
+      ]);
+      await addTokens(client, [
+        snapshots.THE_CUBE,
+        snapshots.ELEVATED_DECONSTRUCTIONS_EMPTY_FEATURES,
+      ]);
+      const res = await artblocks.getTokenFeaturesAndTraits({
+        client,
+        projectId: snapshots.ARCHETYPE,
+      });
+      expect(res).toEqual([
+        expect.objectContaining({ tokenId: snapshots.THE_CUBE }),
+        // nothing for Elevated Deconstructions
+      ]);
+    })
+  );
+
+  it(
     "supports getting features from a certain token ID upward",
     withTestDb(async ({ client }) => {
       await addProjects(client, [snapshots.ARCHETYPE, snapshots.BYTEBEATS]);

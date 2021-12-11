@@ -322,8 +322,8 @@ async function getTokenFeaturesAndTraits({
     WHERE true
       AND (token_id = $1 OR $1 IS NULL)
       AND (
-        features.project_id = $2 OR $2 IS NULL
-        OR features.project_id IS NULL  -- OUTER JOIN
+        tokens.project_id = $2 OR $2 IS NULL
+        OR tokens.project_id IS NULL  -- OUTER JOIN
       )
       AND (token_id >= $3 OR $3 IS NULL)
       AND (token_id <= $4 OR $4 IS NULL)
