@@ -3,6 +3,7 @@ const path = require("path");
 const { promisify } = require("util");
 
 const SQUIGGLES = 0;
+const GENESIS = 1;
 const ELEVATED_DECONSTRUCTIONS = 7; // has no features for any token
 const HYPERHASH = 11;
 const ARCHETYPE = 23;
@@ -11,6 +12,7 @@ const BYTEBEATS = 38;
 const PHANTOM_SEADRAGONS = 155;
 const PROJECTS = Object.freeze([
   SQUIGGLES,
+  GENESIS,
   ELEVATED_DECONSTRUCTIONS,
   HYPERHASH,
   ARCHETYPE,
@@ -25,6 +27,7 @@ const ARCHETYPE_DESCRIPTION =
   "Archetype explores the use of repetition as a counterweight to unruly, random structures. As each single component look chaotic alone, the repetition brings along a sense of intentionality, ultimately resulting in a complex, yet satisfying expression.";
 
 const PERFECT_CHROMATIC = 7583;
+const GENESIS_ZERO = 1000000;
 const ELEVATED_DECONSTRUCTIONS_EMPTY_FEATURES = 7000000;
 const ARCH_TRIPTYCH_1 = 23000036;
 const ARCH_TRIPTYCH_2 = 23000045;
@@ -35,6 +38,7 @@ const BYTEBEATS_NULL_FEATURE = 38000007; // has `{"Progressions": null}` in `fea
 const BYTEBEATS_EMPTY_FEATURES = 38000212; // empty `features`, presumably due to Art Blocks bug
 const TOKENS = Object.freeze([
   0,
+  GENESIS_ZERO,
   PERFECT_CHROMATIC,
   ELEVATED_DECONSTRUCTIONS_EMPTY_FEATURES,
   ARCH_TRIPTYCH_1,
@@ -94,6 +98,7 @@ class SnapshotCache {
 
 module.exports = {
   SQUIGGLES,
+  GENESIS,
   ELEVATED_DECONSTRUCTIONS,
   HYPERHASH,
   ARCHETYPE,
@@ -104,6 +109,7 @@ module.exports = {
   PHANTOM_SEADRAGONS,
   PROJECTS,
   PERFECT_CHROMATIC,
+  GENESIS_ZERO,
   ELEVATED_DECONSTRUCTIONS_EMPTY_FEATURES,
   THE_CUBE,
   ARCH_TRIPTYCH_1,
