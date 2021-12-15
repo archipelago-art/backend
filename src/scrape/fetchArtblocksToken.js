@@ -5,7 +5,7 @@ const { fetchWithRetries } = require("./retryFetch");
 const TOKEN_URL_BASE = "https://api.artblocks.io/token";
 
 const PROJECTS_THAT_MAY_OMIT_FEATURES = new Set([
-  5, 6, 7, 67, 79, 80, 81, 94, 136, 189, 199,
+  5, 6, 7, 67, 79, 80, 81, 94, 136, 189, 199, 234,
 ]);
 
 function normalizeTokenId(tokenId) {
