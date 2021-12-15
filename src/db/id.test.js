@@ -1,4 +1,4 @@
-const { ObjectType, newId } = require("./id");
+const { ObjectType, idBounds, newId } = require("./id");
 
 describe("db/id", () => {
   describe("newId", () => {
@@ -66,6 +66,18 @@ describe("db/id", () => {
       const id = newId(type, { checkObjectType: false });
       expect(id).toBeLessThan(0n);
       expect(Number(BigInt.asUintN(64, id) >> 58n)).toEqual(type);
+    });
+  });
+
+  describe("idBounds", () => {
+    it("returns the proper bounds for token IDs", () => {
+      expect(idBounds(ObjectType.TOKEN)).toEqual({
+        min: 0x400000000000000n,
+        max: 0x7ffffffffffffffn,
+      });
+    });
+    it("rejects unknown object types", () => {
+      expect(() => newId(30)).toThrow("invalid object type: 30");
     });
   });
 });

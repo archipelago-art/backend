@@ -22,6 +22,10 @@ const MAX_TIMESTAMP = 2 ** 42 - 1;
 // Guard against accidentally passing in seconds instead of milliseconds.
 const MIN_TIMESTAMP = +new Date("2000-01-01T00:00:00Z");
 
+function asI64(bigint) {
+  return BigInt.asIntN(64, bigint);
+}
+
 function newId(
   objectType,
   {
@@ -59,11 +63,21 @@ function newId(
   const timestampPart = BigInt(timestampMs) << 16n;
   const typePart = BigInt(objectType) << 58n;
 
-  return BigInt.asIntN(64, typePart | timestampPart | entropyPart);
+  return asI64(typePart | timestampPart | entropyPart);
+}
+
+function idBounds(objectType) {
+  if (objectTypeToName[objectType] == null) {
+    throw new Error("invalid object type: " + objectType);
+  }
+  const min = BigInt(objectType) << 58n;
+  const max = min | ((1n << 58n) - 1n);
+  return { min: asI64(min), max: asI64(max) };
 }
 
 module.exports = {
   ObjectType,
   objectTypeToName,
+  idBounds,
   newId,
 };
