@@ -20,7 +20,9 @@ const IMAGEMAGICK_CONCURRENCY = 16;
 
 const INGESTION_LATENCY_SECONDS = 15;
 
-const LIVE_MINT_LATENCY_SECONDS = 5;
+const LIVE_MINT_INITIAL_DELAY_MS = 10 * 1000;
+const LIVE_MINT_MAX_DELAY_MS = 2 * 60 * 1000;
+const LIVE_MINT_BACKOFF_MULTIPLE = 1.5;
 const LIVE_MINT_FANOUT = 8;
 
 const GENERATOR_WHITELIST = [
@@ -169,6 +171,7 @@ async function followLiveMint(args) {
     let ids = await acqrel(pool, (client) =>
       artblocks.getUnfetchedTokenIds({ client, projectId })
     );
+    let sleepDuration = LIVE_MINT_INITIAL_DELAY_MS;
     while (true) {
       if (ids.length === 0) {
         console.log(`project ${projectId} is fully minted`);
@@ -176,10 +179,19 @@ async function followLiveMint(args) {
       }
       console.log(`checking for ${ids[0]}`);
       if (!(await tryAddTokenLive({ pool, tokenId: ids[0] }))) {
-        console.log(`token ${ids[0]} not ready yet; zzz`);
-        await sleepMs(LIVE_MINT_LATENCY_SECONDS * 1000);
+        console.log(
+          `token ${ids[0]} not ready yet; zzz ${sleepDuration / 1000}s`
+        );
+        await sleepMs(sleepDuration);
+        // exponential backoff up to a limit
+        sleepDuration = Math.min(
+          sleepDuration * LIVE_MINT_BACKOFF_MULTIPLE,
+          LIVE_MINT_MAX_DELAY_MS
+        );
         continue;
       }
+      // found a token, reset exponential backoff
+      sleepDuration = LIVE_MINT_INITIAL_DELAY_MS;
       console.log(`added token ${ids[0]}; reaching ahead`);
       ids.shift();
       const workItems = [...ids];
@@ -208,7 +220,7 @@ async function followLiveMint(args) {
       );
       if (ids.length > 0) {
         console.log("going back to sleep");
-        await sleepMs(LIVE_MINT_LATENCY_SECONDS * 1000);
+        await sleepMs(LIVE_MINT_INITIAL_DELAY_MS);
       }
     }
   });
