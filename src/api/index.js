@@ -35,6 +35,7 @@ async function _collections({ client, projectId }) {
       description AS "description",
       aspect_ratio AS "aspectRatio",
       num_tokens AS "numTokens",
+      max_invocations AS "maxInvocations",
       slug AS "slug"
     FROM projects
     WHERE project_id = $1 OR $1 IS NULL
@@ -49,6 +50,7 @@ async function _collections({ client, projectId }) {
     description: row.description,
     aspectRatio: row.aspectRatio,
     numTokens: row.numTokens,
+    maxInvocations: row.maxInvocations,
     slug: row.slug,
   }));
 }

@@ -40,6 +40,7 @@ describe("api", () => {
           ),
           aspectRatio: 1.5,
           numTokens: 0,
+          maxInvocations: 10000,
           slug: "chromie-squiggle",
         },
         {
@@ -49,6 +50,7 @@ describe("api", () => {
           description: expect.stringContaining("repetition as a counterweight"),
           aspectRatio: 1,
           numTokens: 1,
+          maxInvocations: 600,
           slug: "archetype",
         },
       ]);
@@ -82,6 +84,7 @@ describe("api", () => {
         description: expect.stringContaining("repetition as a counterweight"),
         aspectRatio: 1,
         numTokens: 1,
+        maxInvocations: 600,
         slug: "archetype",
       });
     })
