@@ -1,5 +1,4 @@
 const backfillModules = [
-  "./tokenContractsAndOnChainIds",
   "./projectSlugs",
   // ...
 ];
