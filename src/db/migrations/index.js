@@ -22,6 +22,7 @@ const migrationModules = [
   "./0021_drop_trait_members_backfill",
   "./0022_token_contract_and_on_chain_ids",
   "./0023_opensea_events_and_progress",
+  "./0024_token_contract_and_on_chain_ids_not_null",
   // ...
 ];
 
