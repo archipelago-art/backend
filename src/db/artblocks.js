@@ -315,7 +315,7 @@ async function populateTraitMembers({
  *
  * returns Feature[]
  */
-async function getProjectFeaturesAndTraits({ client, projectId }) {
+async function getProjectFeaturesAndTraits({ client, projectNewid }) {
   const res = await client.query(
     `
     SELECT
@@ -329,11 +329,11 @@ async function getProjectFeaturesAndTraits({ client, projectId }) {
     FROM features
       JOIN traits USING (feature_id)
       JOIN trait_members USING (trait_id)
-    WHERE project_id = $1
+    WHERE project_newid = $1
     GROUP BY feature_id, trait_id
     ORDER BY name, value
     `,
-    [projectId]
+    [projectNewid]
   );
 
   const result = [];

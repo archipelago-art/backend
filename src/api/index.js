@@ -105,10 +105,14 @@ async function collectionMintState({ client, collection }) {
 }
 
 async function projectFeaturesAndTraits({ client, collection }) {
-  const projectId = collectionNameToArtblocksProjectIdUnwrap(collection);
+  const projectNewid = await resolveNewid(
+    client,
+    collectionNameToArtblocksProjectIdUnwrap(collection)
+  );
+  if (projectNewid == null) return null;
   const res = await artblocks.getProjectFeaturesAndTraits({
     client,
-    projectId,
+    projectNewid,
   });
   for (const feature of res) {
     feature.slug = slug(feature.name);

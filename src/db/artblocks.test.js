@@ -37,10 +37,8 @@ describe("db/artblocks", () => {
   it(
     "writes and reads a project",
     withTestDb(async ({ client }) => {
-      const [{ project: archetypeInput, newid: archetypeNewid }, _] = await addProjects(client, [
-        snapshots.ARCHETYPE,
-        snapshots.SQUIGGLES,
-      ]);
+      const [{ project: archetypeInput, newid: archetypeNewid }, _] =
+        await addProjects(client, [snapshots.ARCHETYPE, snapshots.SQUIGGLES]);
       expect(archetypeNewid).toMatch(/[0-9]+/);
       const expected = {
         projectId: 23,
@@ -157,11 +155,11 @@ describe("db/artblocks", () => {
   it(
     'inserts token data when "features" is an array',
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.GALAXISS]);
+      const [{ newid }] = await addProjects(client, [snapshots.GALAXISS]);
       await addTokens(client, [snapshots.GALAXISS_FEATURES_ARRAY]);
       const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
-        projectId: snapshots.GALAXISS,
+        projectNewid: newid,
       });
       expect(actualFeatures).toEqual(
         expect.arrayContaining([
@@ -203,11 +201,11 @@ describe("db/artblocks", () => {
   it(
     "inserts data whose features are strings, numbers, or null",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.BYTEBEATS]);
+      const [{ newid }] = await addProjects(client, [snapshots.BYTEBEATS]);
       await addTokens(client, [snapshots.BYTEBEATS_NULL_FEATURE]);
       const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
-        projectId: snapshots.BYTEBEATS,
+        projectNewid: newid,
       });
       expect(actualFeatures).toEqual(
         expect.arrayContaining([
@@ -389,17 +387,16 @@ describe("db/artblocks", () => {
   it(
     "supports getProjectFeaturesAndTraits",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
+      const [{ newid }] = await addProjects(client, [snapshots.ARCHETYPE]);
       await addTokens(client, [
         snapshots.THE_CUBE,
         snapshots.ARCH_TRIPTYCH_1,
         snapshots.ARCH_TRIPTYCH_2,
         snapshots.ARCH_TRIPTYCH_3,
       ]);
-      const projectId = snapshots.ARCHETYPE;
       const res = await artblocks.getProjectFeaturesAndTraits({
         client,
-        projectId,
+        projectNewid: newid,
       });
       function expectedTrait(value, tokens) {
         return {
