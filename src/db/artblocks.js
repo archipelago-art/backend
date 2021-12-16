@@ -43,9 +43,9 @@ async function addProject({ client, project, slugOverride }) {
   await client.query("BEGIN");
   const projectNewidRes = await client.query(
     `
-    SELECT project_newid AS id FROM projects
-    WHERE project_id = $1
-  `,
+    SELECT project_id AS id FROM artblocks_projects
+    WHERE artblocks_project_index = $1
+    `,
     [project.projectId]
   );
   const projectNewid =
@@ -72,7 +72,7 @@ async function addProject({ client, project, slugOverride }) {
       $1, $2, $3, $4, $5, $6, $7,
       0,  -- no tokens to start: tokens must be added after project
       $8, $9, $10, $11
-    ON CONFLICT (project_id) DO UPDATE SET
+    ON CONFLICT (project_newid) DO UPDATE SET
       name = $2,
       max_invocations = $3,
       artist_name = $4,
