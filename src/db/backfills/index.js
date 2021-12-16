@@ -1,4 +1,5 @@
 const backfillModules = [
+  "./artblocksProjectIndices",
   "./newids",
   "./projectSlugs",
   // ...
