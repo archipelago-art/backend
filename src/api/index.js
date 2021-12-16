@@ -25,11 +25,23 @@ function collectionNameToArtblocksProjectIdUnwrap(name) {
   return projectId;
 }
 
-async function _collections({ client, projectId }) {
+async function resolveNewid(client, artblocksProjectId) {
+  const res = await client.query(
+    `
+    SELECT project_id AS id FROM artblocks_projects
+    WHERE artblocks_project_index = $1
+    `,
+    [artblocksProjectId]
+  );
+  if (res.rows.length === 0) return null;
+  return res.rows[0].id;
+}
+
+async function _collections({ client, projectNewid }) {
   const res = await client.query(
     `
     SELECT
-      project_id AS "id",
+      projects.project_id AS "id",
       name AS "name",
       artist_name AS "artistName",
       description AS "description",
@@ -38,10 +50,14 @@ async function _collections({ client, projectId }) {
       max_invocations AS "maxInvocations",
       slug AS "slug"
     FROM projects
-    WHERE project_id = $1 OR $1 IS NULL
-    ORDER BY project_id ASC
+    LEFT OUTER JOIN artblocks_projects
+      ON projects.project_newid = artblocks_projects.project_id
+    WHERE project_newid = $1 OR $1 IS NULL
+    ORDER BY
+      artblocks_project_index ASC,
+      project_newid ASC
     `,
-    [projectId]
+    [projectNewid]
   );
   return res.rows.map((row) => ({
     id: artblocksProjectIdToCollectionName(row.id),
@@ -56,15 +72,16 @@ async function _collections({ client, projectId }) {
 }
 
 async function collections({ client }) {
-  return await _collections({ client, projectId: null });
+  return await _collections({ client, projectNewid: null });
 }
 
 async function collection({ client, collection }) {
-  const projectId =
-    collection == null
-      ? null
-      : collectionNameToArtblocksProjectIdUnwrap(collection);
-  const res = await _collections({ client, projectId });
+  const projectNewid = await resolveNewid(
+    client,
+    collectionNameToArtblocksProjectIdUnwrap(collection)
+  );
+  if (projectNewid == null) return null;
+  const res = await _collections({ client, projectNewid });
   return res[0] ?? null;
 }
 
