@@ -106,6 +106,7 @@ async function addProject({ client, project, slugOverride }) {
     [projectNewid, project.projectId]
   );
   await client.query("COMMIT");
+  return String(projectNewid);
 }
 
 async function getProject({ client, projectId }) {
@@ -113,6 +114,7 @@ async function getProject({ client, projectId }) {
     `
     SELECT
       project_id AS "projectId",
+      project_newid AS "projectNewid",
       name as "name",
       max_invocations AS "maxInvocations",
       artist_name AS "artistName",

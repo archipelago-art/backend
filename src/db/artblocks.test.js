@@ -14,10 +14,12 @@ describe("db/artblocks", () => {
     const projects = await Promise.all(
       projectIds.map(async (id) => parseProjectData(id, await sc.project(id)))
     );
+    const result = [];
     for (const project of projects) {
-      await artblocks.addProject({ client, project });
+      const newid = await artblocks.addProject({ client, project });
+      result.push({ project, newid });
     }
-    return projects;
+    return result;
   }
   async function addTokens(client, tokenIds) {
     const tokens = await Promise.all(
@@ -35,12 +37,14 @@ describe("db/artblocks", () => {
   it(
     "writes and reads a project",
     withTestDb(async ({ client }) => {
-      const [archetypeInput, _] = await addProjects(client, [
+      const [{ project: archetypeInput, newid: archetypeNewid }, _] = await addProjects(client, [
         snapshots.ARCHETYPE,
         snapshots.SQUIGGLES,
       ]);
+      expect(archetypeNewid).toMatch(/[0-9]+/);
       const expected = {
         projectId: 23,
+        projectNewid: archetypeNewid,
         artistName: "Kjetil Golid",
         name: "Archetype",
         maxInvocations: 600,
@@ -87,7 +91,9 @@ describe("db/artblocks", () => {
         scriptJson: JSON.stringify({ aspectRatio: "2/3" }),
         script: "let seed = 1; // ...",
       };
-      const [squiggles] = await addProjects(client, [snapshots.SQUIGGLES]);
+      const [{ project: squiggles }] = await addProjects(client, [
+        snapshots.SQUIGGLES,
+      ]);
       await artblocks.addProject({ client, project: archetype1 });
       await artblocks.addProject({ client, project: archetype2 });
       await addTokens(client, [
