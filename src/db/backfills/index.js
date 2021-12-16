@@ -1,4 +1,5 @@
 const backfillModules = [
+  "./newids",
   "./projectSlugs",
   // ...
 ];
