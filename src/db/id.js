@@ -66,6 +66,17 @@ function newId(
   return asI64(typePart | timestampPart | entropyPart);
 }
 
+// Generates `n` non-overlapping IDs with the given parameters.
+//
+// (This works even with `n > 2**16`; it may simply take more than 1ms.)
+function newIds(n, ...newIdArgs) {
+  const result = new Set();
+  while (result.size < n) {
+    result.add(newId(...newIdArgs));
+  }
+  return Array.from(result);
+}
+
 function idBounds(objectType) {
   if (objectTypeToName[objectType] == null) {
     throw new Error("invalid object type: " + objectType);
@@ -80,4 +91,5 @@ module.exports = {
   objectTypeToName,
   idBounds,
   newId,
+  newIds,
 };
