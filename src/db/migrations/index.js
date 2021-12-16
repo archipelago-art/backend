@@ -24,6 +24,7 @@ const migrationModules = [
   "./0023_opensea_events_and_progress",
   "./0024_token_contract_and_on_chain_ids_not_null",
   "./0025_newids_for_tokens_projects_features_traits",
+  "./0026_newids_not_null",
   // ...
 ];
 
