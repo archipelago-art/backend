@@ -86,16 +86,20 @@ async function collection({ client, collection }) {
 }
 
 async function collectionMintState({ client, collection }) {
-  const projectId = collectionNameToArtblocksProjectIdUnwrap(collection);
+  const projectNewid = await resolveNewid(
+    client,
+    collectionNameToArtblocksProjectIdUnwrap(collection)
+  );
+  if (projectNewid == null) return null;
   const res = await client.query(
     `
     SELECT
       num_tokens AS "numTokens",
       max_invocations AS "maxInvocations"
     FROM projects
-    WHERE project_id = $1
+    WHERE project_newid = $1
     `,
-    [projectId]
+    [projectNewid]
   );
   return res.rows[0] ?? null;
 }
