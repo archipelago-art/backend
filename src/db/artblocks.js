@@ -2,6 +2,7 @@ const slug = require("slug");
 
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const events = require("./events");
+const { ObjectType, newId } = require("./id");
 const { hexToBuf, bufToAddress } = require("./util");
 
 const PROJECT_STRIDE = 1e6;
@@ -37,6 +38,7 @@ async function addProject({ client, project, slugOverride }) {
         JSON.stringify(project)
     );
   }
+  const projectNewid = newId(ObjectType.PROJECT);
   const rawAspectRatio = JSON.parse(project.scriptJson).aspectRatio;
   const aspectRatio = normalizeAspectRatio(rawAspectRatio);
   return await client.query(
@@ -52,12 +54,13 @@ async function addProject({ client, project, slugOverride }) {
       num_tokens,
       slug,
       script,
-      token_contract
+      token_contract,
+      project_newid
     )
     SELECT
       $1, $2, $3, $4, $5, $6, $7,
       0,  -- no tokens to start: tokens must be added after project
-      $8, $9, $10
+      $8, $9, $10, $11
     ON CONFLICT (project_id) DO UPDATE SET
       name = $2,
       max_invocations = $3,
@@ -80,6 +83,7 @@ async function addProject({ client, project, slugOverride }) {
       slugOverride ?? slug(project.name),
       project.script,
       hexToBuf(artblocksContractAddress(project.projectId)),
+      projectNewid,
     ]
   );
 }
@@ -128,12 +132,14 @@ async function setProjectSlug({ client, projectId, slug }) {
 
 async function addToken({ client, tokenId, rawTokenData }) {
   await client.query("BEGIN");
+  const tokenNewid = newId(ObjectType.TOKEN);
   const projectId = Math.floor(tokenId / PROJECT_STRIDE);
   const updateProjectsRes = await client.query(
     `
     UPDATE projects
     SET num_tokens = num_tokens + 1
     WHERE project_id = $1
+    RETURNING project_newid AS "projectNewid"
     `,
     [projectId]
   );
@@ -142,6 +148,7 @@ async function addToken({ client, tokenId, rawTokenData }) {
       `expected project ${projectId} to exist for token ${tokenId}`
     );
   }
+  const projectNewid = updateProjectsRes.rows[0].projectNewid;
   await client.query(
     `
     INSERT INTO tokens (
@@ -151,20 +158,33 @@ async function addToken({ client, tokenId, rawTokenData }) {
       project_id,
       token_contract,
       on_chain_token_id,
-      token_index
+      token_index,
+      token_newid,
+      project_newid
     )
     VALUES (
       $1::int, $2, $3, $4,
       (SELECT token_contract FROM projects WHERE project_id = $4),
-      $1::uint256, $5::int8
+      $1::uint256, $5::int8,
+      $6, $7
     )
     `,
-    [tokenId, new Date(), rawTokenData, projectId, tokenId % PROJECT_STRIDE]
+    [
+      tokenId,
+      new Date(),
+      rawTokenData,
+      projectId,
+      tokenId % PROJECT_STRIDE,
+      tokenNewid,
+      projectNewid,
+    ]
   );
   await populateTraitMembers({
     client,
     tokenId,
+    tokenNewid,
     projectId,
+    projectNewid,
     rawTokenData,
     alreadyInTransaction: true,
   });
@@ -176,6 +196,8 @@ async function populateTraitMembers({
   client,
   tokenId,
   projectId,
+  tokenNewid,
+  projectNewid,
   rawTokenData,
   alreadyInTransaction = false,
 }) {
@@ -190,51 +212,67 @@ async function populateTraitMembers({
   const featureNames = Object.keys(featureData);
   await client.query(
     `
-    INSERT INTO features (project_id, name)
-    VALUES ($1, unnest($2::text[]))
-    ON CONFLICT DO NOTHING
+    INSERT INTO features (project_id, project_newid, name, feature_newid)
+    VALUES ($1, $2, unnest($3::text[]), unnest($4::featureid[]))
+    ON CONFLICT (project_id, name) DO NOTHING
     `,
-    [projectId, featureNames]
+    [
+      projectId,
+      projectNewid,
+      featureNames,
+      featureNames.map(() => newId(ObjectType.FEATURE)),
+    ]
   );
   const featureIdsRes = await client.query(
     `
-    SELECT feature_id AS "id", name FROM features
+    SELECT feature_id AS "id", feature_newid AS "newid", name
+    FROM features
     WHERE project_id = $1 AND name = ANY($2::text[])
     `,
     [projectId, featureNames]
   );
 
   const featureIds = featureIdsRes.rows.map((r) => r.id);
+  const featureNewids = featureIdsRes.rows.map((r) => r.newid);
   const traitValues = featureIdsRes.rows.map((r) =>
     JSON.stringify(featureData[r.name])
   );
 
   await client.query(
     `
-    INSERT INTO traits (feature_id, value)
+    INSERT INTO traits (feature_id, feature_newid, value, trait_newid)
     VALUES (
       unnest($1::integer[]),
-      unnest($2::jsonb[])
+      unnest($2::featureid[]),
+      unnest($3::jsonb[]),
+      unnest($4::traitid[])
     )
-    ON CONFLICT DO NOTHING
+    ON CONFLICT (feature_id, value) DO NOTHING
     `,
-    [featureIds, traitValues]
+    [
+      featureIds,
+      featureNewids,
+      traitValues,
+      traitValues.map(() => newId(ObjectType.TRAIT)),
+    ]
   );
 
   await client.query(
     `
-    INSERT INTO trait_members (trait_id, token_id, token_contract, on_chain_token_id)
+    INSERT INTO trait_members (trait_id, token_id, trait_newid, token_newid, token_contract, on_chain_token_id)
     SELECT
       trait_id,
       $1,
+      trait_newid,
+      $2,
       (SELECT token_contract FROM tokens WHERE token_id = $1),
       (SELECT on_chain_token_id FROM tokens WHERE token_id = $1)
     FROM traits
-    JOIN unnest($2::integer[], $3::jsonb[]) AS my_traits(feature_id, value)
+    JOIN unnest($3::integer[], $4::jsonb[]) AS my_traits(feature_id, value)
       USING (feature_id, value)
     ON CONFLICT DO NOTHING
     `,
-    [tokenId, featureIds, traitValues]
+    [tokenId, tokenNewid, featureIds, traitValues]
   );
   if (!alreadyInTransaction) await client.query("COMMIT");
 }
