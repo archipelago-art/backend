@@ -38,10 +38,21 @@ async function addProject({ client, project, slugOverride }) {
         JSON.stringify(project)
     );
   }
-  const projectNewid = newId(ObjectType.PROJECT);
   const rawAspectRatio = JSON.parse(project.scriptJson).aspectRatio;
   const aspectRatio = normalizeAspectRatio(rawAspectRatio);
-  return await client.query(
+  await client.query("BEGIN");
+  const projectNewidRes = await client.query(
+    `
+    SELECT project_newid AS id FROM projects
+    WHERE project_id = $1
+  `,
+    [project.projectId]
+  );
+  const projectNewid =
+    projectNewidRes.rows.length > 0
+      ? projectNewidRes.rows[0].id
+      : newId(ObjectType.PROJECT);
+  await client.query(
     `
     INSERT INTO projects (
       project_id,
@@ -86,6 +97,15 @@ async function addProject({ client, project, slugOverride }) {
       projectNewid,
     ]
   );
+  await client.query(
+    `
+    INSERT INTO artblocks_projects (project_id, artblocks_project_index)
+    VALUES ($1, $2)
+    ON CONFLICT DO NOTHING
+    `,
+    [projectNewid, project.projectId]
+  );
+  await client.query("COMMIT");
 }
 
 async function getProject({ client, projectId }) {
