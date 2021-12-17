@@ -16,7 +16,14 @@ const EVENTS_URL = "https://api.opensea.io/api/v1/events";
  * Args: `source` should be either `{ contract }` or `{ slug }`; `since` and
  * `until` should be `Date` objects or `null`.
  */
-async function fetchEvents({ source, since, until, pageSize = 300 }) {
+async function fetchEvents({
+  source,
+  since,
+  until,
+  pageSize = 300,
+  apiKey,
+  eventType,
+}) {
   const baseParams = {
     only_opensea: false,
     limit: pageSize,
@@ -34,12 +41,19 @@ async function fetchEvents({ source, since, until, pageSize = 300 }) {
     baseParams.occurred_before = Math.floor(until / 1000);
   }
 
+  if (eventType != null) {
+    baseParams.event_type = eventType;
+  }
+
+  const headers = { "X-API-KEY": apiKey };
+
   const results = [];
   let offset = 0;
   while (true) {
     const params = { ...baseParams, offset };
-    const url = `${EVENTS_URL}?${String(new URLSearchParams(params))}`;
-    const res = await fetch(url);
+    const urlParams = new URLSearchParams(params);
+    const url = `${EVENTS_URL}?${String(urlParams)}`;
+    const res = await fetch(url, { headers });
     if (!res.ok) {
       const body = await res.text().catch((e) => "<read failed>");
       throw new Error(`${url}: HTTP ${res.status} ${res.statusText}: ${body}`);
@@ -71,6 +85,35 @@ async function fetchEvents({ source, since, until, pageSize = 300 }) {
     }
   }
 
+  results.sort((a, b) => {
+    const ta = a.created_date;
+    const tb = b.created_date;
+    return ta > tb ? 1 : ta < tb ? -1 : 0;
+  });
+
+  return results;
+}
+
+async function fetchEventsByTypes({
+  source,
+  since,
+  until,
+  pageSize = 300,
+  apiKey,
+  eventTypes,
+}) {
+  const results = [];
+  for (const eventType of eventTypes) {
+    const subResults = await fetchEvents({
+      source,
+      since,
+      until,
+      pageSize,
+      apiKey,
+      eventType,
+    });
+    results.push(...subResults);
+  }
   results.sort((a, b) => {
     const ta = a.created_date;
     const tb = b.created_date;
@@ -161,4 +204,4 @@ async function sleep(ms) {
   });
 }
 
-module.exports = { fetchEvents, streamEvents };
+module.exports = { fetchEvents, streamEvents, fetchEventsByTypes };
