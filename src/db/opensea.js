@@ -1,5 +1,3 @@
-const { hexToBuf } = require("./util");
-
 // events is an array of JSON objects from the Opensea API
 async function addEvents({ client, events }) {
   const ids = events.map((x) => x.id);
@@ -44,15 +42,15 @@ async function consumeEvents({ client, eventIds }) {
 }
 
 // Return the last updated timestamp for a given contract
-// address is a "0x...." string
-async function getLastUpdated({ client, address }) {
+// slug is an opensea collection slug
+async function getLastUpdated({ client, slug }) {
   const res = await client.query(
     `
     SELECT until
     FROM opensea_progress
-    WHERE token_contract = $1
+    WHERE opensea_slug = $1
     `,
-    [hexToBuf(address)]
+    [slug]
   );
   const rows = res.rows;
   if (rows.length === 0) {
@@ -61,17 +59,17 @@ async function getLastUpdated({ client, address }) {
   return rows[0].until;
 }
 
-// address is a "0x..." string
+// slug is an opensea collection slug
 // until is a js Date
-async function setLastUpdated({ client, address, until }) {
+async function setLastUpdated({ client, slug, until }) {
   await client.query(
     `
-    INSERT INTO opensea_progress (token_contract, until)
+    INSERT INTO opensea_progress (opensea_slug, until)
     VALUES ($1, $2)
-    ON CONFLICT (token_contract) DO UPDATE SET
+    ON CONFLICT (opensea_slug) DO UPDATE SET
       until = $2
     `,
-    [hexToBuf(address), until]
+    [slug, until]
   );
 }
 

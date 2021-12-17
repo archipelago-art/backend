@@ -33,20 +33,20 @@ describe("db/opensea", () => {
     })
   );
   it(
-    "last updated is null if never set for a token contract",
+    "last updated is null if never set for a slug",
     withTestDb(async ({ client }) => {
-      const address = "0x0000000000000000000000000000000000000000";
-      const result = await opensea.getLastUpdated({ client, address });
+      const slug = "awesome-drop-by-archipelago";
+      const result = await opensea.getLastUpdated({ client, slug });
       expect(result).toEqual(null);
     })
   );
   it(
     "last updated may be set and retrieved",
     withTestDb(async ({ client }) => {
-      const address = "0x0000000000000000000000000000000000000000";
+      const slug = "awesome-drop-by-archipelago";
       const until = new Date("2021-01-01");
-      await opensea.setLastUpdated({ client, address, until });
-      const result = await opensea.getLastUpdated({ client, address });
+      await opensea.setLastUpdated({ client, slug, until });
+      const result = await opensea.getLastUpdated({ client, slug });
       expect(result).toEqual(until);
     })
   );

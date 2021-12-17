@@ -26,6 +26,7 @@ const migrationModules = [
   "./0025_newids_for_tokens_projects_features_traits",
   "./0026_newids_not_null",
   "./0027_artblocks_projects",
+  "./0028_opensea_slug_progress",
   // ...
 ];
 
