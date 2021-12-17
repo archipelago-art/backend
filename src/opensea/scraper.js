@@ -23,6 +23,7 @@ async function fetchEvents({
   pageSize = 300,
   apiKey,
   eventType,
+  logEachRequest = false,
 }) {
   const baseParams = {
     only_opensea: false,
@@ -54,6 +55,9 @@ async function fetchEvents({
     const urlParams = new URLSearchParams(params);
     const url = `${EVENTS_URL}?${String(urlParams)}`;
     const res = await fetch(url, { headers });
+    if (logEachRequest) {
+      console.log(`fetching: ${url}`);
+    }
     if (!res.ok) {
       const body = await res.text().catch((e) => "<read failed>");
       throw new Error(`${url}: HTTP ${res.status} ${res.statusText}: ${body}`);
@@ -101,6 +105,7 @@ async function fetchEventsByTypes({
   pageSize = 300,
   apiKey,
   eventTypes,
+  logEachRequest = false,
 }) {
   const results = [];
   for (const eventType of eventTypes) {
@@ -111,6 +116,7 @@ async function fetchEventsByTypes({
       pageSize,
       apiKey,
       eventType,
+      logEachRequest,
     });
     results.push(...subResults);
   }
