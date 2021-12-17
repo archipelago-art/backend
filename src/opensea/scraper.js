@@ -102,18 +102,12 @@ async function fetchEventsByTypes({
   apiKey,
   eventTypes,
 }) {
-  const results = [];
-  for (const eventType of eventTypes) {
-    const subResults = await fetchEvents({
-      source,
-      since,
-      until,
-      pageSize,
-      apiKey,
-      eventType,
-    });
-    results.push(...subResults);
-  }
+  const fetchPromises = eventTypes.map((eventType) =>
+    fetchEvents({ source, since, until, pageSize, apiKey, eventType })
+  );
+  const resultsByType = await Promise.all(fetchPromises);
+  const results = resultsByType.flat();
+
   results.sort((a, b) => {
     const ta = a.created_date;
     const tb = b.created_date;
