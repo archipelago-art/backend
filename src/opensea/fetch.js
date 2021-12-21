@@ -129,8 +129,44 @@ async function fetchEventsByTypes({
   return results;
 }
 
+const ASSETS_URL = "https://api.opensea.io/api/v1/assets";
+const assetsResponse = C.object({ assets: C.array(C.raw) });
+const MAX_TOKEN_IDS_PER_QUERY = 30;
+async function fetchAssetsPage({ contractAddress, tokenIds, apiKey }) {
+  if (tokenIds.length > MAX_TOKEN_IDS_PER_QUERY) {
+    throw new Error("too many tokenIds");
+  }
+  const params = new URLSearchParams({
+    asset_contract_address: contractAddress,
+  });
+  for (const tokenId of tokenIds) {
+    params.append("token_ids", tokenId);
+  }
+  const json = await fetchUrl(ASSETS_URL, params, apiKey);
+  const parsed = assetsResponse.parseOrThrow(json);
+  return parsed.assets;
+}
+
+async function fetchAssets({ contractAddress, tokenIds, apiKey }) {
+  const results = [];
+  let offset = 0;
+  while (offset < tokenIds.length) {
+    const theseIds = tokenIds.slice(offset, offset + MAX_TOKEN_IDS_PER_QUERY);
+    const theseAssets = await fetchAssetsPage({
+      contractAddress,
+      tokenIds: theseIds,
+      apiKey,
+    });
+    results.push(...theseAssets);
+    offset += MAX_TOKEN_IDS_PER_QUERY;
+  }
+  return results;
+}
+
 module.exports = {
   fetchEventPage,
   fetchEvents,
   fetchEventsByTypes,
+  fetchAssetsPage,
+  fetchAssets,
 };
