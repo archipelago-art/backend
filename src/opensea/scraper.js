@@ -1,6 +1,4 @@
-const fetch = require("node-fetch");
-
-const EVENTS_URL = "https://api.opensea.io/api/v1/events";
+const { fetchEventPage } = require("./fetch");
 
 /**
  * Fetches all OpenSea events matching the given query filters, and returns
@@ -25,62 +23,18 @@ async function fetchEvents({
   eventType,
   logEachRequest = false,
 }) {
-  const baseParams = {
-    only_opensea: false,
-    limit: pageSize,
-  };
-  if (source.contract != null) {
-    baseParams.asset_contract_address = source.contract;
-  }
-  if (source.slug != null) {
-    baseParams.collection_slug = source.slug;
-  }
-  if (since != null) {
-    baseParams.occurred_after = Math.floor(since / 1000);
-  }
-  if (until != null) {
-    baseParams.occurred_before = Math.floor(until / 1000);
-  }
-
-  if (eventType != null) {
-    baseParams.event_type = eventType;
-  }
-
-  const headers = { "X-API-KEY": apiKey };
-
   const results = [];
   let offset = 0;
   while (true) {
-    const params = { ...baseParams, offset };
-    const urlParams = new URLSearchParams(params);
-    const url = `${EVENTS_URL}?${String(urlParams)}`;
-    const res = await fetch(url, { headers });
-    if (logEachRequest) {
-      console.log(`fetching: ${url}`);
-    }
-    if (!res.ok) {
-      const body = await res.text().catch((e) => "<read failed>");
-      throw new Error(`${url}: HTTP ${res.status} ${res.statusText}: ${body}`);
-    }
-    const text = await res.text();
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch (e) {
-      throw new Error(
-        `${url}: invalid JSON: ${e.message}: ${JSON.stringify(text)}`
-      );
-    }
-    if (typeof json !== "object") {
-      throw new Error(`${url}: unexpected response: ${JSON.stringify(json)}`);
-    }
-    if (json.success == false) {
-      throw new Error(`${url}: failure: ${JSON.stringify(json)}`);
-    }
-    if (!Array.isArray(json.asset_events)) {
-      throw new Error(`${url}: missing asset_events: ${JSON.stringify(json)}`);
-    }
-    const events = json.asset_events;
+    const events = await fetchEventPage({
+      source,
+      since,
+      until,
+      pageSize,
+      offset,
+      apiKey,
+      eventType,
+    });
     results.push(...events);
     if (events.length < pageSize) {
       break;
@@ -193,6 +147,16 @@ async function streamEvents({
     since = until;
     await sleep(pollMs);
   }
+}
+
+async function fetchAsset({
+  contractAddress,
+  tokenId,
+  apiKey,
+  logEachRequest = false,
+}) {
+  const baseParams = {};
+  const headers = { "X-API-KEY": apiKey };
 }
 
 function describeEvent(e) {
