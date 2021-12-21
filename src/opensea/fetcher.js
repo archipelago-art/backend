@@ -1,4 +1,4 @@
-const { fetchEventsByTypes } = require("./scraper");
+const { fetchEventsByTypes } = require("./fetch");
 const { addEvents, getLastUpdated, setLastUpdated } = require("../db/opensea");
 
 const ONE_MONTH = 1000 * 60 * 60 * 24 * 30;
