@@ -17,7 +17,6 @@ async function processEventsWindow({
   slugStartTime,
   windowDurationMs = ONE_MONTH,
   apiKey,
-  logEachRequest = false,
 }) {
   const since = (await getLastUpdated({ client, slug })) || slugStartTime;
   const windowEnd = new Date(+since + windowDurationMs);
@@ -27,7 +26,6 @@ async function processEventsWindow({
     until: windowEnd,
     apiKey,
     eventTypes: ["successful", "created", "transfer", "cancelled"],
-    logEachRequest,
   });
   const strippedEvents = events.map(stripEvent);
   await addEvents({ client, events: strippedEvents });
@@ -59,7 +57,6 @@ async function processOpenseaCollection({
   slugStartTime,
   windowDurationMs,
   apiKey,
-  logEachRequest = false,
 }) {
   const args = {
     client,
@@ -67,7 +64,6 @@ async function processOpenseaCollection({
     slugStartTime,
     windowDurationMs,
     apiKey,
-    logEachRequest,
   };
   while (!(await processEventsWindow(args)));
 }

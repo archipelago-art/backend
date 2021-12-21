@@ -434,9 +434,9 @@ async function tokenFeedWss(args) {
 }
 
 async function ingestOpenseaEvents(args) {
-  if (args.length !== 3 && args.length !== 4) {
+  if (args.length !== 3) {
     throw new Error(
-      "usage: ingest-opensea-events <collection-slug> <start-date> <window-duration-days> [-d]"
+      "usage: ingest-opensea-events <collection-slug> <start-date> <window-duration-days>"
     );
   }
   const apiKey = process.env.OPENSEA_API_KEY;
@@ -444,7 +444,6 @@ async function ingestOpenseaEvents(args) {
   const slugStartTime = new Date(args[1]);
   const ONE_DAY = 1000 * 60 * 60 * 24;
   const windowDurationMs = ONE_DAY * Number(args[2]);
-  const logEachRequest = args[3] === "-d";
   await withDb(async ({ client }) => {
     await processOpenseaCollection({
       client,
@@ -452,7 +451,6 @@ async function ingestOpenseaEvents(args) {
       slugStartTime,
       apiKey,
       windowDurationMs,
-      logEachRequest,
     });
   });
 }
