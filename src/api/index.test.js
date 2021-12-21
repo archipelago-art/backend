@@ -126,7 +126,6 @@ describe("api", () => {
         archetype.projectId
       );
       for (const projectId of snapshots.PROJECTS) {
-        if (projectId === snapshots.PHANTOM_SEADRAGONS) continue;
         const project = parseProjectData(
           projectId,
           await sc.project(projectId)

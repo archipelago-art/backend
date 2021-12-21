@@ -18,6 +18,9 @@ const PROJECTS = Object.freeze([
   ARCHETYPE,
   GALAXISS,
   BYTEBEATS,
+]);
+const PROJECTS_AND_PHANTOM_PROJECTS = Object.freeze([
+  ...PROJECTS,
   PHANTOM_SEADRAGONS,
 ]);
 

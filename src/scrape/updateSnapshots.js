@@ -3,7 +3,11 @@ const { promisify } = require("util");
 
 const { fetchProjectHtml } = require("./fetchArtblocksProject");
 const { fetchTokenJsonText } = require("./fetchArtblocksToken");
-const { PROJECTS, TOKENS, locations } = require("./snapshots");
+const {
+  PROJECTS_AND_PHANTOM_PROJECTS,
+  TOKENS,
+  locations,
+} = require("./snapshots");
 
 async function downloadProject(projectId) {
   const html = await fetchProjectHtml(projectId);
@@ -21,7 +25,7 @@ async function main() {
   await promisify(fs.mkdir)(locations.projectsDir(), { recursive: true });
   await promisify(fs.mkdir)(locations.tokensDir(), { recursive: true });
   await Promise.all([
-    ...PROJECTS.map(downloadProject),
+    ...PROJECTS_AND_PHANTOM_PROJECTS.map(downloadProject),
     ...TOKENS.map(downloadToken),
   ]);
 }
