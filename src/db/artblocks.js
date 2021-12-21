@@ -585,6 +585,16 @@ async function updateImageProgress({ client, progress }) {
   await client.query("COMMIT");
 }
 
+async function getProjectIds({ client }) {
+  const res = await client.query(
+    `
+    SELECT artblocks_project_index AS "projectIndex"
+    FROM artblocks_projects
+    `
+  );
+  return res.rows.map((x) => x.projectIndex);
+}
+
 module.exports = {
   CONTRACT_ARTBLOCKS_LEGACY,
   CONTRACT_ARTBLOCKS_STANDARD,
@@ -609,4 +619,5 @@ module.exports = {
   getTokenHash,
   getImageProgress,
   updateImageProgress,
+  getProjectIds,
 };

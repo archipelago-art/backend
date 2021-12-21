@@ -716,4 +716,13 @@ describe("db/artblocks", () => {
       });
     })
   );
+
+  it(
+    "supports getProjectIds",
+    withTestDb(async ({ client }) => {
+      await addProjects(client, snapshots.PROJECTS);
+      const res = await artblocks.getProjectIds({ client });
+      expect(res).toEqual(snapshots.PROJECTS);
+    })
+  );
 });
