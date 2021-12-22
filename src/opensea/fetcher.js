@@ -73,7 +73,29 @@ async function processOpenseaCollection({
 
 async function ingestAllCollections({ client, apiKey, windowDurationMs }) {
   const slugs = await getSlugs({ client, apiKey });
+  const neverLoadedSlugs = [];
+  const slugsToUpdate = [];
+  // This is hacky because we make O(|slugs|) DB calls but we could just
+  // as well have a single query. Unlikely to be a real performance issue
+  // in practice.
   for (const slug of slugs) {
+    const lastUpdated = await getLastUpdated({ client, slug });
+    if (lastUpdated == null) {
+      neverLoadedSlugs.push(slug);
+    } else {
+      slugsToUpdate.push(slug);
+    }
+  }
+  // Prioritize collections for which we have no data.
+  // This is helpful if we're restarting the ingestion job, we don't need to
+  // wait for it to load 100 mostly-finished projects before it starts getting
+  // new data.
+  // It will still get around to every collection eventually.
+  for (const slug of neverLoadedSlugs) {
+    console.log(`=== ingesting opensea events for ${slug} ===`);
+    await processOpenseaCollection({ client, slug, apiKey, windowDurationMs });
+  }
+  for (const slug of slugsToUpdate) {
     console.log(`=== ingesting opensea events for ${slug} ===`);
     await processOpenseaCollection({ client, slug, apiKey, windowDurationMs });
   }
