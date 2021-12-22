@@ -10,7 +10,10 @@ const backfills = require("./db/backfills");
 const migrations = require("./db/migrations");
 const { acqrel } = require("./db/util");
 const images = require("./img");
-const { processOpenseaCollection } = require("./opensea/fetcher");
+const {
+  processOpenseaCollection,
+  ingestAllCollections,
+} = require("./opensea/fetcher");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 const attach = require("./ws");
@@ -451,6 +454,24 @@ async function ingestOpenseaCollection(args) {
   });
 }
 
+async function ingestOpensea(args) {
+  if (args.length !== 0) {
+    throw new Error("usage: ingest-opensea");
+  }
+  const apiKey = process.env.OPENSEA_API_KEY;
+  const slug = args[0];
+  const ONE_DAY = 1000 * 60 * 60 * 24;
+  const windowDurationMs = ONE_DAY * 30;
+  await withDb(async ({ client }) => {
+    await ingestAllCollections({
+      client,
+      slug,
+      apiKey,
+      windowDurationMs,
+    });
+  });
+}
+
 async function generateImage(args) {
   if (args.length !== 2) {
     throw new Error("usage: generate-image <token-id> <outfile>");
@@ -490,6 +511,7 @@ async function main() {
     ["generate-image", generateImage],
     ["token-feed-wss", tokenFeedWss],
     ["ingest-opensea-collection", ingestOpenseaCollection],
+    ["ingest-opensea", ingestOpensea],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {

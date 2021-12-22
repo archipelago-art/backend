@@ -1,5 +1,6 @@
 const { fetchEventsByTypes } = require("./fetch");
 const { addEvents, getLastUpdated, setLastUpdated } = require("../db/opensea");
+const { getSlugs } = require("./collections");
 
 const ONE_MONTH = 1000 * 60 * 60 * 24 * 30;
 const LATE_EVENT_SAFETY_MARGIN = 1000 * 60 * 3;
@@ -68,6 +69,14 @@ async function processOpenseaCollection({
   while (!(await processEventsWindow(args)));
 }
 
+async function ingestAllCollections({ client, apiKey, windowDurationMs }) {
+  const slugs = await getSlugs({ client, apiKey });
+  for (const slug of slugs) {
+    console.log(`=== ingesting opensea events for ${slug} ===`);
+    await processOpenseaCollection({ client, slug, apiKey, windowDurationMs });
+  }
+}
+
 function stripEvent(ev) {
   const newAsset = {
     token_id: ev.asset.token_id,
@@ -77,4 +86,4 @@ function stripEvent(ev) {
   return ev;
 }
 
-module.exports = { processOpenseaCollection };
+module.exports = { processOpenseaCollection, ingestAllCollections };
