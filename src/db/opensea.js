@@ -1,13 +1,14 @@
 // events is an array of JSON objects from the Opensea API
 async function addEvents({ client, events }) {
   const ids = events.map((x) => x.id);
+  const types = events.map((x) => x.event_type);
   return await client.query(
     `
-    INSERT INTO opensea_events (event_id, json, consumed)
-    VALUES (unnest($1::text[]), unnest($2::jsonb[]), false)
+    INSERT INTO opensea_events (event_id, json, consumed, event_type)
+    VALUES (unnest($1::text[]), unnest($2::jsonb[]), false, unnest($3::opensea_event_type[]))
     ON CONFLICT DO NOTHING
     `,
-    [ids, events]
+    [ids, events, types]
   );
 }
 

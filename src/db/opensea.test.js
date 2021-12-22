@@ -7,9 +7,9 @@ describe("db/opensea", () => {
     "permits adding and getting events",
     withTestDb(async ({ client }) => {
       const events = [
-        { id: "1", foo: 1 },
-        { id: "2", foo: 4 },
-        { id: "3", foo: 9 },
+        { id: "1", foo: 1, event_type: "created" },
+        { id: "2", foo: 4, event_type: "successful" },
+        { id: "3", foo: 9, event_type: "transfer" },
       ];
       await opensea.addEvents({ client, events });
       const retrieved = await opensea.getUnconsumedEvents({ client, limit: 3 });
@@ -21,9 +21,9 @@ describe("db/opensea", () => {
     "tracks event consumption",
     withTestDb(async ({ client }) => {
       const events = [
-        { id: "1", foo: 1 },
-        { id: "2", foo: 4 },
-        { id: "3", foo: 9 },
+        { id: "1", foo: 1, event_type: "transfer" },
+        { id: "2", foo: 4, event_type: "transfer" },
+        { id: "3", foo: 9, event_type: "transfer" },
       ];
       await opensea.addEvents({ client, events });
       await opensea.consumeEvents({ client, eventIds: ["1", "2"] });
