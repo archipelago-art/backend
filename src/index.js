@@ -440,13 +440,16 @@ async function tokenFeedWss(args) {
 }
 
 async function ingestOpenseaCollection(args) {
-  if (args.length !== 1) {
-    throw new Error("usage: ingest-opensea-collection <collection-slug>");
+  if (args.length !== 2) {
+    throw new Error(
+      "usage: ingest-opensea-collection <collection-slug> <window-duration-days>"
+    );
   }
   const apiKey = process.env.OPENSEA_API_KEY;
   const slug = args[0];
   const ONE_DAY = 1000 * 60 * 60 * 24;
-  const windowDurationMs = ONE_DAY * 30;
+  const windowDurationMs = ONE_DAY * +args[1];
+  console.log(windowDurationMs);
   await withDb(async ({ client }) => {
     await processOpenseaCollection({
       client,
