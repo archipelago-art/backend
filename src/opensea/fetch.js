@@ -1,6 +1,8 @@
 const nodeFetch = require("node-fetch");
 const C = require("../util/combo");
 
+const HACKY_OPENSEA_FETCH_DELAY_MS = 1000;
+
 async function fetchUrl(baseUrl, urlParams, apiKey) {
   const url = `${baseUrl}?${String(urlParams)}`;
   const headers = { "X-API-KEY": apiKey };
@@ -9,7 +11,9 @@ async function fetchUrl(baseUrl, urlParams, apiKey) {
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText}: ${url}`);
   }
-  return await res.json();
+  const json = await res.json();
+  await sleepMs(HACKY_OPENSEA_FETCH_DELAY_MS);
+  return json;
 }
 
 const EVENTS_URL = "https://api.opensea.io/api/v1/events";
@@ -161,6 +165,10 @@ async function fetchAssets({ contractAddress, tokenIds, apiKey }) {
     offset += MAX_TOKEN_IDS_PER_QUERY;
   }
   return results;
+}
+
+async function sleepMs(ms) {
+  await new Promise((res) => void setTimeout(res, ms));
 }
 
 module.exports = {
