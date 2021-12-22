@@ -25,13 +25,14 @@ function collectionNameToArtblocksProjectIdUnwrap(name) {
   return projectId;
 }
 
-async function resolveNewid(client, artblocksProjectId) {
+async function resolveProjectNewid(client, collection) {
+  const index = collectionNameToArtblocksProjectIdUnwrap(collection);
   const res = await client.query(
     `
     SELECT project_id AS id FROM artblocks_projects
     WHERE artblocks_project_index = $1
     `,
-    [artblocksProjectId]
+    [index]
   );
   if (res.rows.length === 0) return null;
   return res.rows[0].id;
@@ -76,20 +77,14 @@ async function collections({ client }) {
 }
 
 async function collection({ client, collection }) {
-  const projectNewid = await resolveNewid(
-    client,
-    collectionNameToArtblocksProjectIdUnwrap(collection)
-  );
+  const projectNewid = await resolveProjectNewid(client, collection);
   if (projectNewid == null) return null;
   const res = await _collections({ client, projectNewid });
   return res[0] ?? null;
 }
 
 async function collectionMintState({ client, collection }) {
-  const projectNewid = await resolveNewid(
-    client,
-    collectionNameToArtblocksProjectIdUnwrap(collection)
-  );
+  const projectNewid = await resolveProjectNewid(client, collection);
   if (projectNewid == null) return null;
   const res = await client.query(
     `
@@ -105,10 +100,7 @@ async function collectionMintState({ client, collection }) {
 }
 
 async function projectFeaturesAndTraits({ client, collection }) {
-  const projectNewid = await resolveNewid(
-    client,
-    collectionNameToArtblocksProjectIdUnwrap(collection)
-  );
+  const projectNewid = await resolveProjectNewid(client, collection);
   if (projectNewid == null) return null;
   const res = await artblocks.getProjectFeaturesAndTraits({
     client,
