@@ -449,7 +449,6 @@ async function ingestOpenseaCollection(args) {
   const slug = args[0];
   const ONE_DAY = 1000 * 60 * 60 * 24;
   const windowDurationMs = ONE_DAY * +args[1];
-  console.log(windowDurationMs);
   await withDb(async ({ client }) => {
     await processOpenseaCollection({
       client,
