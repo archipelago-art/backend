@@ -30,7 +30,9 @@ async function processEventsWindow({
     apiKey,
     eventTypes: ["successful", "created", "transfer", "cancelled"],
   });
-  const strippedEvents = events.map(stripEvent);
+  // Filter for asset != null to skip all the asset bundles, which we don't
+  // care about (rare + very difficult to correctly attribute the price to the pieces)
+  const strippedEvents = events.filter((x) => x.asset != null).map(stripEvent);
   await addEvents({ client, events: strippedEvents });
   console.log(
     `${slug}: added ${
