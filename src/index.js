@@ -433,22 +433,18 @@ async function tokenFeedWss(args) {
   console.log("listening on port %s", port);
 }
 
-async function ingestOpenseaEvents(args) {
-  if (args.length !== 3) {
-    throw new Error(
-      "usage: ingest-opensea-events <collection-slug> <start-date> <window-duration-days>"
-    );
+async function ingestOpenseaCollection(args) {
+  if (args.length !== 1) {
+    throw new Error("usage: ingest-opensea-collection <collection-slug>");
   }
   const apiKey = process.env.OPENSEA_API_KEY;
   const slug = args[0];
-  const slugStartTime = new Date(args[1]);
   const ONE_DAY = 1000 * 60 * 60 * 24;
-  const windowDurationMs = ONE_DAY * Number(args[2]);
+  const windowDurationMs = ONE_DAY * 30;
   await withDb(async ({ client }) => {
     await processOpenseaCollection({
       client,
       slug,
-      slugStartTime,
       apiKey,
       windowDurationMs,
     });
@@ -493,7 +489,7 @@ async function main() {
     ["ingest-images", ingestImages],
     ["generate-image", generateImage],
     ["token-feed-wss", tokenFeedWss],
-    ["ingest-opensea-events", ingestOpenseaEvents],
+    ["ingest-opensea-collection", ingestOpenseaCollection],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {

@@ -3,23 +3,25 @@ const { addEvents, getLastUpdated, setLastUpdated } = require("../db/opensea");
 
 const ONE_MONTH = 1000 * 60 * 60 * 24 * 30;
 const LATE_EVENT_SAFETY_MARGIN = 1000 * 60 * 3;
+const BEGINNING_OF_HISTORY = new Date("2020-11-27");
 
 /**
  * Fetch events for a given collection slug (e.g. fidenza-by-tyler-hobbs)
- * slugStartTime should be a JS date with the creation time for the collection,
- * as an initial starting point for event scanning if we haven't searched yet.
+ * If we haven't scanned for this project yet, we'll start at the start of ArtBlocks history,
+ * i.e. November 2020.
  * windowDurationMs is the size of the event scanning window in miliseconds.
  * Returns true if we are up-to-date for this collection, or false otherwise.
  */
 async function processEventsWindow({
   client,
   slug,
-  slugStartTime,
   windowDurationMs = ONE_MONTH,
   apiKey,
 }) {
-  const since = (await getLastUpdated({ client, slug })) || slugStartTime;
+  const since =
+    (await getLastUpdated({ client, slug })) || BEGINNING_OF_HISTORY;
   const windowEnd = new Date(+since + windowDurationMs);
+  console.log(`${slug}: scanning window starting ${since.toISOString()}`);
   const events = await fetchEventsByTypes({
     source: { slug },
     since,
@@ -54,14 +56,12 @@ async function processEventsWindow({
 async function processOpenseaCollection({
   client,
   slug,
-  slugStartTime,
   windowDurationMs,
   apiKey,
 }) {
   const args = {
     client,
     slug,
-    slugStartTime,
     windowDurationMs,
     apiKey,
   };
