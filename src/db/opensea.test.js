@@ -76,41 +76,48 @@ describe("db/opensea", () => {
     })
   );
   it(
-    "sales may be added",
+    "sales may be added and retrieved",
     withTestDb(async ({ client }) => {
+      const tokenContract = "0xffffffffffffffffffffffffffffffffffffffff";
       const s1 = {
         eventId: "1",
-        tokenContract: "0xffffffffffffffffffffffffffffffffffffffff",
+        tokenContract,
         tokenId: "123",
+        saleTime: new Date("2021-01-01"),
+        price: "123456789",
+        currencyContract: "0x0000000000000000000000000000000000000000",
+        buyerAddress: "0x3333333333333333333333333333333333333333",
+        sellerAddress: "0x4444444444444444444444444444444444444444",
+      };
+      const s2 = {
+        eventId: "2",
+        tokenContract,
+        tokenId: "456",
         saleTime: new Date("2021-01-01"),
         price: "123456789",
         currencyContract: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         buyerAddress: "0x3333333333333333333333333333333333333333",
         sellerAddress: "0x4444444444444444444444444444444444444444",
       };
-      await opensea.addSales({ client, sales: [s1] });
-      const result = await client.query(`SELECT * FROM opensea_sales`);
-      const rows = result.rows;
-      expect(rows).toHaveLength(1);
-      const row = rows[0];
-      expect(row).toEqual({
-        event_id: "1",
-        token_contract: dbUtil.hexToBuf(
-          "0xffffffffffffffffffffffffffffffffffffffff"
-        ),
-        token_id: "123",
-        sale_time: new Date("2021-01-01"),
+      const s3 = {
+        eventId: "3",
+        tokenContract,
+        tokenId: "123",
+        saleTime: new Date("2021-02-02"),
         price: "123456789",
-        currency_contract: dbUtil.hexToBuf(
-          "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-        ),
-        buyer_address: dbUtil.hexToBuf(
-          "0x3333333333333333333333333333333333333333"
-        ),
-        seller_address: dbUtil.hexToBuf(
-          "0x4444444444444444444444444444444444444444"
-        ),
+        currencyContract: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        buyerAddress: "0x3333333333333333333333333333333333333333",
+        sellerAddress: "0x4444444444444444444444444444444444444444",
+      };
+      await opensea.addSales({ client, sales: [s1, s2, s3] });
+      const retrieved = await opensea.salesForToken({
+        client,
+        tokenContract,
+        tokenId: "123",
       });
+      expect(retrieved).toEqual(
+        [s1, s3].map((x) => ({ ...x, price: BigInt(x.price) }))
+      );
     })
   );
   it(

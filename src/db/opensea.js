@@ -81,10 +81,6 @@ async function setLastUpdated({ client, slug, until }) {
 }
 
 async function addSales({ client, sales }) {
-  const prepCurrency = (x) =>
-    x === "0x0000000000000000000000000000000000000000"
-      ? null
-      : dbUtil.hexToBuf(x);
   return await client.query(
     `
     INSERT INTO opensea_sales (
@@ -144,6 +140,43 @@ async function aggregateSalesByProject({ client, afterDate }) {
   return result.rows.map((x) => ({ ...x, sum: BigInt(x.sum) }));
 }
 
+async function salesForToken({ client, tokenContract, tokenId }) {
+  const result = await client.query(
+    `
+    SELECT
+      event_id AS "eventId",
+      token_id AS "tokenId",
+      sale_time AS "saleTime",
+      token_contract,
+      currency_contract,
+      price,
+      buyer_address,
+      seller_address
+    FROM opensea_sales
+    WHERE token_contract = $1 AND token_id = $2
+    ORDER BY sale_time ASC
+    `,
+    [dbUtil.hexToBuf(tokenContract), tokenId]
+  );
+  return result.rows.map((x) => ({
+    eventId: x.eventId,
+    tokenId: x.tokenId,
+    saleTime: x.saleTime,
+    price: BigInt(x.price),
+    tokenContract: dbUtil.bufToHex(x.token_contract),
+    sellerAddress: dbUtil.bufToHex(x.seller_address),
+    buyerAddress: dbUtil.bufToHex(x.buyer_address),
+    currencyContract: unprepCurrency(x.currency_contract),
+  }));
+}
+
+const prepCurrency = (x) =>
+  x === "0x0000000000000000000000000000000000000000"
+    ? null
+    : dbUtil.hexToBuf(x);
+const unprepCurrency = (x) =>
+  x == null ? "0x0000000000000000000000000000000000000000" : dbUtil.bufToHex(x);
+
 module.exports = {
   addEvents,
   getUnconsumedEvents,
@@ -152,4 +185,5 @@ module.exports = {
   setLastUpdated,
   addSales,
   aggregateSalesByProject,
+  salesForToken,
 };
