@@ -12,16 +12,16 @@ async function addEvents({ client, events }) {
   );
 }
 
-async function getUnconsumedEvents({ client, limit }) {
+async function getUnconsumedEvents({ client, limit, eventType }) {
   const res = await client.query(
     `
     SELECT event_id AS "eventId", json
     FROM opensea_events
-    WHERE NOT consumed
+    WHERE NOT consumed AND (event_type = $2 OR $2 IS NULL)
     ORDER BY event_id
     LIMIT $1
     `,
-    [limit]
+    [limit, eventType]
   );
   return res.rows;
 }
