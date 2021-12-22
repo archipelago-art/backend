@@ -14,6 +14,7 @@ const {
   processOpenseaCollection,
   ingestAllCollections,
 } = require("./opensea/fetcher");
+const { processSales } = require("./opensea/eventProcessing");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 const attach = require("./ws");
@@ -472,6 +473,15 @@ async function ingestOpensea(args) {
   });
 }
 
+async function processOpenseaSales(args) {
+  if (args.length !== 0) {
+    throw new Error("usage: process-opensea-sales");
+  }
+  await withDb(async ({ client }) => {
+    await processSales({ client });
+  });
+}
+
 async function generateImage(args) {
   if (args.length !== 2) {
     throw new Error("usage: generate-image <token-id> <outfile>");
@@ -512,6 +522,7 @@ async function main() {
     ["token-feed-wss", tokenFeedWss],
     ["ingest-opensea-collection", ingestOpenseaCollection],
     ["ingest-opensea", ingestOpensea],
+    ["process-opensea-sales", processOpenseaSales],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
