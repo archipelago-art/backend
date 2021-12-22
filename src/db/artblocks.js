@@ -226,6 +226,7 @@ async function addToken({ client, tokenId, rawTokenData }) {
   });
   await newTokensChannel.send(client, { projectId, tokenId });
   await client.query("COMMIT");
+  return String(tokenNewid);
 }
 
 async function populateTraitMembers({
