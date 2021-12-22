@@ -27,6 +27,7 @@ const migrationModules = [
   "./0026_newids_not_null",
   "./0027_artblocks_projects",
   "./0028_opensea_slug_progress",
+  "./0029_opensea_event_type",
   // ...
 ];
 
