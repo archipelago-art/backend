@@ -184,17 +184,21 @@ describe("api", () => {
           {
             name: "Framed",
             featureId: expect.any(Number),
+            featureNewid: expect.any(String),
             featureSlug: "framed",
             value: "Yep",
             traitId: expect.any(Number),
+            traitNewid: expect.any(String),
             traitSlug: "yep",
           },
           {
             name: "Scene",
             featureId: expect.any(Number),
+            featureNewid: expect.any(String),
             featureSlug: "scene",
             value: "Cube",
             traitId: expect.any(Number),
+            traitNewid: expect.any(String),
             traitSlug: "cube",
           },
         ])

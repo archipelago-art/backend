@@ -381,9 +381,12 @@ async function getTokenFeaturesAndTraits({
     `
     SELECT
       token_id AS "tokenId",
+      tokens.token_newid AS "tokenNewid",
       feature_id AS "featureId",
+      features.feature_newid AS "featureNewid",
       name,
       trait_id AS "traitId",
+      traits.trait_newid AS "traitNewid",
       value
     FROM
       features
@@ -407,14 +410,20 @@ async function getTokenFeaturesAndTraits({
   let currentToken = {};
   for (const row of res.rows) {
     if (currentToken.tokenId !== row.tokenId) {
-      currentToken = { tokenId: row.tokenId, traits: [] };
+      currentToken = {
+        tokenId: row.tokenId,
+        tokenNewid: row.tokenNewid,
+        traits: [],
+      };
       result.push(currentToken);
     }
     if (row.traitId == null) continue; // OUTER JOIN
     currentToken.traits.push({
       featureId: row.featureId,
+      featureNewid: row.featureNewid,
       name: row.name,
       traitId: row.traitId,
+      traitNewid: row.traitNewid,
       value: row.value,
     });
   }

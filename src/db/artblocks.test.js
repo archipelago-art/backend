@@ -456,7 +456,7 @@ describe("db/artblocks", () => {
     withTestDb(async ({ client }) => {
       await addProjects(client, [snapshots.ARCHETYPE]);
       const tokenId = snapshots.THE_CUBE;
-      await addTokens(client, [tokenId]);
+      const [{ newid: tokenNewid }] = await addTokens(client, [tokenId]);
       const res = await artblocks.getTokenFeaturesAndTraits({
         client,
         tokenId,
@@ -464,17 +464,22 @@ describe("db/artblocks", () => {
       expect(res).toEqual([
         {
           tokenId: snapshots.THE_CUBE,
+          tokenNewid,
           traits: expect.arrayContaining([
             {
               featureId: expect.any(Number),
+              featureNewid: expect.any(String),
               name: "Framed",
               traitId: expect.any(Number),
+              traitNewid: expect.any(String),
               value: "Yep",
             },
             {
               featureId: expect.any(Number),
+              featureNewid: expect.any(String),
               name: "Scene",
               traitId: expect.any(Number),
+              traitNewid: expect.any(String),
               value: "Cube",
             },
           ]),
@@ -512,7 +517,7 @@ describe("db/artblocks", () => {
       expect(snapshots.BYTEBEATS_NULL_FEATURE).toBeGreaterThan(
         snapshots.ARCH_TRIPTYCH_3
       );
-      await addTokens(client, [
+      const addTokensResult = await addTokens(client, [
         snapshots.ARCH_TRIPTYCH_1,
         snapshots.ARCH_TRIPTYCH_2,
         snapshots.ARCH_TRIPTYCH_3,
@@ -526,22 +531,28 @@ describe("db/artblocks", () => {
       expect(res).toEqual([
         {
           tokenId: snapshots.ARCH_TRIPTYCH_2,
+          tokenNewid: addTokensResult[1].newid,
           traits: expect.arrayContaining([
             {
               featureId: expect.any(Number),
+              featureNewid: expect.any(String),
               name: "Scene",
               traitId: expect.any(Number),
+              traitNewid: expect.any(String),
               value: "Flat",
             },
           ]),
         },
         {
           tokenId: snapshots.ARCH_TRIPTYCH_3,
+          tokenNewid: addTokensResult[2].newid,
           traits: expect.arrayContaining([
             {
               featureId: expect.any(Number),
+              featureNewid: expect.any(String),
               name: "Scene",
               traitId: expect.any(Number),
+              traitNewid: expect.any(String),
               value: "Flat",
             },
           ]),
@@ -554,7 +565,7 @@ describe("db/artblocks", () => {
     "includes tokens in range queries even if they have no traits",
     withTestDb(async ({ client }) => {
       await addProjects(client, [snapshots.ARCHETYPE]);
-      await addTokens(client, [
+      const [{ newid: newid1 }, { newid: newid3 }] = await addTokens(client, [
         snapshots.ARCH_TRIPTYCH_1,
         snapshots.ARCH_TRIPTYCH_3,
       ]);
@@ -563,7 +574,7 @@ describe("db/artblocks", () => {
         ...JSON.parse(triptych2RawData),
         features: {},
       });
-      await artblocks.addToken({
+      const newid2 = await artblocks.addToken({
         client,
         tokenId: snapshots.ARCH_TRIPTYCH_2,
         rawTokenData: triptych2WithoutTraits,
@@ -577,26 +588,33 @@ describe("db/artblocks", () => {
       expect(res).toEqual([
         {
           tokenId: snapshots.ARCH_TRIPTYCH_1,
+          tokenNewid: newid1,
           traits: expect.arrayContaining([
             {
               featureId: expect.any(Number),
+              featureNewid: expect.any(String),
               name: "Scene",
               traitId: expect.any(Number),
+              traitNewid: expect.any(String),
               value: "Flat",
             },
           ]),
         },
         {
           tokenId: snapshots.ARCH_TRIPTYCH_2,
+          tokenNewid: newid2,
           traits: [],
         },
         {
           tokenId: snapshots.ARCH_TRIPTYCH_3,
+          tokenNewid: newid3,
           traits: expect.arrayContaining([
             {
               featureId: expect.any(Number),
+              featureNewid: expect.any(String),
               name: "Scene",
               traitId: expect.any(Number),
+              traitNewid: expect.any(String),
               value: "Flat",
             },
           ]),
