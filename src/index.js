@@ -485,22 +485,20 @@ async function processOpenseaSales(args) {
 }
 
 async function computeTotalSales(args) {
-  if (args.length !== 1 && args.length !== 2) {
-    throw new Error("usage: compute-total-sales slug [after-date]");
+  if (args.length !== 0 && args.length !== 1) {
+    throw new Error("usage: compute-total-sales [after-date]");
   }
-  const slug = args[0];
-  const afterDate = new Date(args[1] || "2020-11-26");
+  const afterDate = new Date(args[0] || "2020-11-26");
   await withDb(async ({ client }) => {
-    const projectId = await artblocks.getProjectIdBySlug({ client, slug });
-    if (projectId == null) {
-      throw new Error(`couldn't find id for slug ${slug}`);
-    }
     const totalSales = await opensea.aggregateSalesByProject({
       client,
-      projectId,
       afterDate,
     });
-    console.log(ethers.utils.formatUnits(totalSales));
+    console.log(`| slug | totalSales |`);
+    console.log(`|------|-----------:|`);
+    for (const { slug, sum } of totalSales) {
+      console.log(`| ${slug} | ${ethers.utils.formatUnits(sum)} |`);
+    }
   });
 }
 

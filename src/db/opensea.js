@@ -120,23 +120,28 @@ async function addSales({ client, sales }) {
   );
 }
 
-async function aggregateSalesByProject({ client, projectId, afterDate }) {
+async function aggregateSalesByProject({ client, afterDate }) {
   const result = await client.query(
     `
-    SELECT sum(price) AS sum
+    SELECT
+      sum(price) AS sum,
+      projects.project_newid AS "projectId",
+      min(slug) AS slug
     FROM opensea_sales
     JOIN tokens
       ON
         opensea_sales.token_id = tokens.on_chain_token_id AND
         opensea_sales.token_contract = tokens.token_contract
-    WHERE project_newid = $1 AND
-      sale_time >= $2 AND
-      (currency_contract IS NULL OR currency_contract = $3)
+    JOIN projects
+      ON tokens.project_newid = projects.project_newid
+    WHERE sale_time >= $1 AND
+      (currency_contract IS NULL OR currency_contract = $2)
+    GROUP BY projects.project_newid
+    ORDER BY sum(price) DESC
     `,
-    [projectId, afterDate, WETH_ADDRESS]
+    [afterDate, WETH_ADDRESS]
   );
-  const total = result.rows[0].sum || "0";
-  return BigInt(total);
+  return result.rows.map((x) => ({ ...x, sum: BigInt(x.sum) }));
 }
 
 module.exports = {
