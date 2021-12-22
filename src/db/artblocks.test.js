@@ -389,6 +389,7 @@ describe("db/artblocks", () => {
       function expectedTrait(value, tokens) {
         return {
           id: expect.any(Number),
+          traitNewid: expect.any(String),
           value,
           tokens,
           tokenNewids: tokens.map((id) => artblocksTokenIdToTokenNewid.get(id)),
@@ -397,6 +398,7 @@ describe("db/artblocks", () => {
       const expected = [
         {
           id: expect.any(Number),
+          featureNewid: expect.any(String),
           name: "Coloring strategy",
           traits: [
             expectedTrait("Group", [23000045, 23000467]),
@@ -406,6 +408,7 @@ describe("db/artblocks", () => {
         },
         {
           id: expect.any(Number),
+          featureNewid: expect.any(String),
           name: "Framed",
           traits: [
             expectedTrait("Yep", [23000036, 23000045, 23000250, 23000467]),
@@ -413,6 +416,7 @@ describe("db/artblocks", () => {
         },
         {
           id: expect.any(Number),
+          featureNewid: expect.any(String),
           name: "Layout",
           traits: [
             expectedTrait("Chaos", [23000250]),
@@ -421,6 +425,7 @@ describe("db/artblocks", () => {
         },
         {
           id: expect.any(Number),
+          featureNewid: expect.any(String),
           name: "Palette",
           traits: [
             expectedTrait("Paddle", [23000036, 23000045, 23000250, 23000467]),
@@ -428,6 +433,7 @@ describe("db/artblocks", () => {
         },
         {
           id: expect.any(Number),
+          featureNewid: expect.any(String),
           name: "Scene",
           traits: [
             expectedTrait("Cube", [23000250]),
@@ -436,6 +442,7 @@ describe("db/artblocks", () => {
         },
         {
           id: expect.any(Number),
+          featureNewid: expect.any(String),
           name: "Shading",
           traits: [
             expectedTrait("Bright Morning", [23000250]),

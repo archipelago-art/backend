@@ -149,11 +149,13 @@ describe("api", () => {
           {
             name: "Scene",
             id: expect.any(Number),
+            featureNewid: expect.any(String),
             slug: "scene",
             traits: expect.arrayContaining([
               {
                 value: "Cube",
                 id: expect.any(Number),
+                traitNewid: expect.any(String),
                 tokens: [snapshots.THE_CUBE],
                 tokenNewids: [newids.get(snapshots.THE_CUBE)],
                 slug: "cube",

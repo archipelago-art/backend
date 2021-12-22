@@ -334,9 +334,11 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
   const res = await client.query(
     `
     SELECT
-      feature_id,
+      feature_id AS "featureId",
+      features.feature_newid AS "featureNewid",
       name,
-      trait_id,
+      trait_id AS "traitId",
+      traits.trait_newid AS "traitNewid",
       value,
       array_agg(token_id ORDER BY token_id) AS tokens,
       array_agg(token_newid::text ORDER BY token_id) AS "tokenNewids"
@@ -353,12 +355,18 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
   const result = [];
   let currentFeature = {};
   for (const row of res.rows) {
-    if (currentFeature.id !== row.feature_id) {
-      currentFeature = { id: row.feature_id, name: row.name, traits: [] };
+    if (currentFeature.id !== row.featureId) {
+      currentFeature = {
+        id: row.featureId,
+        featureNewid: row.featureNewid,
+        name: row.name,
+        traits: [],
+      };
       result.push(currentFeature);
     }
     currentFeature.traits.push({
-      id: row.trait_id,
+      id: row.traitId,
+      traitNewid: row.traitNewid,
       value: row.value,
       tokens: row.tokens,
       tokenNewids: row.tokenNewids,
