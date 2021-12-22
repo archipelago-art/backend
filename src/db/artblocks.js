@@ -601,11 +601,12 @@ async function updateImageProgress({ client, progress }) {
   await client.query("COMMIT");
 }
 
-async function getProjectIds({ client }) {
+async function getProjectIndices({ client }) {
   const res = await client.query(
     `
     SELECT artblocks_project_index AS "projectIndex"
     FROM artblocks_projects
+    ORDER BY artblocks_project_index
     `
   );
   return res.rows.map((x) => x.projectIndex);
@@ -636,5 +637,5 @@ module.exports = {
   getTokenHash,
   getImageProgress,
   updateImageProgress,
-  getProjectIds,
+  getProjectIndices,
 };

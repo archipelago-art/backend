@@ -1,7 +1,7 @@
 const C = require("../util/combo");
 const { fetchAssets } = require("./fetch");
 const {
-  getProjectIds,
+  getProjectIndices,
   ARTBLOCKS_CONTRACT_THRESHOLD,
   CONTRACT_ARTBLOCKS_STANDARD,
   CONTRACT_ARTBLOCKS_LEGACY,
@@ -13,7 +13,7 @@ const {
  * ["chromie-squiggle-by-snowfro", ...]
  */
 async function getSlugs({ client, apiKey }) {
-  const projectIds = await getProjectIds({ client });
+  const projectIds = await getProjectIndices({ client });
   const legacyProjectIds = projectIds.filter(
     (x) => x < ARTBLOCKS_CONTRACT_THRESHOLD
   );

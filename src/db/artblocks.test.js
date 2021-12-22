@@ -721,10 +721,10 @@ describe("db/artblocks", () => {
   );
 
   it(
-    "supports getProjectIds",
+    "supports getProjectIndices",
     withTestDb(async ({ client }) => {
       await addProjects(client, snapshots.PROJECTS);
-      const res = await artblocks.getProjectIds({ client });
+      const res = await artblocks.getProjectIndices({ client });
       expect(res).toEqual(snapshots.PROJECTS);
     })
   );
