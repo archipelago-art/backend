@@ -1,3 +1,5 @@
+const dbUtil = require("./util");
+
 // events is an array of JSON objects from the Opensea API
 async function addEvents({ client, events }) {
   const ids = events.map((x) => x.id);
@@ -74,10 +76,51 @@ async function setLastUpdated({ client, slug, until }) {
   );
 }
 
+async function addSales({ client, sales }) {
+  const prepCurrency = (x) =>
+    x === "0x0000000000000000000000000000000000000000"
+      ? null
+      : dbUtil.hexToBuf(x);
+  return await client.query(
+    `
+    INSERT INTO opensea_sales (
+      event_id,
+      token_contract,
+      token_id,
+      sale_time,
+      price,
+      buyer_address,
+      seller_address,
+      currency_contract
+    ) VALUES (
+      unnest($1::text[]),
+      unnest($2::address[]),
+      unnest($3::uint256[]),
+      unnest($4::timestamptz[]),
+      unnest($5::uint256[]),
+      unnest($6::address[]),
+      unnest($7::address[]),
+      unnest($8::address[])
+    )
+    `,
+    [
+      sales.map((x) => x.eventId),
+      sales.map((x) => dbUtil.hexToBuf(x.tokenContract)),
+      sales.map((x) => x.tokenId),
+      sales.map((x) => x.saleTime),
+      sales.map((x) => x.price),
+      sales.map((x) => dbUtil.hexToBuf(x.buyerAddress)),
+      sales.map((x) => dbUtil.hexToBuf(x.sellerAddress)),
+      sales.map((x) => prepCurrency(x.currencyContract)),
+    ]
+  );
+}
+
 module.exports = {
   addEvents,
   getUnconsumedEvents,
   consumeEvents,
   getLastUpdated,
   setLastUpdated,
+  addSales,
 };
