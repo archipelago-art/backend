@@ -6,6 +6,7 @@ const util = require("util");
 const ws = require("ws");
 const ethers = require("ethers");
 
+const api = require("./api/index");
 const artblocks = require("./db/artblocks");
 const opensea = require("./db/opensea");
 const backfills = require("./db/backfills");
@@ -486,20 +487,20 @@ async function processOpenseaSales(args) {
   });
 }
 
-async function computeTotalSales(args) {
+async function aggregateOpenseaSales(args) {
   if (args.length !== 0 && args.length !== 1) {
-    throw new Error("usage: compute-total-sales [after-date]");
+    throw new Error("usage: aggregate-opensea-sales [after-date]");
   }
   const afterDate = new Date(args[0] || "2020-11-26");
   await withDb(async ({ client }) => {
-    const totalSales = await opensea.aggregateSalesByProject({
+    const totalSales = await api.openseaSalesByProject({
       client,
       afterDate,
     });
     console.log(`| slug | totalSales |`);
     console.log(`|------|-----------:|`);
-    for (const { slug, sum } of totalSales) {
-      console.log(`| ${slug} | ${ethers.utils.formatUnits(sum)} |`);
+    for (const { slug, totalEthSales } of totalSales) {
+      console.log(`| ${slug} | ${ethers.utils.formatUnits(totalEthSales)} |`);
     }
   });
 }
@@ -545,7 +546,7 @@ async function main() {
     ["ingest-opensea-collection", ingestOpenseaCollection],
     ["ingest-opensea", ingestOpensea],
     ["process-opensea-sales", processOpenseaSales],
-    ["compute-total-sales", computeTotalSales],
+    ["aggregate-opensea-sales", aggregateOpenseaSales],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {

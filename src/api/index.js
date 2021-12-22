@@ -1,6 +1,7 @@
 const slug = require("slug");
 
 const artblocks = require("../db/artblocks");
+const opensea = require("../db/opensea");
 const emails = require("../db/emails");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const sortAsciinumeric = require("../util/sortAsciinumeric");
@@ -144,6 +145,18 @@ async function addEmailSignup({ client, email }) {
   return emails.addEmailSignup({ client, email });
 }
 
+// Aggregates sale data on OpenSea, grouped by project
+// Takes a db client and `afterDate`, as JS date; only sales that occured
+// after `afterDate` are included in the aggregation.
+// Returns an array of {slug, projectId, totalEthSales} objects.
+// Slug is an archipelago slug and projectId is an archipelago project id.
+// totalEthSales is an aggregate of ETH and WETH sales for the
+// collection, represented as a BigInt amount of wei.
+// Non-ETH or WETH sales are ignored.
+async function openseaSalesByProject({ client, afterDate }) {
+  return opensea.aggregateSalesByProject({ client, afterDate });
+}
+
 module.exports = {
   artblocksProjectIdToCollectionName,
   collectionNameToArtblocksProjectId,
@@ -155,4 +168,5 @@ module.exports = {
   tokenSummaries,
   sortAsciinumeric,
   addEmailSignup,
+  openseaSalesByProject,
 };

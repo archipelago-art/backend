@@ -1,8 +1,6 @@
 const dbUtil = require("./util");
 
-const WETH_ADDRESS = dbUtil.hexToBuf(
-  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
-);
+const WETH_ADDRESS = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 
 // events is an array of JSON objects from the Opensea API
 async function addEvents({ client, events }) {
@@ -135,9 +133,13 @@ async function aggregateSalesByProject({ client, afterDate }) {
     GROUP BY projects.project_newid
     ORDER BY sum(price) DESC
     `,
-    [afterDate, WETH_ADDRESS]
+    [afterDate, dbUtil.hexToBuf(WETH_ADDRESS)]
   );
-  return result.rows.map((x) => ({ ...x, sum: BigInt(x.sum) }));
+  return result.rows.map((x) => ({
+    slug: x.slug,
+    projectId: x.projectId,
+    totalEthSales: BigInt(x.sum),
+  }));
 }
 
 async function salesForToken({ client, tokenContract, tokenId }) {
@@ -186,4 +188,5 @@ module.exports = {
   addSales,
   aggregateSalesByProject,
   salesForToken,
+  WETH_ADDRESS,
 };
