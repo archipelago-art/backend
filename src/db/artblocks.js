@@ -152,6 +152,20 @@ async function setProjectSlug({ client, projectId, slug }) {
     throw new Error("no project found by ID " + projectId);
 }
 
+async function getProjectIdBySlug({ client, slug }) {
+  const res = await client.query(
+    `
+    SELECT project_newid AS id FROM projects
+    WHERE slug = $1
+    `,
+    [slug]
+  );
+  if (res.rowCount === 0) {
+    return null;
+  }
+  return res.rows[0].id;
+}
+
 async function addToken({ client, tokenId, rawTokenData }) {
   await client.query("BEGIN");
   const tokenNewid = newId(ObjectType.TOKEN);
@@ -607,6 +621,7 @@ module.exports = {
   addProject,
   getProject,
   setProjectSlug,
+  getProjectIdBySlug,
   addToken,
   populateTraitMembers,
   getProjectFeaturesAndTraits,

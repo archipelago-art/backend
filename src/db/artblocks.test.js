@@ -728,4 +728,18 @@ describe("db/artblocks", () => {
       expect(res).toEqual(snapshots.PROJECTS);
     })
   );
+
+  it(
+    "supports getProjectIdBySlug",
+    withTestDb(async ({ client }) => {
+      const [{ newid }] = await addProjects(client, [snapshots.ARCHETYPE]);
+      const archetypeId = await artblocks.getProjectIdBySlug({
+        client,
+        slug: "archetype",
+      });
+      expect(archetypeId).toEqual(newid);
+      const nope = await artblocks.getProjectIdBySlug({ client, slug: "nope" });
+      expect(nope).toEqual(null);
+    })
+  );
 });
