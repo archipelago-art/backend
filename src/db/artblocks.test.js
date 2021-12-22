@@ -28,10 +28,12 @@ describe("db/artblocks", () => {
         rawTokenData: await sc.token(id),
       }))
     );
+    const result = [];
     for (const { tokenId, rawTokenData } of tokens) {
-      await artblocks.addToken({ client, tokenId, rawTokenData });
+      const newid = await artblocks.addToken({ client, tokenId, rawTokenData });
+      result.push({ tokenId, rawTokenData, newid });
     }
-    return tokens;
+    return result;
   }
 
   it(
@@ -155,11 +157,15 @@ describe("db/artblocks", () => {
   it(
     'inserts token data when "features" is an array',
     withTestDb(async ({ client }) => {
-      const [{ newid }] = await addProjects(client, [snapshots.GALAXISS]);
-      await addTokens(client, [snapshots.GALAXISS_FEATURES_ARRAY]);
+      const [{ newid: projectNewid }] = await addProjects(client, [
+        snapshots.GALAXISS,
+      ]);
+      const [{ newid: tokenNewid }] = await addTokens(client, [
+        snapshots.GALAXISS_FEATURES_ARRAY,
+      ]);
       const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
-        projectNewid: newid,
+        projectNewid,
       });
       expect(actualFeatures).toEqual(
         expect.arrayContaining([
@@ -169,12 +175,7 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: "Pleasant palette",
                 tokens: [snapshots.GALAXISS_FEATURES_ARRAY],
-                tokensOnChain: [
-                  {
-                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-                    onChainId: String(snapshots.GALAXISS_FEATURES_ARRAY),
-                  },
-                ],
+                tokenNewids: [tokenNewid],
               }),
             ],
           }),
@@ -184,12 +185,7 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: "Night theme",
                 tokens: [snapshots.GALAXISS_FEATURES_ARRAY],
-                tokensOnChain: [
-                  {
-                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-                    onChainId: String(snapshots.GALAXISS_FEATURES_ARRAY),
-                  },
-                ],
+                tokenNewids: [tokenNewid],
               }),
             ],
           }),
@@ -201,11 +197,15 @@ describe("db/artblocks", () => {
   it(
     "inserts data whose features are strings, numbers, or null",
     withTestDb(async ({ client }) => {
-      const [{ newid }] = await addProjects(client, [snapshots.BYTEBEATS]);
-      await addTokens(client, [snapshots.BYTEBEATS_NULL_FEATURE]);
+      const [{ newid: projectNewid }] = await addProjects(client, [
+        snapshots.BYTEBEATS,
+      ]);
+      const [{ newid: tokenNewid }] = await addTokens(client, [
+        snapshots.BYTEBEATS_NULL_FEATURE,
+      ]);
       const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
-        projectNewid: newid,
+        projectNewid,
       });
       expect(actualFeatures).toEqual(
         expect.arrayContaining([
@@ -215,12 +215,7 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: "Electric",
                 tokens: [snapshots.BYTEBEATS_NULL_FEATURE],
-                tokensOnChain: [
-                  {
-                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-                    onChainId: String(snapshots.BYTEBEATS_NULL_FEATURE),
-                  },
-                ],
+                tokenNewids: [tokenNewid],
               }),
             ],
           }),
@@ -230,12 +225,7 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: 4978,
                 tokens: [snapshots.BYTEBEATS_NULL_FEATURE],
-                tokensOnChain: [
-                  {
-                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-                    onChainId: String(snapshots.BYTEBEATS_NULL_FEATURE),
-                  },
-                ],
+                tokenNewids: [tokenNewid],
               }),
             ],
           }),
@@ -245,12 +235,7 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: null,
                 tokens: [snapshots.BYTEBEATS_NULL_FEATURE],
-                tokensOnChain: [
-                  {
-                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-                    onChainId: String(snapshots.BYTEBEATS_NULL_FEATURE),
-                  },
-                ],
+                tokenNewids: [tokenNewid],
               }),
             ],
           }),
@@ -388,12 +373,15 @@ describe("db/artblocks", () => {
     "supports getProjectFeaturesAndTraits",
     withTestDb(async ({ client }) => {
       const [{ newid }] = await addProjects(client, [snapshots.ARCHETYPE]);
-      await addTokens(client, [
+      const addTokensResult = await addTokens(client, [
         snapshots.THE_CUBE,
         snapshots.ARCH_TRIPTYCH_1,
         snapshots.ARCH_TRIPTYCH_2,
         snapshots.ARCH_TRIPTYCH_3,
       ]);
+      const artblocksTokenIdToTokenNewid = new Map(
+        addTokensResult.map((t) => [t.tokenId, t.newid])
+      );
       const res = await artblocks.getProjectFeaturesAndTraits({
         client,
         projectNewid: newid,
@@ -403,10 +391,7 @@ describe("db/artblocks", () => {
           id: expect.any(Number),
           value,
           tokens,
-          tokensOnChain: tokens.map((id) => ({
-            address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-            onChainId: String(id),
-          })),
+          tokenNewids: tokens.map((id) => artblocksTokenIdToTokenNewid.get(id)),
         };
       }
       const expected = [

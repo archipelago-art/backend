@@ -132,9 +132,15 @@ describe("api", () => {
         );
         await artblocks.addProject({ client, project });
       }
+      const newids = new Map();
       for (const tokenId of snapshots.TOKENS) {
         const rawTokenData = await sc.token(tokenId);
-        await artblocks.addToken({ client, tokenId, rawTokenData });
+        const newid = await artblocks.addToken({
+          client,
+          tokenId,
+          rawTokenData,
+        });
+        newids.set(tokenId, newid);
       }
       const res = await api.projectFeaturesAndTraits({ client, collection });
       expect(res).toEqual(
@@ -148,12 +154,7 @@ describe("api", () => {
                 value: "Cube",
                 id: expect.any(Number),
                 tokens: [snapshots.THE_CUBE],
-                tokensOnChain: [
-                  {
-                    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-                    onChainId: String(snapshots.THE_CUBE),
-                  },
-                ],
+                tokenNewids: [newids.get(snapshots.THE_CUBE)],
                 slug: "cube",
               },
             ]),

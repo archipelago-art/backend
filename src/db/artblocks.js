@@ -339,8 +339,7 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
       trait_id,
       value,
       array_agg(token_id ORDER BY token_id) AS tokens,
-      array_agg(token_contract::bytea ORDER BY token_id) AS "tokenContracts",
-      array_agg(on_chain_token_id::text ORDER BY token_id) AS "onChainTokenIds"
+      array_agg(token_newid::text ORDER BY token_id) AS "tokenNewids"
     FROM features
       JOIN traits USING (feature_id)
       JOIN trait_members USING (trait_id)
@@ -362,10 +361,7 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
       id: row.trait_id,
       value: row.value,
       tokens: row.tokens,
-      tokensOnChain: row.tokenContracts.map((address, i) => ({
-        address: address == null ? null : bufToAddress(address),
-        onChainId: row.onChainTokenIds[i],
-      })),
+      tokenNewids: row.tokenNewids,
     });
   }
   return result;
