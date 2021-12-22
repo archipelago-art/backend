@@ -1,5 +1,9 @@
 const dbUtil = require("./util");
 
+const WETH_ADDRESS = dbUtil.hexToBuf(
+  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+);
+
 // events is an array of JSON objects from the Opensea API
 async function addEvents({ client, events }) {
   const ids = events.map((x) => x.id);
@@ -116,6 +120,25 @@ async function addSales({ client, sales }) {
   );
 }
 
+async function aggregateSalesByProject({ client, projectId, afterDate }) {
+  const result = await client.query(
+    `
+    SELECT sum(price) AS sum
+    FROM opensea_sales
+    JOIN tokens
+      ON
+        opensea_sales.token_id = tokens.on_chain_token_id AND
+        opensea_sales.token_contract = tokens.token_contract
+    WHERE project_newid = $1 AND
+      sale_time >= $2 AND
+      (currency_contract IS NULL OR currency_contract = $3)
+    `,
+    [projectId, afterDate, WETH_ADDRESS]
+  );
+  const total = result.rows[0].sum || "0";
+  return BigInt(total);
+}
+
 module.exports = {
   addEvents,
   getUnconsumedEvents,
@@ -123,4 +146,5 @@ module.exports = {
   getLastUpdated,
   setLastUpdated,
   addSales,
+  aggregateSalesByProject,
 };

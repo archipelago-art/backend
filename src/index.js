@@ -4,8 +4,10 @@ const https = require("https");
 const pg = require("pg");
 const util = require("util");
 const ws = require("ws");
+const ethers = require("ethers");
 
 const artblocks = require("./db/artblocks");
+const opensea = require("./db/opensea");
 const backfills = require("./db/backfills");
 const migrations = require("./db/migrations");
 const { acqrel } = require("./db/util");
@@ -482,6 +484,26 @@ async function processOpenseaSales(args) {
   });
 }
 
+async function computeTotalSales(args) {
+  if (args.length !== 1 && args.length !== 2) {
+    throw new Error("usage: compute-total-sales slug [after-date]");
+  }
+  const slug = args[0];
+  const afterDate = new Date(args[1] || "2020-11-26");
+  await withDb(async ({ client }) => {
+    const projectId = await artblocks.getProjectIdBySlug({ client, slug });
+    if (projectId == null) {
+      throw new Error(`couldn't find id for slug ${slug}`);
+    }
+    const totalSales = await opensea.aggregateSalesByProject({
+      client,
+      projectId,
+      afterDate,
+    });
+    console.log(ethers.utils.formatUnits(totalSales));
+  });
+}
+
 async function generateImage(args) {
   if (args.length !== 2) {
     throw new Error("usage: generate-image <token-id> <outfile>");
@@ -523,6 +545,7 @@ async function main() {
     ["ingest-opensea-collection", ingestOpenseaCollection],
     ["ingest-opensea", ingestOpensea],
     ["process-opensea-sales", processOpenseaSales],
+    ["compute-total-sales", computeTotalSales],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
