@@ -209,6 +209,48 @@ describe("api", () => {
     })
   );
 
+  it.only(
+    "provides summaries for multiple tokens",
+    withTestDb(async ({ client }) => {
+      for (const id of [snapshots.ARCHETYPE, snapshots.SQUIGGLES]) {
+        const project = parseProjectData(id, await sc.project(id));
+        await artblocks.addProject({ client, project });
+      }
+      const newids = new Map();
+      for (const id of [snapshots.THE_CUBE, snapshots.PERFECT_CHROMATIC]) {
+        const rawTokenData = await sc.token(id);
+        const newid = await artblocks.addToken({
+          client,
+          tokenId: id,
+          rawTokenData,
+        });
+        newids.set(id, newid);
+      }
+      const result = await api.tokenSummaries({
+        client,
+        tokenIds: [snapshots.THE_CUBE, snapshots.PERFECT_CHROMATIC],
+      });
+      expect(result).toEqual([
+        {
+          tokenId: snapshots.PERFECT_CHROMATIC,
+          tokenNewid: newids.get(snapshots.PERFECT_CHROMATIC),
+          name: "Chromie Squiggle",
+          slug: "chromie-squiggle",
+          artistName: "Snowfro",
+          aspectRatio: 1.5,
+        },
+        {
+          tokenId: snapshots.THE_CUBE,
+          tokenNewid: newids.get(snapshots.THE_CUBE),
+          name: "Archetype",
+          slug: "archetype",
+          artistName: "Kjetil Golid",
+          aspectRatio: 1,
+        },
+      ]);
+    })
+  );
+
   it("exposes a trait-sorting function", () => {
     const input = [
       { id: 123, value: "1 in 23" },

@@ -644,7 +644,10 @@ describe("db/artblocks", () => {
       ]);
       const res = await artblocks.getTokenSummaries({
         client,
-        tokenIds: [tokenId1, tokenId2],
+        tokens: [
+          { address: artblocks.CONTRACT_ARTBLOCKS_STANDARD, tokenId: tokenId1 },
+          { address: artblocks.CONTRACT_ARTBLOCKS_STANDARD, tokenId: tokenId2 },
+        ],
       });
       expect(res).toEqual([
         {

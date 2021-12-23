@@ -500,7 +500,7 @@ async function getTokenImageData({ client }) {
   return res.rows;
 }
 
-async function getTokenSummaries({ client, tokenIds }) {
+async function getTokenSummaries({ client, tokens }) {
   const res = await client.query(
     `
     SELECT
@@ -511,11 +511,15 @@ async function getTokenSummaries({ client, tokenIds }) {
       slug,
       aspect_ratio AS "aspectRatio"
     FROM tokens
-    JOIN projects USING(project_id)
-    WHERE token_id = ANY($1::int[])
+    JOIN (
+      SELECT
+        unnest($1::address[]) AS token_contract,
+        unnest($2::uint256[]) AS on_chain_token_id
+    ) AS needles USING (token_contract, on_chain_token_id)
+    JOIN projects USING (project_id)
     ORDER BY token_id
     `,
-    [tokenIds]
+    [tokens.map((t) => hexToBuf(t.address)), tokens.map((t) => t.tokenId)]
   );
   return res.rows;
 }

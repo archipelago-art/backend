@@ -3,6 +3,7 @@ const slug = require("slug");
 const artblocks = require("../db/artblocks");
 const opensea = require("../db/opensea");
 const emails = require("../db/emails");
+const { bufToAddress } = require("../db/util");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const sortAsciinumeric = require("../util/sortAsciinumeric");
 
@@ -133,9 +134,41 @@ async function tokenFeaturesAndTraits({ client, tokenId }) {
 }
 
 async function tokenSummaries({ client, tokenIds }) {
+  // HACK(@wchargin): This function will be replaced by
+  // `tokenSummariesByOnChainId`, so we just transform to that input format.
   if (!Array.isArray(tokenIds))
     throw new Error("tokenSummaries: must pass array of token IDs");
-  const res = await artblocks.getTokenSummaries({ client, tokenIds });
+  const res = await client.query(
+    `
+    SELECT
+      token_contract AS address,
+      on_chain_token_id AS "tokenId"
+    FROM tokens
+    WHERE token_id = ANY($1::int[])
+    `,
+    [tokenIds]
+  );
+  const tokens = res.rows.map((row) => ({
+    address: bufToAddress(row.address),
+    tokenId: row.tokenId,
+  }));
+  return await tokenSummariesByOnChainId({ client, tokens });
+}
+
+// `tokens` should be a list of `{ address, tokenId }` pairs, where `address`
+// is a "0x..." string and `tokenId` is a numeric string.
+async function tokenSummariesByOnChainId({ client, tokens }) {
+  if (
+    !Array.isArray(tokens) ||
+    !tokens.every(
+      (t) => typeof t.address === "string" && typeof t.tokenId === "string"
+    )
+  ) {
+    throw new Error(
+      "tokenSummariesByOnChainId: must pass array of token addresses and IDs"
+    );
+  }
+  const res = await artblocks.getTokenSummaries({ client, tokens });
   return res;
 }
 
@@ -166,6 +199,7 @@ module.exports = {
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
   tokenSummaries,
+  tokenSummariesByOnChainId,
   sortAsciinumeric,
   addEmailSignup,
   openseaSalesByProject,
