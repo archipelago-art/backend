@@ -505,6 +505,7 @@ async function getTokenSummaries({ client, tokenIds }) {
     `
     SELECT
       token_id AS "tokenId",
+      token_newid AS "tokenNewid",
       name,
       artist_name AS "artistName",
       slug,

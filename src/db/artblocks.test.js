@@ -637,7 +637,11 @@ describe("db/artblocks", () => {
       const tokenId1 = snapshots.ARCH_TRIPTYCH_1;
       const tokenId2 = snapshots.ARCH_TRIPTYCH_2;
       const tokenId3 = snapshots.ARCH_TRIPTYCH_3;
-      await addTokens(client, [tokenId1, tokenId2, tokenId3]);
+      const addTokensResult = await addTokens(client, [
+        tokenId1,
+        tokenId2,
+        tokenId3,
+      ]);
       const res = await artblocks.getTokenSummaries({
         client,
         tokenIds: [tokenId1, tokenId2],
@@ -645,6 +649,7 @@ describe("db/artblocks", () => {
       expect(res).toEqual([
         {
           tokenId: 23000036,
+          tokenNewid: addTokensResult[0].newid,
           name: "Archetype",
           artistName: "Kjetil Golid",
           slug: "archetype",
@@ -652,6 +657,7 @@ describe("db/artblocks", () => {
         },
         {
           tokenId: 23000045,
+          tokenNewid: addTokensResult[1].newid,
           name: "Archetype",
           artistName: "Kjetil Golid",
           slug: "archetype",
