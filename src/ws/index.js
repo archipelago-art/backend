@@ -13,11 +13,11 @@ types.tokenData = C.object({
   tokenIndex: C.number,
   traits: C.array(
     C.object({
-      featureId: C.number,
+      featureId: C.string,
       featureNewid: C.string,
       featureSlug: C.string,
       name: C.string,
-      traitId: C.number,
+      traitId: C.string,
       traitNewid: C.string,
       traitSlug: C.string,
       value: C.raw,
