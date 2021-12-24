@@ -98,22 +98,6 @@ async function collection({ client, collection }) {
   return res[0] ?? null;
 }
 
-async function collectionMintState({ client, collection }) {
-  const projectNewid = await resolveProjectNewid(client, collection);
-  if (projectNewid == null) return null;
-  const res = await client.query(
-    `
-    SELECT
-      num_tokens AS "numTokens",
-      max_invocations AS "maxInvocations"
-    FROM projects
-    WHERE project_newid = $1
-    `,
-    [projectNewid]
-  );
-  return res.rows[0] ?? null;
-}
-
 async function projectFeaturesAndTraits({ client, collection }) {
   const projectNewid = await resolveProjectNewid(client, collection);
   if (projectNewid == null) return null;
@@ -223,7 +207,6 @@ module.exports = {
   tokenNewidBySlugAndIndex,
   collections,
   collection,
-  collectionMintState,
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
   tokenFeaturesAndTraitsByNewid,
