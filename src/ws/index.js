@@ -10,14 +10,18 @@ const C = require("../util/combo");
 const types = {};
 types.tokenData = C.object({
   tokenId: C.number,
+  tokenNewid: C.string,
+  tokenIndex: C.number,
   traits: C.array(
     C.object({
       featureId: C.number,
-      name: C.string,
+      featureNewid: C.string,
       featureSlug: C.string,
+      name: C.string,
       traitId: C.number,
-      value: C.raw,
+      traitNewid: C.string,
       traitSlug: C.string,
+      value: C.raw,
     })
   ),
 });
