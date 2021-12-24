@@ -25,21 +25,30 @@ types.tokenData = C.object({
     })
   ),
 });
-types.collectionId = C.fmap(C.string, (s) => {
-  const result = api.collectionNameToArtblocksProjectId(s);
-  if (result == null) throw new Error("invalid collection ID: " + s);
-  return result;
-});
 
 const requestParser = C.sum("type", {
   PING: {
     nonce: C.string,
   },
   // Sent to request tokens for a collection.
-  GET_LATEST_TOKENS: {
-    projectId: C.rename("collection", types.collectionId),
-    lastTokenId: C.orElse([C.null_, C.number]),
-  },
+  GET_LATEST_TOKENS: C.fmap(
+    C.object(
+      {
+        type: C.exactly(["GET_LATEST_TOKENS"]),
+        lastTokenId: C.orElse([C.null_, C.number]),
+      },
+      {
+        collection: C.string,
+        slug: C.string,
+      }
+    ),
+    (x) => {
+      if (x.slug == null && x.collection == null) {
+        throw new Error('missing both "slug" and "collection"');
+      }
+      return x;
+    }
+  ),
 });
 
 const responseParser = C.sum("type", {
@@ -175,8 +184,38 @@ function handlePing(ws, pool, request) {
   sendJson(ws, { type: "PONG", nonce: request.nonce });
 }
 
+async function parseProjectId({ pool, collection, slug }) {
+  if (slug != null) {
+    const newid = await acqrel(pool, (client) =>
+      api.resolveProjectNewid({ client, slug })
+    );
+    if (newid == null) throw new Error("no collection by slug: " + slug);
+    // temporary hack, pending this module being rewritten around newids
+    const res = await pool.query(
+      `
+      SELECT project_id AS id FROM projects
+      WHERE project_newid = $1
+      `,
+      [newid]
+    );
+    return res.rows[0].id;
+  }
+  if (collection != null) {
+    const projectId = api.collectionNameToArtblocksProjectId(collection);
+    if (projectId == null)
+      throw new Error("invalid collection ID: " + collection);
+    return projectId;
+  }
+  throw new Error('must specify either "collection" or "slug"');
+}
+
 async function handleGetLatestTokens(ws, pool, imageProgress, request) {
-  const { projectId, lastTokenId } = request;
+  const { lastTokenId } = request;
+  const projectId = await parseProjectId({
+    pool,
+    collection: request.collection,
+    slug: request.slug,
+  });
   const minTokenId = lastTokenId == null ? 0 : lastTokenId + 1;
   const maxTokenId = imageProgress.get(projectId) ?? -1;
   const tokens = await acqrel(pool, async (client) => {

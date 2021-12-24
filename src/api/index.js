@@ -203,6 +203,7 @@ module.exports = {
   artblocksProjectIdToCollectionName,
   collectionNameToArtblocksProjectId,
   tokenNewidBySlugAndIndex,
+  resolveProjectNewid,
   collections,
   collection,
   projectFeaturesAndTraits,
