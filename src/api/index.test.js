@@ -33,7 +33,6 @@ describe("api", () => {
       const res = await api.collections({ client });
       expect(res).toEqual([
         {
-          id: "ab-0",
           projectNewid: id0,
           slug: "chromie-squiggle",
           artblocksProjectIndex: 0,
@@ -47,7 +46,6 @@ describe("api", () => {
           maxInvocations: 10000,
         },
         {
-          id: "ab-23",
           projectNewid: id23,
           slug: "archetype",
           artblocksProjectIndex: 23,
@@ -86,7 +84,6 @@ describe("api", () => {
       });
       const res = await api.collection({ client, slug: "archetype" });
       expect(res).toEqual({
-        id: "ab-23",
         projectNewid,
         slug: "archetype",
         artblocksProjectIndex: 23,
