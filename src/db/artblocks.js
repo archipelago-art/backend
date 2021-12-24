@@ -378,11 +378,12 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
 async function getTokenFeaturesAndTraits({
   client,
   tokenId,
+  tokenNewid,
   projectId,
   minTokenId,
   maxTokenId,
 }) {
-  if (tokenId == null && projectId == null) {
+  if (tokenId == null && tokenNewid == null && projectId == null) {
     throw new Error("must filter by either project ID or token ID");
   }
   const res = await client.query(
@@ -403,6 +404,7 @@ async function getTokenFeaturesAndTraits({
       RIGHT OUTER JOIN tokens USING (token_id)
     WHERE true
       AND (token_id = $1 OR $1 IS NULL)
+      AND (tokens.token_newid = $5 OR $5 IS NULL)
       AND (
         tokens.project_id = $2 OR $2 IS NULL
         OR tokens.project_id IS NULL  -- OUTER JOIN
@@ -411,7 +413,7 @@ async function getTokenFeaturesAndTraits({
       AND (token_id <= $4 OR $4 IS NULL)
     ORDER BY token_id, feature_id, trait_id
     `,
-    [tokenId, projectId, minTokenId, maxTokenId]
+    [tokenId, projectId, minTokenId, maxTokenId, tokenNewid]
   );
 
   const result = [];

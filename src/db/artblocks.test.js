@@ -496,6 +496,43 @@ describe("db/artblocks", () => {
   );
 
   it(
+    "allows filtering token features by newid",
+    withTestDb(async ({ client }) => {
+      await addProjects(client, [snapshots.ARCHETYPE]);
+      const tokenId = snapshots.THE_CUBE;
+      const [{ newid: tokenNewid }] = await addTokens(client, [tokenId]);
+      const res = await artblocks.getTokenFeaturesAndTraits({
+        client,
+        tokenNewid,
+      });
+      expect(res).toEqual([
+        {
+          tokenId: snapshots.THE_CUBE,
+          tokenNewid,
+          traits: expect.arrayContaining([
+            {
+              featureId: expect.any(Number),
+              featureNewid: expect.any(String),
+              name: "Framed",
+              traitId: expect.any(Number),
+              traitNewid: expect.any(String),
+              value: "Yep",
+            },
+            {
+              featureId: expect.any(Number),
+              featureNewid: expect.any(String),
+              name: "Scene",
+              traitId: expect.any(Number),
+              traitNewid: expect.any(String),
+              value: "Cube",
+            },
+          ]),
+        },
+      ]);
+    })
+  );
+
+  it(
     "respects token-feature project filters even for tokens with no traits",
     withTestDb(async ({ client }) => {
       await addProjects(client, [

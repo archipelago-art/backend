@@ -125,7 +125,21 @@ async function tokenFeaturesAndTraits({ client, tokenId }) {
     tokenId,
   });
   if (res.length !== 1) return [];
-  const result = res[0].traits;
+  return formatTokenTraits(res[0].traits);
+}
+
+async function tokenFeaturesAndTraitsByNewid({ client, tokenNewid }) {
+  if (typeof tokenNewid !== "string")
+    throw new Error("bad token ID: " + tokenNewid);
+  const res = await artblocks.getTokenFeaturesAndTraits({
+    client,
+    tokenNewid,
+  });
+  if (res.length !== 1) return [];
+  return formatTokenTraits(res[0].traits);
+}
+
+function formatTokenTraits(result) {
   for (const row of result) {
     row.featureSlug = slug(row.name);
     row.traitSlug = slug(String(row.value));
@@ -198,6 +212,7 @@ module.exports = {
   collectionMintState,
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
+  tokenFeaturesAndTraitsByNewid,
   tokenSummaries,
   tokenSummariesByOnChainId,
   sortAsciinumeric,

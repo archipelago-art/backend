@@ -117,7 +117,7 @@ describe("api", () => {
   );
 
   it(
-    "provides project features and traits",
+    "provides project features and traits by ID or by newid",
     withTestDb(async ({ client }) => {
       const archetype = parseProjectData(
         snapshots.ARCHETYPE,
@@ -180,9 +180,13 @@ describe("api", () => {
       const tokenId = snapshots.THE_CUBE;
       const rawTokenData = await sc.token(tokenId);
       await artblocks.addProject({ client, project: archetype });
-      await artblocks.addToken({ client, tokenId, rawTokenData });
-      const res = await api.tokenFeaturesAndTraits({ client, tokenId });
-      expect(res).toEqual(
+      const tokenNewid = await artblocks.addToken({
+        client,
+        tokenId,
+        rawTokenData,
+      });
+      const res1 = await api.tokenFeaturesAndTraits({ client, tokenId });
+      expect(res1).toEqual(
         expect.arrayContaining([
           {
             name: "Framed",
@@ -206,6 +210,11 @@ describe("api", () => {
           },
         ])
       );
+      const res2 = await api.tokenFeaturesAndTraitsByNewid({
+        client,
+        tokenNewid,
+      });
+      expect(res2).toEqual(res1);
     })
   );
 
