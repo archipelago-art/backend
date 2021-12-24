@@ -209,7 +209,7 @@ describe("api", () => {
     })
   );
 
-  it.only(
+  it(
     "provides summaries for multiple tokens",
     withTestDb(async ({ client }) => {
       for (const id of [snapshots.ARCHETYPE, snapshots.SQUIGGLES]) {
