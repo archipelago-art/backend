@@ -40,35 +40,16 @@ async function tokenNewidBySlugAndIndex({ client, slug, tokenIndex }) {
   return res.rows[0].newid;
 }
 
-async function resolveProjectNewid({ client, collection, slug }) {
-  if ((collection == null) === (slug == null)) {
-    throw new Error(
-      "must specify exactly one of `collection` or `slug`; got: " +
-        JSON.stringify({ collection, slug })
-    );
-  }
-  if (collection) {
-    const index = collectionNameToArtblocksProjectIdUnwrap(collection);
-    const res = await client.query(
-      `
-      SELECT project_id AS id FROM artblocks_projects
-      WHERE artblocks_project_index = $1
-      `,
-      [index]
-    );
-    if (res.rows.length === 0) return null;
-    return res.rows[0].id;
-  } else {
-    const res = await client.query(
-      `
-      SELECT project_newid AS id FROM projects
-      WHERE slug = $1
-      `,
-      [slug]
-    );
-    if (res.rows.length === 0) return null;
-    return res.rows[0].id;
-  }
+async function resolveProjectNewid({ client, slug }) {
+  const res = await client.query(
+    `
+    SELECT project_newid AS id FROM projects
+    WHERE slug = $1
+    `,
+    [slug]
+  );
+  if (res.rows.length === 0) return null;
+  return res.rows[0].id;
 }
 
 async function _collections({ client, projectNewid }) {
@@ -109,15 +90,15 @@ async function collections({ client }) {
   return await _collections({ client, projectNewid: null });
 }
 
-async function collection({ client, collection, slug }) {
-  const projectNewid = await resolveProjectNewid({ client, collection, slug });
+async function collection({ client, slug }) {
+  const projectNewid = await resolveProjectNewid({ client, slug });
   if (projectNewid == null) return null;
   const res = await _collections({ client, projectNewid });
   return res[0] ?? null;
 }
 
-async function projectFeaturesAndTraits({ client, collection, slug }) {
-  const projectNewid = await resolveProjectNewid({ client, collection, slug });
+async function projectFeaturesAndTraits({ client, slug }) {
+  const projectNewid = await resolveProjectNewid({ client, slug });
   if (projectNewid == null) return null;
   const res = await artblocks.getProjectFeaturesAndTraits({
     client,
