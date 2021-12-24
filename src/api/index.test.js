@@ -23,8 +23,8 @@ describe("api", () => {
         await sc.project(snapshots.SQUIGGLES)
       );
       const theCube = await sc.token(snapshots.THE_CUBE);
-      await artblocks.addProject({ client, project: archetype });
-      await artblocks.addProject({ client, project: squiggles });
+      const id23 = await artblocks.addProject({ client, project: archetype });
+      const id0 = await artblocks.addProject({ client, project: squiggles });
       await artblocks.addToken({
         client,
         tokenId: snapshots.THE_CUBE,
@@ -34,6 +34,9 @@ describe("api", () => {
       expect(res).toEqual([
         {
           id: "ab-0",
+          projectNewid: id0,
+          slug: "chromie-squiggle",
+          artblocksProjectIndex: 0,
           name: "Chromie Squiggle",
           artistName: "Snowfro",
           description: expect.stringContaining(
@@ -42,17 +45,18 @@ describe("api", () => {
           aspectRatio: 1.5,
           numTokens: 0,
           maxInvocations: 10000,
-          slug: "chromie-squiggle",
         },
         {
           id: "ab-23",
+          projectNewid: id23,
+          slug: "archetype",
+          artblocksProjectIndex: 23,
           name: "Archetype",
           artistName: "Kjetil Golid",
           description: expect.stringContaining("repetition as a counterweight"),
           aspectRatio: 1,
           numTokens: 1,
           maxInvocations: 600,
-          slug: "archetype",
         },
       ]);
     })
@@ -70,7 +74,10 @@ describe("api", () => {
         await sc.project(snapshots.SQUIGGLES)
       );
       const theCube = await sc.token(snapshots.THE_CUBE);
-      await artblocks.addProject({ client, project: archetype });
+      const projectNewid = await artblocks.addProject({
+        client,
+        project: archetype,
+      });
       await artblocks.addProject({ client, project: squiggles });
       await artblocks.addToken({
         client,
@@ -80,13 +87,15 @@ describe("api", () => {
       const res = await api.collection({ client, slug: "archetype" });
       expect(res).toEqual({
         id: "ab-23",
+        projectNewid,
+        slug: "archetype",
+        artblocksProjectIndex: 23,
         name: "Archetype",
         artistName: "Kjetil Golid",
         description: expect.stringContaining("repetition as a counterweight"),
         aspectRatio: 1,
         numTokens: 1,
         maxInvocations: 600,
-        slug: "archetype",
       });
     })
   );

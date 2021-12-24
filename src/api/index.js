@@ -57,13 +57,15 @@ async function _collections({ client, projectNewid }) {
     `
     SELECT
       projects.project_id AS "id",
+      projects.project_newid AS "newid",
+      artblocks_project_index AS "artblocksProjectIndex",
+      slug AS "slug",
       name AS "name",
       artist_name AS "artistName",
       description AS "description",
       aspect_ratio AS "aspectRatio",
       num_tokens AS "numTokens",
-      max_invocations AS "maxInvocations",
-      slug AS "slug"
+      max_invocations AS "maxInvocations"
     FROM projects
     LEFT OUTER JOIN artblocks_projects
       ON projects.project_newid = artblocks_projects.project_id
@@ -76,13 +78,15 @@ async function _collections({ client, projectNewid }) {
   );
   return res.rows.map((row) => ({
     id: artblocksProjectIdToCollectionName(row.id),
+    projectNewid: row.newid,
+    slug: row.slug,
+    artblocksProjectIndex: row.artblocksProjectIndex,
     name: row.name,
     artistName: row.artistName,
     description: row.description,
     aspectRatio: row.aspectRatio,
     numTokens: row.numTokens,
     maxInvocations: row.maxInvocations,
-    slug: row.slug,
   }));
 }
 
