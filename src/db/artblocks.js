@@ -109,11 +109,10 @@ async function addProject({ client, project, slugOverride }) {
   return String(projectNewid);
 }
 
-async function getProject({ client, projectId }) {
+async function getProject({ client, projectNewid }) {
   const res = await await client.query(
     `
     SELECT
-      project_id AS "projectId",
       project_newid AS "projectNewid",
       name as "name",
       max_invocations AS "maxInvocations",
@@ -126,9 +125,9 @@ async function getProject({ client, projectId }) {
       script AS "script",
       token_contract AS "tokenContract"
     FROM projects
-    WHERE project_id = $1
+    WHERE project_newid = $1
     `,
-    [projectId]
+    [projectNewid]
   );
   if (res.rows.length === 0) return null;
   const row = res.rows[0];
