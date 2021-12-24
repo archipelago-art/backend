@@ -168,22 +168,28 @@ async function getProjectIdBySlug({ client, slug }) {
 async function addToken({ client, tokenId, rawTokenData }) {
   await client.query("BEGIN");
   const tokenNewid = newId(ObjectType.TOKEN);
-  const projectId = Math.floor(tokenId / PROJECT_STRIDE);
-  const updateProjectsRes = await client.query(
+  const artblocksProjectIndex = Math.floor(tokenId / PROJECT_STRIDE);
+  const projectNewidRes = await client.query(
     `
-    UPDATE projects
-    SET num_tokens = num_tokens + 1
-    WHERE project_id = $1
-    RETURNING project_newid AS "projectNewid"
+    SELECT project_id AS id FROM artblocks_projects
+    WHERE artblocks_project_index = $1
     `,
-    [projectId]
+    [artblocksProjectIndex]
   );
-  if (updateProjectsRes.rowCount !== 1) {
+  if (projectNewidRes.rows.length !== 1) {
     throw new Error(
       `expected project ${projectId} to exist for token ${tokenId}`
     );
   }
-  const projectNewid = updateProjectsRes.rows[0].projectNewid;
+  const projectNewid = projectNewidRes.rows[0].id;
+  const updateProjectsRes = await client.query(
+    `
+    UPDATE projects
+    SET num_tokens = num_tokens + 1
+    WHERE project_newid = $1
+    `,
+    [projectNewid]
+  );
   await client.query(
     `
     INSERT INTO tokens (
@@ -199,7 +205,7 @@ async function addToken({ client, tokenId, rawTokenData }) {
     )
     VALUES (
       $1::int, $2, $3, $4,
-      (SELECT token_contract FROM projects WHERE project_id = $4),
+      (SELECT token_contract FROM projects WHERE project_newid = $7),
       $1::uint256, $5::int8,
       $6, $7
     )
@@ -208,7 +214,7 @@ async function addToken({ client, tokenId, rawTokenData }) {
       tokenId,
       new Date(),
       rawTokenData,
-      projectId,
+      artblocksProjectIndex,
       tokenId % PROJECT_STRIDE,
       tokenNewid,
       projectNewid,
@@ -218,12 +224,15 @@ async function addToken({ client, tokenId, rawTokenData }) {
     client,
     tokenId,
     tokenNewid,
-    projectId,
+    projectId: artblocksProjectIndex,
     projectNewid,
     rawTokenData,
     alreadyInTransaction: true,
   });
-  await newTokensChannel.send(client, { projectId, tokenId });
+  await newTokensChannel.send(client, {
+    projectId: artblocksProjectIndex,
+    tokenId,
+  });
   await client.query("COMMIT");
   return String(tokenNewid);
 }
