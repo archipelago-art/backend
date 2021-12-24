@@ -472,6 +472,7 @@ describe("db/artblocks", () => {
         {
           tokenId: snapshots.THE_CUBE,
           tokenNewid,
+          tokenIndex: 250,
           traits: expect.arrayContaining([
             {
               featureId: expect.any(Number),
@@ -509,6 +510,7 @@ describe("db/artblocks", () => {
         {
           tokenId: snapshots.THE_CUBE,
           tokenNewid,
+          tokenIndex: 250,
           traits: expect.arrayContaining([
             {
               featureId: expect.any(Number),
@@ -576,6 +578,7 @@ describe("db/artblocks", () => {
         {
           tokenId: snapshots.ARCH_TRIPTYCH_2,
           tokenNewid: addTokensResult[1].newid,
+          tokenIndex: 45,
           traits: expect.arrayContaining([
             {
               featureId: expect.any(Number),
@@ -590,6 +593,7 @@ describe("db/artblocks", () => {
         {
           tokenId: snapshots.ARCH_TRIPTYCH_3,
           tokenNewid: addTokensResult[2].newid,
+          tokenIndex: 467,
           traits: expect.arrayContaining([
             {
               featureId: expect.any(Number),
@@ -633,6 +637,7 @@ describe("db/artblocks", () => {
         {
           tokenId: snapshots.ARCH_TRIPTYCH_1,
           tokenNewid: newid1,
+          tokenIndex: 36,
           traits: expect.arrayContaining([
             {
               featureId: expect.any(Number),
@@ -647,11 +652,13 @@ describe("db/artblocks", () => {
         {
           tokenId: snapshots.ARCH_TRIPTYCH_2,
           tokenNewid: newid2,
+          tokenIndex: 45,
           traits: [],
         },
         {
           tokenId: snapshots.ARCH_TRIPTYCH_3,
           tokenNewid: newid3,
+          tokenIndex: 467,
           traits: expect.arrayContaining([
             {
               featureId: expect.any(Number),

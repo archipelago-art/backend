@@ -391,6 +391,7 @@ async function getTokenFeaturesAndTraits({
     SELECT
       token_id AS "tokenId",
       tokens.token_newid AS "tokenNewid",
+      token_index AS "tokenIndex",
       feature_id AS "featureId",
       features.feature_newid AS "featureNewid",
       name,
@@ -423,6 +424,7 @@ async function getTokenFeaturesAndTraits({
       currentToken = {
         tokenId: row.tokenId,
         tokenNewid: row.tokenNewid,
+        tokenIndex: row.tokenIndex,
         traits: [],
       };
       result.push(currentToken);
