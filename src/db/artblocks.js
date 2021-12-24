@@ -19,7 +19,7 @@ function artblocksContractAddress(projectId) {
     : CONTRACT_ARTBLOCKS_STANDARD;
 }
 
-// Event payloads are JSON `{ projectId: number, tokenId: number }`.
+// Event payloads are JSON `{ projectId: string, tokenId: string }` (these are "newids").
 const newTokensChannel = events.channel("new_tokens");
 
 // Event payloads are JSON `{ projectId: number, completedThroughTokenId: number }`.
@@ -230,8 +230,8 @@ async function addToken({ client, tokenId, rawTokenData }) {
     alreadyInTransaction: true,
   });
   await newTokensChannel.send(client, {
-    projectId: artblocksProjectIndex,
-    tokenId,
+    projectId: projectNewid,
+    tokenId: tokenNewid,
   });
   await client.query("COMMIT");
   return tokenNewid;

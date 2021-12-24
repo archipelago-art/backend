@@ -148,7 +148,7 @@ describe("db/artblocks", () => {
         const [{ newid: projectNewid }] = await addProjects(client, [
           projectId,
         ]);
-        await addTokens(client, [tokenId]);
+        const [{ newid: tokenNewid }] = await addTokens(client, [tokenId]);
 
         expect(await artblocks.getProject({ client, projectNewid })).toEqual(
           expect.objectContaining({
@@ -156,7 +156,10 @@ describe("db/artblocks", () => {
           })
         );
         const eventValue = await postgresEvent.promise;
-        expect(JSON.parse(eventValue)).toEqual({ projectId, tokenId });
+        expect(JSON.parse(eventValue)).toEqual({
+          projectId: projectNewid,
+          tokenId: tokenNewid,
+        });
       });
     })
   );
