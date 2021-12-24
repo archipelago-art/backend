@@ -66,15 +66,18 @@ function newId(
   return String(asI64(typePart | timestampPart | entropyPart));
 }
 
-// Generates `n` non-overlapping IDs with the given parameters.
+// Generates `n` strictly ascending IDs with the given parameters.
 //
 // (This works even with `n > 2**16`; it may simply take more than 1ms.)
 function newIds(n, ...newIdArgs) {
-  const result = new Set();
-  while (result.size < n) {
-    result.add(newId(...newIdArgs));
+  const set = new Set();
+  while (set.size < n) {
+    set.add(newId(...newIdArgs));
   }
-  return Array.from(result);
+  return Array.from(set)
+    .map((i) => BigInt(i))
+    .sort((a, b) => (a > b ? 1 : a < b ? -1 : 0))
+    .map((i) => String(i));
 }
 
 function idBounds(objectType) {
