@@ -92,6 +92,26 @@ describe("api", () => {
   );
 
   it(
+    "reads a project by slug",
+    withTestDb(async ({ client }) => {
+      const archetype = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      await artblocks.addProject({ client, project: archetype });
+      const res = await api.collection({ client, slug: "archetype" });
+      expect(res).toEqual(
+        expect.objectContaining({
+          id: "ab-23",
+          name: "Archetype",
+          artistName: "Kjetil Golid",
+          slug: "archetype",
+        })
+      );
+    })
+  );
+
+  it(
     "resolves a token ID",
     withTestDb(async ({ client }) => {
       const archetype = parseProjectData(
@@ -115,7 +135,7 @@ describe("api", () => {
   );
 
   it(
-    "provides project features and traits by ID or by newid",
+    "provides project features and traits by collection or slug",
     withTestDb(async ({ client }) => {
       const archetype = parseProjectData(
         snapshots.ARCHETYPE,
@@ -141,8 +161,8 @@ describe("api", () => {
         });
         newids.set(tokenId, newid);
       }
-      const res = await api.projectFeaturesAndTraits({ client, collection });
-      expect(res).toEqual(
+      const res1 = await api.projectFeaturesAndTraits({ client, collection });
+      expect(res1).toEqual(
         expect.arrayContaining([
           {
             name: "Scene",
@@ -162,6 +182,11 @@ describe("api", () => {
           },
         ])
       );
+      const res2 = await api.projectFeaturesAndTraits({
+        client,
+        slug: "archetype",
+      });
+      expect(res2).toEqual(res1);
     })
   );
 
