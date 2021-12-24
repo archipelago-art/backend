@@ -342,19 +342,19 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
   const res = await client.query(
     `
     SELECT
-      feature_id AS "featureId",
-      features.feature_newid AS "featureNewid",
+      features.feature_newid AS "featureId",
       name,
-      trait_id AS "traitId",
-      traits.trait_newid AS "traitNewid",
+      traits.trait_newid AS "traitId",
       value,
       array_agg(token_id ORDER BY token_id) AS tokens,
       array_agg(token_newid::text ORDER BY token_id) AS "tokenNewids"
     FROM features
-      JOIN traits USING (feature_id)
-      JOIN trait_members USING (trait_id)
+      JOIN traits USING (feature_newid)
+      JOIN trait_members USING (trait_newid)
     WHERE project_newid = $1
-    GROUP BY feature_id, trait_id
+    GROUP BY
+      feature_newid, trait_newid,
+      features.name, traits.value  -- functionally dependent
     ORDER BY name, value
     `,
     [projectNewid]
@@ -363,16 +363,18 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
   const result = [];
   let currentFeature = {};
   for (const row of res.rows) {
-    if (currentFeature.featureNewid !== row.featureNewid) {
+    if (currentFeature.featureId !== row.featureId) {
       currentFeature = {
-        featureNewid: row.featureNewid,
+        featureId: row.featureId,
+        featureNewid: row.featureId,
         name: row.name,
         traits: [],
       };
       result.push(currentFeature);
     }
     currentFeature.traits.push({
-      traitNewid: row.traitNewid,
+      traitId: row.traitId,
+      traitNewid: row.traitId,
       value: row.value,
       tokens: row.tokens,
       tokenNewids: row.tokenNewids,
@@ -404,11 +406,9 @@ async function getTokenFeaturesAndTraits({
       token_id AS "tokenId",
       tokens.token_newid AS "tokenNewid",
       token_index AS "tokenIndex",
-      feature_id AS "featureId",
-      features.feature_newid AS "featureNewid",
+      features.feature_newid AS "featureId",
       name,
-      trait_id AS "traitId",
-      traits.trait_newid AS "traitNewid",
+      traits.trait_newid AS "traitId",
       value
     FROM
       features
@@ -447,9 +447,11 @@ async function getTokenFeaturesAndTraits({
     }
     if (row.traitId == null) continue; // OUTER JOIN
     currentToken.traits.push({
-      featureNewid: row.featureNewid,
+      featureId: row.featureId,
+      featureNewid: row.featureId,
       name: row.name,
-      traitNewid: row.traitNewid,
+      traitId: row.traitId,
+      traitNewid: row.traitId,
       value: row.value,
     });
   }

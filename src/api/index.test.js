@@ -155,11 +155,13 @@ describe("api", () => {
         expect.arrayContaining([
           {
             name: "Scene",
+            featureId: expect.any(String),
             featureNewid: expect.any(String),
             slug: "scene",
             traits: expect.arrayContaining([
               {
                 value: "Cube",
+                traitId: expect.any(String),
                 traitNewid: expect.any(String),
                 tokens: [snapshots.THE_CUBE],
                 tokenNewids: [newids.get(snapshots.THE_CUBE)],
@@ -198,17 +200,21 @@ describe("api", () => {
         expect.arrayContaining([
           {
             name: "Framed",
+            featureId: expect.any(String),
             featureNewid: expect.any(String),
             featureSlug: "framed",
             value: "Yep",
+            traitId: expect.any(String),
             traitNewid: expect.any(String),
             traitSlug: "yep",
           },
           {
             name: "Scene",
+            featureId: expect.any(String),
             featureNewid: expect.any(String),
             featureSlug: "scene",
             value: "Cube",
+            traitId: expect.any(String),
             traitNewid: expect.any(String),
             traitSlug: "cube",
           },
