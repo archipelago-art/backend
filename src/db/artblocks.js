@@ -366,7 +366,6 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
     if (currentFeature.featureId !== row.featureId) {
       currentFeature = {
         featureId: row.featureId,
-        featureNewid: row.featureId,
         name: row.name,
         traits: [],
       };
@@ -374,7 +373,6 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
     }
     currentFeature.traits.push({
       traitId: row.traitId,
-      traitNewid: row.traitId,
       value: row.value,
       tokens: row.tokens,
       tokenNewids: row.tokenNewids,
@@ -448,10 +446,8 @@ async function getTokenFeaturesAndTraits({
     if (row.traitId == null) continue; // OUTER JOIN
     currentToken.traits.push({
       featureId: row.featureId,
-      featureNewid: row.featureId,
       name: row.name,
       traitId: row.traitId,
-      traitNewid: row.traitId,
       value: row.value,
     });
   }

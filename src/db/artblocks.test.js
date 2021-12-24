@@ -181,12 +181,10 @@ describe("db/artblocks", () => {
         expect.arrayContaining([
           expect.objectContaining({
             featureId: expect.any(String),
-            featureNewid: expect.any(String),
             name: "0",
             traits: [
               expect.objectContaining({
                 traitId: expect.any(String),
-                traitNewid: expect.any(String),
                 value: "Pleasant palette",
                 tokens: [snapshots.GALAXISS_FEATURES_ARRAY],
                 tokenNewids: [tokenNewid],
@@ -195,12 +193,10 @@ describe("db/artblocks", () => {
           }),
           expect.objectContaining({
             featureId: expect.any(String),
-            featureNewid: expect.any(String),
             name: "1",
             traits: [
               expect.objectContaining({
                 traitId: expect.any(String),
-                traitNewid: expect.any(String),
                 value: "Night theme",
                 tokens: [snapshots.GALAXISS_FEATURES_ARRAY],
                 tokenNewids: [tokenNewid],
@@ -407,7 +403,6 @@ describe("db/artblocks", () => {
       function expectedTrait(value, tokens) {
         return {
           traitId: expect.any(String),
-          traitNewid: expect.any(String),
           value,
           tokens,
           tokenNewids: tokens.map((id) => artblocksTokenIdToTokenNewid.get(id)),
@@ -416,7 +411,6 @@ describe("db/artblocks", () => {
       const expected = [
         {
           featureId: expect.any(String),
-          featureNewid: expect.any(String),
           name: "Coloring strategy",
           traits: [
             expectedTrait("Group", [23000045, 23000467]),
@@ -426,7 +420,6 @@ describe("db/artblocks", () => {
         },
         {
           featureId: expect.any(String),
-          featureNewid: expect.any(String),
           name: "Framed",
           traits: [
             expectedTrait("Yep", [23000036, 23000045, 23000250, 23000467]),
@@ -434,7 +427,6 @@ describe("db/artblocks", () => {
         },
         {
           featureId: expect.any(String),
-          featureNewid: expect.any(String),
           name: "Layout",
           traits: [
             expectedTrait("Chaos", [23000250]),
@@ -443,7 +435,6 @@ describe("db/artblocks", () => {
         },
         {
           featureId: expect.any(String),
-          featureNewid: expect.any(String),
           name: "Palette",
           traits: [
             expectedTrait("Paddle", [23000036, 23000045, 23000250, 23000467]),
@@ -451,7 +442,6 @@ describe("db/artblocks", () => {
         },
         {
           featureId: expect.any(String),
-          featureNewid: expect.any(String),
           name: "Scene",
           traits: [
             expectedTrait("Cube", [23000250]),
@@ -460,7 +450,6 @@ describe("db/artblocks", () => {
         },
         {
           featureId: expect.any(String),
-          featureNewid: expect.any(String),
           name: "Shading",
           traits: [
             expectedTrait("Bright Morning", [23000250]),
@@ -490,18 +479,14 @@ describe("db/artblocks", () => {
           traits: expect.arrayContaining([
             {
               featureId: expect.any(String),
-              featureNewid: expect.any(String),
               name: "Framed",
               traitId: expect.any(String),
-              traitNewid: expect.any(String),
               value: "Yep",
             },
             {
               featureId: expect.any(String),
-              featureNewid: expect.any(String),
               name: "Scene",
               traitId: expect.any(String),
-              traitNewid: expect.any(String),
               value: "Cube",
             },
           ]),
@@ -528,18 +513,14 @@ describe("db/artblocks", () => {
           traits: expect.arrayContaining([
             {
               featureId: expect.any(String),
-              featureNewid: expect.any(String),
               name: "Framed",
               traitId: expect.any(String),
-              traitNewid: expect.any(String),
               value: "Yep",
             },
             {
               featureId: expect.any(String),
-              featureNewid: expect.any(String),
               name: "Scene",
               traitId: expect.any(String),
-              traitNewid: expect.any(String),
               value: "Cube",
             },
           ]),
@@ -596,10 +577,8 @@ describe("db/artblocks", () => {
           traits: expect.arrayContaining([
             {
               featureId: expect.any(String),
-              featureNewid: expect.any(String),
               name: "Scene",
               traitId: expect.any(String),
-              traitNewid: expect.any(String),
               value: "Flat",
             },
           ]),
@@ -611,10 +590,8 @@ describe("db/artblocks", () => {
           traits: expect.arrayContaining([
             {
               featureId: expect.any(String),
-              featureNewid: expect.any(String),
               name: "Scene",
               traitId: expect.any(String),
-              traitNewid: expect.any(String),
               value: "Flat",
             },
           ]),
@@ -655,10 +632,8 @@ describe("db/artblocks", () => {
           traits: expect.arrayContaining([
             {
               featureId: expect.any(String),
-              featureNewid: expect.any(String),
               name: "Scene",
               traitId: expect.any(String),
-              traitNewid: expect.any(String),
               value: "Flat",
             },
           ]),
@@ -676,10 +651,8 @@ describe("db/artblocks", () => {
           traits: expect.arrayContaining([
             {
               featureId: expect.any(String),
-              featureNewid: expect.any(String),
               name: "Scene",
               traitId: expect.any(String),
-              traitNewid: expect.any(String),
               value: "Flat",
             },
           ]),

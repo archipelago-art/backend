@@ -14,11 +14,9 @@ types.tokenData = C.object({
   traits: C.array(
     C.object({
       featureId: C.string,
-      featureNewid: C.string,
       featureSlug: C.string,
       name: C.string,
       traitId: C.string,
-      traitNewid: C.string,
       traitSlug: C.string,
       value: C.raw,
     })
