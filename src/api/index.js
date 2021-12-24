@@ -1,4 +1,4 @@
-const slug = require("slug");
+const slugify = require("slug");
 
 const artblocks = require("../db/artblocks");
 const opensea = require("../db/opensea");
@@ -106,10 +106,10 @@ async function projectFeaturesAndTraits({ client, collection }) {
     projectNewid,
   });
   for (const feature of res) {
-    feature.slug = slug(feature.name);
+    feature.slug = slugify(feature.name);
     feature.traits = sortAsciinumeric(feature.traits, (t) => String(t.value));
     for (const trait of feature.traits) {
-      trait.slug = slug(String(trait.value));
+      trait.slug = slugify(String(trait.value));
     }
   }
   return res;
@@ -138,8 +138,8 @@ async function tokenFeaturesAndTraitsByNewid({ client, tokenNewid }) {
 
 function formatTokenTraits(result) {
   for (const row of result) {
-    row.featureSlug = slug(row.name);
-    row.traitSlug = slug(String(row.value));
+    row.featureSlug = slugify(row.name);
+    row.traitSlug = slugify(String(row.value));
   }
   return result;
 }
