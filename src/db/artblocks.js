@@ -106,7 +106,7 @@ async function addProject({ client, project, slugOverride }) {
     [projectNewid, project.projectId]
   );
   await client.query("COMMIT");
-  return String(projectNewid);
+  return projectNewid;
 }
 
 async function getProject({ client, projectNewid }) {
@@ -234,7 +234,7 @@ async function addToken({ client, tokenId, rawTokenData }) {
     tokenId,
   });
   await client.query("COMMIT");
-  return String(tokenNewid);
+  return tokenNewid;
 }
 
 async function populateTraitMembers({

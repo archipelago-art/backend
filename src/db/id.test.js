@@ -4,11 +4,11 @@ describe("db/id", () => {
   describe("newId", () => {
     it("includes the right tag for ObjectType.TOKEN", () => {
       const id = newId(ObjectType.TOKEN);
-      expect(Number(id >> 58n)).toEqual(ObjectType.TOKEN);
+      expect(Number(BigInt(id) >> 58n)).toEqual(ObjectType.TOKEN);
     });
     it("includes the right tag for ObjectType.PROJECT", () => {
       const id = newId(ObjectType.PROJECT);
-      expect(Number(id >> 58n)).toEqual(ObjectType.PROJECT);
+      expect(Number(BigInt(id) >> 58n)).toEqual(ObjectType.PROJECT);
     });
 
     it("puts the right bits in the right spots when manually specified", () => {
@@ -17,9 +17,10 @@ describe("db/id", () => {
         timestampMs: now,
         entropyBuf: Buffer.from([0xab, 0xcd]),
       });
-      expect(Number(id >> 58n)).toEqual(ObjectType.TOKEN);
-      expect(Number((id >> 16n) & ((1n << 42n) - 1n))).toEqual(now);
-      expect(Number(id & ((1n << 16n) - 1n))).toEqual(0xcdab);
+      expect(id).toEqual(expect.any(String));
+      expect(Number(BigInt(id) >> 58n)).toEqual(ObjectType.TOKEN);
+      expect(Number((BigInt(id) >> 16n) & ((1n << 42n) - 1n))).toEqual(now);
+      expect(Number(BigInt(id) & ((1n << 16n) - 1n))).toEqual(0xcdab);
     });
 
     it("works with large (but in-range) timestamps", () => {
@@ -29,9 +30,9 @@ describe("db/id", () => {
         timestampMs: now,
         entropyBuf: Buffer.from([0xab, 0xcd]),
       });
-      expect(Number(id >> 58n)).toEqual(type);
-      expect(Number((id >> 16n) & ((1n << 42n) - 1n))).toEqual(now);
-      expect(Number(id & ((1n << 16n) - 1n))).toEqual(0xcdab);
+      expect(Number(BigInt(id) >> 58n)).toEqual(type);
+      expect(Number((BigInt(id) >> 16n) & ((1n << 42n) - 1n))).toEqual(now);
+      expect(Number(BigInt(id) & ((1n << 16n) - 1n))).toEqual(0xcdab);
     });
 
     it("rejects out-of-range timestamps", () => {
@@ -56,14 +57,14 @@ describe("db/id", () => {
 
     it("returns positive integers for object types less than 32", () => {
       const type = 31;
-      const id = newId(type, { checkObjectType: false });
+      const id = BigInt(newId(type, { checkObjectType: false }));
       expect(id).toBeGreaterThanOrEqual(2n ** 62n);
       expect(Number(id >> 58n)).toEqual(type);
     });
 
     it("returns negative (signed 64-bit) integers for larger object types", () => {
       const type = 32;
-      const id = newId(type, { checkObjectType: false });
+      const id = BigInt(newId(type, { checkObjectType: false }));
       expect(id).toBeLessThan(0n);
       expect(Number(BigInt.asUintN(64, id) >> 58n)).toEqual(type);
     });
@@ -72,8 +73,8 @@ describe("db/id", () => {
   describe("idBounds", () => {
     it("returns the proper bounds for token IDs", () => {
       expect(idBounds(ObjectType.TOKEN)).toEqual({
-        min: 0x400000000000000n,
-        max: 0x7ffffffffffffffn,
+        min: String(0x400000000000000n),
+        max: String(0x7ffffffffffffffn),
       });
     });
     it("rejects unknown object types", () => {

@@ -63,7 +63,7 @@ function newId(
   const timestampPart = BigInt(timestampMs) << 16n;
   const typePart = BigInt(objectType) << 58n;
 
-  return asI64(typePart | timestampPart | entropyPart);
+  return String(asI64(typePart | timestampPart | entropyPart));
 }
 
 // Generates `n` non-overlapping IDs with the given parameters.
@@ -83,7 +83,7 @@ function idBounds(objectType) {
   }
   const min = BigInt(objectType) << 58n;
   const max = min | ((1n << 58n) - 1n);
-  return { min: asI64(min), max: asI64(max) };
+  return { min: String(asI64(min)), max: String(asI64(max)) };
 }
 
 module.exports = {
