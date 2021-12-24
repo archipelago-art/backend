@@ -92,6 +92,29 @@ describe("api", () => {
   );
 
   it(
+    "resolves a token ID",
+    withTestDb(async ({ client }) => {
+      const archetype = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      const theCube = await sc.token(snapshots.THE_CUBE);
+      await artblocks.addProject({ client, project: archetype });
+      const tokenNewid = await artblocks.addToken({
+        client,
+        tokenId: snapshots.THE_CUBE,
+        rawTokenData: theCube,
+      });
+      const res = await api.tokenNewidBySlugAndIndex({
+        client,
+        slug: "archetype",
+        tokenIndex: 250,
+      });
+      expect(res).toEqual(tokenNewid);
+    })
+  );
+
+  it(
     "provides project mint state",
     withTestDb(async ({ client }) => {
       const archetype = parseProjectData(

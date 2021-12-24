@@ -27,6 +27,19 @@ function collectionNameToArtblocksProjectIdUnwrap(name) {
   return projectId;
 }
 
+async function tokenNewidBySlugAndIndex({ client, slug, tokenIndex }) {
+  const res = await client.query(
+    `
+    SELECT token_newid AS newid
+    FROM projects JOIN tokens USING (project_newid)
+    WHERE projects.slug = $1 AND tokens.token_index = $2
+    `,
+    [slug, tokenIndex]
+  );
+  if (res.rows.length === 0) return null;
+  return res.rows[0].newid;
+}
+
 async function resolveProjectNewid(client, collection) {
   const index = collectionNameToArtblocksProjectIdUnwrap(collection);
   const res = await client.query(
@@ -207,6 +220,7 @@ async function openseaSalesByProject({ client, afterDate }) {
 module.exports = {
   artblocksProjectIdToCollectionName,
   collectionNameToArtblocksProjectId,
+  tokenNewidBySlugAndIndex,
   collections,
   collection,
   collectionMintState,
