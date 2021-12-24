@@ -324,14 +324,14 @@ async function populateTraitMembers({
 
 /*
  * type Trait = {
- *   id: integer,
+ *   traitNewid: string,
  *   value: Json,
  *   tokens: integer[],
- *   tokensOnChain: {address: string, onChainId: string<BigNumber>},
+ *   tokenNewids: string[],
  * }
  *
  * type Feature = {
- *   id: integer,
+ *   featureNewid: string,
  *   name: string,
  *   traits: Trait[],
  * }
@@ -363,9 +363,8 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
   const result = [];
   let currentFeature = {};
   for (const row of res.rows) {
-    if (currentFeature.id !== row.featureId) {
+    if (currentFeature.featureNewid !== row.featureNewid) {
       currentFeature = {
-        id: row.featureId,
         featureNewid: row.featureNewid,
         name: row.name,
         traits: [],
@@ -373,7 +372,6 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
       result.push(currentFeature);
     }
     currentFeature.traits.push({
-      id: row.traitId,
       traitNewid: row.traitNewid,
       value: row.value,
       tokens: row.tokens,
@@ -449,10 +447,8 @@ async function getTokenFeaturesAndTraits({
     }
     if (row.traitId == null) continue; // OUTER JOIN
     currentToken.traits.push({
-      featureId: row.featureId,
       featureNewid: row.featureNewid,
       name: row.name,
-      traitId: row.traitId,
       traitNewid: row.traitNewid,
       value: row.value,
     });
