@@ -12,7 +12,7 @@ describe("backfills/projectSlugs", () => {
   async function slugs(client) {
     const res = await client.query(`
       SELECT name, slug FROM projects
-      ORDER BY project_id ASC
+      ORDER BY name ASC
     `);
     return res.rows;
   }
@@ -31,13 +31,13 @@ describe("backfills/projectSlugs", () => {
       await addProject(client, snapshots.ARCHETYPE);
       await client.query(`UPDATE projects SET slug = NULL`);
       expect(await slugs(client)).toEqual([
-        { name: "Chromie Squiggle", slug: null },
         { name: "Archetype", slug: null },
+        { name: "Chromie Squiggle", slug: null },
       ]);
       await backfillProjectSlugs({ pool });
       expect(await slugs(client)).toEqual([
-        { name: "Chromie Squiggle", slug: "chromie-squiggle" },
         { name: "Archetype", slug: "archetype" },
+        { name: "Chromie Squiggle", slug: "chromie-squiggle" },
       ]);
     })
   );
@@ -55,8 +55,8 @@ describe("backfills/projectSlugs", () => {
       });
       await backfillProjectSlugs({ pool });
       expect(await slugs(client)).toEqual([
-        { name: "Chromie Squiggle", slug: "squigglez" },
         { name: "Archetype", slug: "archetype" },
+        { name: "Chromie Squiggle", slug: "squigglez" },
       ]);
     })
   );
