@@ -136,7 +136,7 @@ async function getProject({ client, projectId }) {
   return row;
 }
 
-async function setProjectSlug({ client, projectId, slug }) {
+async function setProjectSlug({ client, projectNewid, slug }) {
   if (typeof slug !== "string") {
     throw new Error(
       "new slug should be a string, but got: " + JSON.stringify(project)
@@ -144,12 +144,12 @@ async function setProjectSlug({ client, projectId, slug }) {
   }
   const res = await client.query(
     `
-    UPDATE projects SET slug = $2 WHERE project_id = $1
+    UPDATE projects SET slug = $2 WHERE project_newid = $1
     `,
-    [projectId, slug]
+    [projectNewid, slug]
   );
   if (res.rowCount === 0)
-    throw new Error("no project found by ID " + projectId);
+    throw new Error("no project found by ID " + projectNewid);
 }
 
 async function getProjectIdBySlug({ client, slug }) {

@@ -18,7 +18,7 @@ describe("backfills/projectSlugs", () => {
   }
 
   async function addProject(client, id) {
-    await artblocks.addProject({
+    return await artblocks.addProject({
       client,
       project: parseProjectData(id, await sc.project(id)),
     });
@@ -45,12 +45,12 @@ describe("backfills/projectSlugs", () => {
   it(
     "doesn't overwrite slugs that are already set",
     withTestDb(async ({ client, pool }) => {
-      await addProject(client, snapshots.SQUIGGLES);
+      const squigglesNewid = await addProject(client, snapshots.SQUIGGLES);
       await addProject(client, snapshots.ARCHETYPE);
       await client.query(`UPDATE projects SET slug = NULL`);
       await artblocks.setProjectSlug({
         client,
-        projectId: snapshots.SQUIGGLES,
+        projectNewid: squigglesNewid,
         slug: "squigglez",
       });
       await backfillProjectSlugs({ pool });
