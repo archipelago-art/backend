@@ -511,6 +511,7 @@ async function getTokenSummaries({ client, tokens }) {
       name,
       artist_name AS "artistName",
       slug,
+      token_index AS "tokenIndex",
       aspect_ratio AS "aspectRatio"
     FROM tokens
     JOIN (

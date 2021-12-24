@@ -693,6 +693,7 @@ describe("db/artblocks", () => {
           name: "Archetype",
           artistName: "Kjetil Golid",
           slug: "archetype",
+          tokenIndex: 36,
           aspectRatio: 1,
         },
         {
@@ -701,6 +702,7 @@ describe("db/artblocks", () => {
           name: "Archetype",
           artistName: "Kjetil Golid",
           slug: "archetype",
+          tokenIndex: 45,
           aspectRatio: 1,
         },
       ]);
