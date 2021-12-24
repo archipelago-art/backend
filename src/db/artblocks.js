@@ -2,7 +2,7 @@ const slug = require("slug");
 
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const events = require("./events");
-const { ObjectType, newId } = require("./id");
+const { ObjectType, newId, newIds } = require("./id");
 const { hexToBuf, bufToAddress } = require("./util");
 
 const PROJECT_STRIDE = 1e6;
@@ -265,7 +265,7 @@ async function populateTraitMembers({
       projectId,
       projectNewid,
       featureNames,
-      featureNames.map(() => newId(ObjectType.FEATURE)),
+      newIds(featureNames.length, ObjectType.FEATURE),
     ]
   );
   const featureIdsRes = await client.query(
@@ -298,7 +298,7 @@ async function populateTraitMembers({
       featureIds,
       featureNewids,
       traitValues,
-      traitValues.map(() => newId(ObjectType.TRAIT)),
+      newIds(traitValues.length, ObjectType.TRAIT),
     ]
   );
 
