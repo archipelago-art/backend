@@ -2,7 +2,6 @@ const util = require("util");
 
 const slug = require("slug");
 
-const api = require("../api");
 const artblocks = require("../db/artblocks");
 const { acqrel } = require("../db/util");
 const C = require("../util/combo");
@@ -31,24 +30,10 @@ const requestParser = C.sum("type", {
     nonce: C.string,
   },
   // Sent to request tokens for a collection.
-  GET_LATEST_TOKENS: C.fmap(
-    C.object(
-      {
-        type: C.exactly(["GET_LATEST_TOKENS"]),
-        lastTokenId: C.orElse([C.null_, C.number]),
-      },
-      {
-        collection: C.string,
-        slug: C.string,
-      }
-    ),
-    (x) => {
-      if (x.slug == null && x.collection == null) {
-        throw new Error('missing both "slug" and "collection"');
-      }
-      return x;
-    }
-  ),
+  GET_LATEST_TOKENS: {
+    slug: C.string,
+    lastTokenId: C.orElse([C.null_, C.number]),
+  },
 });
 
 const responseParser = C.sum("type", {
@@ -184,38 +169,22 @@ function handlePing(ws, pool, request) {
   sendJson(ws, { type: "PONG", nonce: request.nonce });
 }
 
-async function parseProjectId({ pool, collection, slug }) {
-  if (slug != null) {
-    const newid = await acqrel(pool, (client) =>
-      api.resolveProjectNewid({ client, slug })
-    );
-    if (newid == null) throw new Error("no collection by slug: " + slug);
-    // temporary hack, pending this module being rewritten around newids
-    const res = await pool.query(
-      `
+async function getProjectId({ pool, slug }) {
+  // temporary hack, pending this module being rewritten around newids
+  const res = await pool.query(
+    `
       SELECT project_id AS id FROM projects
-      WHERE project_newid = $1
+      WHERE slug = $1
       `,
-      [newid]
-    );
-    return res.rows[0].id;
-  }
-  if (collection != null) {
-    const projectId = api.collectionNameToArtblocksProjectId(collection);
-    if (projectId == null)
-      throw new Error("invalid collection ID: " + collection);
-    return projectId;
-  }
-  throw new Error('must specify either "collection" or "slug"');
+    [slug]
+  );
+  if (res.rows.length === 0) throw new Error("no collection by slug: " + slug);
+  return res.rows[0].id;
 }
 
 async function handleGetLatestTokens(ws, pool, imageProgress, request) {
   const { lastTokenId } = request;
-  const projectId = await parseProjectId({
-    pool,
-    collection: request.collection,
-    slug: request.slug,
-  });
+  const projectId = await getProjectId({ pool, slug: request.slug });
   const minTokenId = lastTokenId == null ? 0 : lastTokenId + 1;
   const maxTokenId = imageProgress.get(projectId) ?? -1;
   const tokens = await acqrel(pool, async (client) => {
