@@ -133,14 +133,9 @@ async function projectFeaturesAndTraits({ client, collection, slug }) {
   return res;
 }
 
+// `tokenId` should be the `newid` (numeric string of large integer)
 async function tokenFeaturesAndTraits({ client, tokenId }) {
-  if (!Number.isInteger(tokenId)) throw new Error("bad token ID: " + tokenId);
-  const res = await artblocks.getTokenFeaturesAndTraits({
-    client,
-    tokenId,
-  });
-  if (res.length !== 1) return [];
-  return formatTokenTraits(res[0].traits);
+  return tokenFeaturesAndTraitsByNewid({ client, tokenNewid: tokenId });
 }
 
 async function tokenFeaturesAndTraitsByNewid({ client, tokenNewid }) {

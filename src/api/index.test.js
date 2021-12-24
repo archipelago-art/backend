@@ -208,7 +208,10 @@ describe("api", () => {
         tokenId,
         rawTokenData,
       });
-      const res1 = await api.tokenFeaturesAndTraits({ client, tokenId });
+      const res1 = await api.tokenFeaturesAndTraits({
+        client,
+        tokenId: tokenNewid,
+      });
       expect(res1).toEqual(
         expect.arrayContaining([
           {
