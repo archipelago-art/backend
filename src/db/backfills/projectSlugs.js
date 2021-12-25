@@ -1,6 +1,5 @@
-const slug = require("slug");
-
 const { acqrel } = require("../util");
+const slug = require("../../util/slugify");
 
 async function backfillProjectSlugs({ pool, verbose }) {
   const { rows: sluglessProjects } = await pool.query(`

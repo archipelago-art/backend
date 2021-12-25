@@ -1,10 +1,9 @@
 const util = require("util");
 
-const slug = require("slug");
-
 const artblocks = require("../db/artblocks");
 const { acqrel } = require("../db/util");
 const C = require("../util/combo");
+const slug = require("../util/slugify");
 
 const types = {};
 types.tokenData = C.object({

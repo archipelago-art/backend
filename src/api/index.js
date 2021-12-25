@@ -1,10 +1,9 @@
-const slugify = require("slug");
-
 const artblocks = require("../db/artblocks");
 const opensea = require("../db/opensea");
 const emails = require("../db/emails");
 const { bufToAddress } = require("../db/util");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
+const slugify = require("../util/slugify");
 const sortAsciinumeric = require("../util/sortAsciinumeric");
 
 const PROJECT_STRIDE = 1e6;

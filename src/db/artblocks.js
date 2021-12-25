@@ -1,6 +1,5 @@
-const slug = require("slug");
-
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
+const slug = require("../util/slugify");
 const events = require("./events");
 const { ObjectType, newId, newIds } = require("./id");
 const { hexToBuf, bufToAddress } = require("./util");
