@@ -1,3 +1,5 @@
+const log = require("../../util/log")(__filename);
+
 async function backfillEventTypes({ pool, verbose }) {
   const { rows: typelessEvents } = await pool.query(`
     SELECT event_id AS "eventId", json
@@ -21,7 +23,7 @@ async function backfillEventTypes({ pool, verbose }) {
   );
   if (verbose) {
     const changes = res.rowCount;
-    console.log(`updated ${changes} events`);
+    log.info`updated ${changes} events`;
   }
 }
 

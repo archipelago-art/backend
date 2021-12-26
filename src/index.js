@@ -22,6 +22,7 @@ const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 const attach = require("./ws");
 const adHocPromise = require("./util/adHocPromise");
+const log = require("./util/log")(__filename);
 
 const NETWORK_CONCURRENCY = 64;
 const IMAGEMAGICK_CONCURRENCY = 16;
@@ -106,9 +107,9 @@ async function addProject(args) {
         return;
       }
       await artblocks.addProject({ client, project });
-      console.log("added project %s (%s)", project.projectId, project.name);
+      log.info`added project ${project.projectId} (${project.name})`;
     } catch (e) {
-      console.error("failed to add project %s: %s", projectId, e);
+      log.error`failed to add project ${projectId}: ${e}`;
       process.exitCode = 1;
       return;
     }
@@ -138,7 +139,7 @@ async function addProjectTokens(args) {
         ? artblocks.getAllUnfetchedTokenIds({ client })
         : artblocks.getUnfetchedTokenIds({ client, projectId })
     );
-    console.log(`got ${ids.length} missing IDs`);
+    log.info`got ${ids.length} missing IDs`;
     const chunks = [];
     async function worker() {
       while (true) {
@@ -154,14 +155,12 @@ async function addProjectTokens(args) {
                 rawTokenData: token.raw,
               })
             );
-            console.log("added token " + tokenId);
+            log.info`added token ${tokenId}`;
           } else {
-            console.log("skipping token %s (not found)", tokenId);
+            log.info`skipping token ${tokenId} (not found)`;
           }
         } catch (e) {
-          console.log("failed to add token " + tokenId);
-          console.error(e);
-          console.error(`failed to add token ${tokenId}: ${e}`);
+          log.warn`failed to add token ${tokenId}: ${e}`;
         }
       }
     }
@@ -182,14 +181,12 @@ async function followLiveMint(args) {
     let sleepDuration = LIVE_MINT_INITIAL_DELAY_MS;
     while (true) {
       if (ids.length === 0) {
-        console.log(`project ${projectId} is fully minted`);
+        log.info`project ${projectId} is fully minted`;
         return;
       }
-      console.log(`checking for ${ids[0]}`);
+      log.info`checking for ${ids[0]}`;
       if (!(await tryAddTokenLive({ pool, tokenId: ids[0] }))) {
-        console.log(
-          `token ${ids[0]} not ready yet; zzz ${sleepDuration / 1000}s`
-        );
+        log.info`token ${ids[0]} not ready yet; zzz ${sleepDuration / 1000}s`;
         await sleepMs(sleepDuration);
         // exponential backoff up to a limit
         sleepDuration = Math.min(
@@ -200,24 +197,24 @@ async function followLiveMint(args) {
       }
       // found a token, reset exponential backoff
       sleepDuration = LIVE_MINT_INITIAL_DELAY_MS;
-      console.log(`added token ${ids[0]}; reaching ahead`);
+      log.info`added token ${ids[0]}; reaching ahead`;
       ids.shift();
       const workItems = [...ids];
       let bailed = false;
       async function worker() {
         while (true) {
           if (bailed) {
-            console.log(`sibling task bailed; bailing`);
+            log.info`sibling task bailed; bailing`;
             return;
           }
           const tokenId = workItems.shift();
           if (tokenId == null) return;
           if (!(await tryAddTokenLive({ pool, tokenId }))) {
-            console.log(`token ${tokenId} not ready yet; bailing`);
+            log.info`token ${tokenId} not ready yet; bailing`;
             bailed = true;
             return;
           }
-          console.log(`added token ${tokenId}`);
+          log.info`added token ${tokenId}`;
           ids = ids.filter((x) => x !== tokenId);
         }
       }
@@ -227,7 +224,7 @@ async function followLiveMint(args) {
           .map(() => worker())
       );
       if (ids.length > 0) {
-        console.log("going back to sleep");
+        log.info`going back to sleep`;
         await sleepMs(LIVE_MINT_INITIAL_DELAY_MS);
       }
     }
@@ -247,9 +244,7 @@ async function tryAddTokenLive({ pool, tokenId }) {
     );
     return true;
   } catch (e) {
-    console.log("failed to add token " + tokenId);
-    console.error(e);
-    console.error(`failed to add token ${tokenId}: ${e}`);
+    log.warn`failed to add token ${tokenId}: ${e}`;
     return false;
   }
 }
@@ -260,7 +255,7 @@ async function downloadImages(args) {
     const tokens = await acqrel(pool, (client) =>
       artblocks.getTokenImageData({ client })
     );
-    console.log(`got ${tokens.length} token image URLs`);
+    log.info`got ${tokens.length} token image URLs`;
     const chunks = [];
     async function worker() {
       while (true) {
@@ -269,9 +264,9 @@ async function downloadImages(args) {
         const { tokenId, imageUrl } = workUnit;
         try {
           const path = await images.download(rootDir, imageUrl, tokenId);
-          console.log("downloaded image for %s to %s", tokenId, path);
+          log.info`downloaded image for ${tokenId} to ${path}`;
         } catch (e) {
-          console.error(`failed to download image for ${tokenId}: ${e}`);
+          log.error`failed to download image for ${tokenId}: ${e}`;
         }
       }
     }
@@ -292,7 +287,7 @@ async function resizeImages(args) {
     const tokenIds = await acqrel(pool, (client) =>
       artblocks.getTokenIds({ client })
     );
-    console.log(`got ${tokenIds.length} token IDs`);
+    log.info`got ${tokenIds.length} token IDs`;
     const chunks = [];
     async function worker() {
       while (true) {
@@ -306,15 +301,12 @@ async function resizeImages(args) {
             outputSizePx
           );
           if (outputPath == null) {
-            console.log(
-              "declined to resize image for %s (input did not exist)",
-              tokenId
-            );
+            log.warn`declined to resize image for ${tokenId} (input did not exist)`;
           } else {
-            console.log("resized image for %s to %s", tokenId, outputPath);
+            log.info`resized image for ${tokenId} to ${outputPath}`;
           }
         } catch (e) {
-          console.error(`failed to resize image for ${tokenId}: ${e}`);
+          log.error`failed to resize image for ${tokenId}: ${e}`;
         }
       }
     }
@@ -330,7 +322,7 @@ async function ingestImages(args) {
   const gcs = require("@google-cloud/storage");
   let dryRun = false;
   if (args[0] === "-n" || args[0] === "--dry-run") {
-    console.log("dry run mode enabled");
+    log.info`dry run mode enabled`;
     dryRun = true;
     args.shift();
   }
@@ -346,12 +338,12 @@ async function ingestImages(args) {
     const listenClient = await pool.connect();
     listenClient.on("notification", (n) => {
       if (n.channel !== artblocks.newTokensChannel.name) return;
-      console.log("scheduling wake for new token event: %s", n.payload);
+      log.info`scheduling wake for new token event: ${n.payload}`;
       newTokens.resolve();
     });
     await artblocks.newTokensChannel.listen(listenClient);
 
-    console.log("collecting project scripts");
+    log.info`collecting project scripts`;
     const allScripts = await acqrel(pool, (client) =>
       artblocks.getAllProjectScripts({ client })
     );
@@ -371,14 +363,14 @@ async function ingestImages(args) {
       dryRun,
       pool,
     };
-    console.log(`listing images in gs://${ctx.bucket.name}/${ctx.prefix}`);
+    log.info`listing images in gs://${ctx.bucket.name}/${ctx.prefix}`;
     const listing = await images.list(ctx.bucket, ctx.prefix);
     while (true) {
-      console.log(
-        dryRun
-          ? "would update image progress table (skipping for dry run)"
-          : "updating image progress table"
-      );
+      if (dryRun) {
+        log.info`would update image progress table (skipping for dry run)`;
+      } else {
+        log.info`updating image progress table`;
+      }
       const progress = Array.from(images.listingProgress(listing)).map(
         ([k, v]) => ({
           projectId: k,
@@ -390,24 +382,20 @@ async function ingestImages(args) {
           artblocks.updateImageProgress({ client, progress })
         );
       }
-      console.log("fetching token IDs and download URLs");
+      log.info`fetching token IDs and download URLs`;
       const tokens = await acqrel(pool, (client) =>
         artblocks.getTokenImageData({ client })
       );
-      console.log(`got ${tokens.length} tokens`);
-      console.log(`got images for ${listing.size} tokens`);
+      log.info`got ${tokens.length} tokens`;
+      log.info`got images for ${listing.size} tokens`;
       await images.ingest(ctx, tokens, listing, {
         concurrency: IMAGEMAGICK_CONCURRENCY,
       });
-      console.log(`sleeping for up to ${INGESTION_LATENCY_SECONDS} seconds`);
-      console.log(
-        await Promise.race([
-          sleepMs(INGESTION_LATENCY_SECONDS * 1000).then(
-            () => "woke from sleep"
-          ),
-          newTokens.promise.then(() => "woke from new tokens notification"),
-        ])
-      );
+      log.info`sleeping for up to ${INGESTION_LATENCY_SECONDS} seconds`;
+      log.info`${await Promise.race([
+        sleepMs(INGESTION_LATENCY_SECONDS * 1000).then(() => "woke from sleep"),
+        newTokens.promise.then(() => "woke from new tokens notification"),
+      ])}`;
       newTokens = adHocPromise();
     }
   });
@@ -424,10 +412,10 @@ async function tokenFeedWss(args) {
     [cert, key] = await Promise.all(
       [certFile, keyFile].map((f) => util.promisify(fs.readFile)(f))
     );
-    console.log("serving over TLS");
+    log.info`serving over TLS`;
     httpServer = https.createServer({ cert, key });
   } else {
-    console.log("serving without TLS certificate");
+    log.info`serving without TLS certificate`;
     httpServer = http.createServer({});
   }
   const wsServer = new ws.WebSocketServer({
@@ -437,7 +425,7 @@ async function tokenFeedWss(args) {
   const pool = new pg.Pool();
   await attach(wsServer, pool);
   httpServer.listen(port);
-  console.log("listening on port %s", port);
+  log.info`listening on port ${port}`;
 }
 
 async function ingestOpenseaCollection(args) {
@@ -497,10 +485,10 @@ async function aggregateOpenseaSales(args) {
       client,
       afterDate,
     });
-    console.log(`| slug | totalSales |`);
-    console.log(`|------|-----------:|`);
+    log.info`| slug | totalSales |`;
+    log.info`|------|-----------:|`;
     for (const { slug, totalEthSales } of totalSales) {
-      console.log(`| ${slug} | ${ethers.utils.formatUnits(totalEthSales)} |`);
+      log.info`| ${slug} | ${ethers.utils.formatUnits(totalEthSales)} |`;
     }
   });
 }

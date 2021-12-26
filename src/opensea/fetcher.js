@@ -1,6 +1,7 @@
-const { fetchEventsByTypes } = require("./fetch");
 const { addEvents, getLastUpdated, setLastUpdated } = require("../db/opensea");
+const log = require("../util/log")(__filename);
 const { getSlugs } = require("./collections");
+const { fetchEventsByTypes } = require("./fetch");
 
 const ONE_MONTH = 1000 * 60 * 60 * 24 * 30;
 const LATE_EVENT_SAFETY_MARGIN = 1000 * 60 * 3;
@@ -22,7 +23,7 @@ async function processEventsWindow({
   const since =
     (await getLastUpdated({ client, slug })) || BEGINNING_OF_HISTORY;
   const windowEnd = new Date(+since + windowDurationMs);
-  console.log(`${slug}: scanning window starting ${since.toISOString()}`);
+  log.trace`${slug}: scanning window starting ${since.toISOString()}`;
   const events = await fetchEventsByTypes({
     source: { slug },
     since,
@@ -34,11 +35,9 @@ async function processEventsWindow({
   // care about (rare + very difficult to correctly attribute the price to the pieces)
   const strippedEvents = events.filter((x) => x.asset != null).map(stripEvent);
   await addEvents({ client, events: strippedEvents });
-  console.log(
-    `${slug}: added ${
-      strippedEvents.length
-    } events in window ending ${windowEnd.toISOString()}`
-  );
+  log.info`${slug}: added ${
+    strippedEvents.length
+  } events in window ending ${windowEnd.toISOString()}`;
   if (windowEnd > Date.now()) {
     // If we've made it up to the present time, we record the latest scan as a few minutes ago,
     // because "late" events sometimes make it into the opensea database (due to block propagation
@@ -92,11 +91,11 @@ async function ingestAllCollections({ client, apiKey, windowDurationMs }) {
   // new data.
   // It will still get around to every collection eventually.
   for (const slug of neverLoadedSlugs) {
-    console.log(`=== ingesting opensea events for ${slug} ===`);
+    log.info`=== ingesting opensea events for ${slug} ===`;
     await processOpenseaCollection({ client, slug, apiKey, windowDurationMs });
   }
   for (const slug of slugsToUpdate) {
-    console.log(`=== ingesting opensea events for ${slug} ===`);
+    log.info`=== ingesting opensea events for ${slug} ===`;
     await processOpenseaCollection({ client, slug, apiKey, windowDurationMs });
   }
 }

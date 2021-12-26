@@ -3,6 +3,7 @@ const {
   consumeEvents,
   addSales,
 } = require("../db/opensea");
+const log = require("../util/log")(__filename);
 
 const ETHER_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -33,10 +34,10 @@ async function processSales({ client }) {
     await addSales({ client, sales });
     await consumeEvents({ client, eventIds: events.map((x) => x.eventId) });
     await client.query("COMMIT");
-    console.log(`processed ${sales.length} sales`);
+    log.info`processed ${sales.length} sales`;
     total += sales.length;
   }
-  console.log(`finished: ${total} sales`);
+  log.info`finished: ${total} sales`;
 }
 
 module.exports = { processSales };

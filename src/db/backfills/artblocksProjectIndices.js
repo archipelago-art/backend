@@ -1,3 +1,5 @@
+const log = require("../../util/log")(__filename);
+
 async function backfillArtblocksProjectIndices({ pool, verbose }) {
   const res = await pool.query(`
     INSERT INTO artblocks_projects (project_id, artblocks_project_index)
@@ -11,7 +13,7 @@ async function backfillArtblocksProjectIndices({ pool, verbose }) {
     )
   `);
   if (verbose) {
-    console.log("updated %s projects", res.rowCount);
+    log.info`updated ${res.rowCount} projects`;
   }
 }
 

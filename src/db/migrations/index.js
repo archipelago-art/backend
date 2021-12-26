@@ -1,3 +1,5 @@
+const log = require("../../util/log")(__filename);
+
 const migrationModules = [
   "./0001_projects",
   "./0002_projects_fields_not_null",
@@ -43,7 +45,7 @@ const migrations = migrationModules.map((path) => ({
 
 async function apply({ client, migrations, verbose }) {
   for (const { name, migration } of migrations) {
-    if (verbose) console.log("--- " + name);
+    if (verbose) log.info`--- ${name}`;
     await migration.up({ client, verbose });
   }
 }

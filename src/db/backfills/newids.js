@@ -1,3 +1,4 @@
+const log = require("../../util/log")(__filename);
 const { ObjectType, newIds } = require("../id");
 
 const BATCH_SIZE = 16384;
@@ -7,12 +8,9 @@ async function batchUpdate({ tableName, ids, update, verbose }) {
     const theseIds = ids.slice(i, i + BATCH_SIZE);
     await update(theseIds);
     if (verbose) {
-      console.log(
-        "%s: updated %s/%s rows",
-        tableName,
-        i + theseIds.length,
+      log.info`${tableName}: updated ${i + theseIds.length} / ${
         ids.length
-      );
+      } rows`;
     }
   }
 }
@@ -169,7 +167,7 @@ async function traitMembers({ pool, verbose }) {
     if (res.rowCount == 0) break;
     totalRowCount += res.rowCount;
     if (verbose) {
-      console.log("trait_members: updated %s rows", totalRowCount);
+      log.info`trait_members: updated ${totalRowCount} rows`;
     }
   }
 }

@@ -5,6 +5,7 @@ const util = require("util");
 const artblocks = require("../db/artblocks");
 const { acqrel } = require("../db/util");
 const downloadAtomic = require("../util/gcsDownloadAtomic");
+const log = require("../util/log")(__filename);
 const {
   downloadImage,
   resizeImage,
@@ -48,22 +49,15 @@ async function makeTarget(ctx, token, target) {
         img = join(targetDir, imagePath(token.tokenId));
         await util.promisify(fs.mkdir)(dirname(img), { recursive: true });
         const tokenData = { tokenId: token.tokenId, hash: token.tokenHash };
-        console.log(
-          "using generator for %s -> %s: %s",
-          token.tokenId,
-          img,
-          JSON.stringify(tokenData)
-        );
+        log.info`using generator for ${
+          token.tokenId
+        } -> ${img}: ${JSON.stringify(tokenData)}`;
         try {
           await generate(generatorData, tokenData, img);
         } catch (e) {
-          console.error(
-            "failed to generate image for %s:",
-            tokenData.tokenId,
-            e
-          );
+          log.error`failed to generate image for ${tokenData.tokenId}: ${e}`;
         }
-        console.log("generated image for %s", tokenData.tokenId);
+        log.info`generated image for ${tokenData.tokenId}`;
       }
       break;
     }
@@ -100,31 +94,25 @@ async function process(ctx, token, listing) {
   let allOkay = true;
   for (const target of notHave) {
     if (ctx.dryRun) {
-      console.log(`would process ${target.name} for token ${token.tokenId}`);
+      log.info`would process ${target.name} for token ${token.tokenId}`;
       continue;
     }
     try {
       await makeTarget(ctx, token, target);
       have.push(target.name);
-      console.log(`processed ${target.name} for token ${token.tokenId}`);
+      log.info`processed ${target.name} for token ${token.tokenId}`;
     } catch (e) {
       allOkay = false;
-      console.error(
-        `failed to process ${target.name} for token ${token.tokenId}:`,
-        e
-      );
+      log.error`failed to process ${target.name} for token ${token.tokenId}: ${e}`;
     }
   }
   if (allOkay) {
     const projectId = Math.floor(token.tokenId / 1e6);
     const completedThroughTokenId = listingProgress(listing).get(projectId); // wasteful, yes
     if (completedThroughTokenId !== undefined) {
-      console.log(
-        "updating progress for project %s to token %s%s",
-        projectId,
-        completedThroughTokenId,
+      log.info`updating progress for project ${projectId} to token ${completedThroughTokenId}${
         ctx.dryRun ? " (skipping for dry run)" : ""
-      );
+      }`;
       if (!ctx.dryRun) {
         await acqrel(ctx.pool, (client) =>
           artblocks.updateImageProgress({

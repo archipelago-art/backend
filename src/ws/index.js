@@ -3,6 +3,7 @@ const util = require("util");
 const artblocks = require("../db/artblocks");
 const { acqrel } = require("../db/util");
 const C = require("../util/combo");
+const log = require("../util/log")(__filename);
 const slug = require("../util/slugify");
 
 const types = {};
@@ -83,12 +84,7 @@ async function attach(server, pool) {
         n.payload
       );
       const oldProgress = imageProgress.get(projectId);
-      console.log(
-        "pg->ws: image progress for %s changing from %s to %s",
-        projectId,
-        oldProgress,
-        newProgress
-      );
+      log.info`pg->ws: image progress for ${projectId} changing from ${oldProgress} to ${newProgress}`;
       if (oldProgress === newProgress) return;
       imageProgress.set(projectId, newProgress);
       if (newProgress == null) return;

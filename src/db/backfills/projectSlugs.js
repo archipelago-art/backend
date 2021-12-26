@@ -1,5 +1,6 @@
-const { acqrel } = require("../util");
+const log = require("../../util/log")(__filename);
 const slug = require("../../util/slugify");
+const { acqrel } = require("../util");
 
 async function backfillProjectSlugs({ pool, verbose }) {
   const { rows: sluglessProjects } = await pool.query(`
@@ -23,12 +24,7 @@ async function backfillProjectSlugs({ pool, verbose }) {
   );
   if (verbose) {
     for (const { id, name, slug } of res.rows.sort((a, b) => a.id - b.id)) {
-      console.log(
-        "%s: %s -> %s",
-        id,
-        JSON.stringify(name),
-        JSON.stringify(slug)
-      );
+      log.info`${id}: ${JSON.stringify(name)} -> ${JSON.stringify(slug)}`;
     }
   }
 }
