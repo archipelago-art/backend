@@ -35,6 +35,7 @@ const migrationModules = [
   "./0032_index_tokens_token_contract_on_chain_token_id",
   "./0033_index_tokens_project_newid_token_index",
   "./0034_token_index_int4",
+  "./0035_hexaddr",
   // ...
 ];
 
