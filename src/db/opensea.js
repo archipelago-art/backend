@@ -8,7 +8,7 @@ async function addEvents({ client, events }) {
   const types = events.map((x) => x.event_type);
   return await client.query(
     `
-    INSERT INTO opensea_events (event_id, json, consumed, event_type)
+    INSERT INTO opensea_events_raw (event_id, json, consumed, event_type)
     VALUES (unnest($1::text[]), unnest($2::jsonb[]), false, unnest($3::opensea_event_type[]))
     ON CONFLICT DO NOTHING
     `,
@@ -20,7 +20,7 @@ async function getUnconsumedEvents({ client, limit, eventType }) {
   const res = await client.query(
     `
     SELECT event_id AS "eventId", json
-    FROM opensea_events
+    FROM opensea_events_raw
     WHERE NOT consumed AND (event_type = $2 OR $2 IS NULL)
     ORDER BY event_id
     LIMIT $1
@@ -33,7 +33,7 @@ async function getUnconsumedEvents({ client, limit, eventType }) {
 async function consumeEvents({ client, eventIds }) {
   const res = await client.query(
     `
-    UPDATE opensea_events
+    UPDATE opensea_events_raw
     SET consumed = true
     WHERE event_id = ANY($1::text[])
     `,
