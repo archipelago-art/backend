@@ -2,7 +2,7 @@ const dbUtil = require("./util");
 const opensea = require("./opensea");
 const { testDbProvider } = require("./testUtil");
 
-describe("db/opensea", () => {
+describe.skip("db/opensea", () => {
   const withTestDb = testDbProvider();
   it(
     "permits adding and getting events",
