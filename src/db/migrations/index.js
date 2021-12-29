@@ -45,6 +45,7 @@ const migrationModules = [
   "./0042_image_progress_project_id_fkey",
   "./0043_image_progress_rekey_project_id",
   "./0044_image_progress_drop_project_newid_and_completed_through_token_id",
+  "./0045_currencies",
   // ...
 ];
 
