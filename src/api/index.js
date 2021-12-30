@@ -163,6 +163,14 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
     );
   }
   const res = await artblocks.getTokenSummaries({ client, tokens });
+  for (const row of res) {
+    const { artblocksProjectIndex } = row;
+    if (artblocksProjectIndex == null) continue;
+    row.imageUrlTemplate = formatImageUrl({
+      template: artblocksImageUrlTemplate(artblocksProjectIndex),
+      tokenIndex: row.tokenIndex,
+    });
+  }
   return res;
 }
 
@@ -189,12 +197,16 @@ function artblocksImageUrlTemplate(artblocksProjectIndex) {
 }
 
 function formatImageUrl({ template, size, tokenIndex }) {
-  const lo = String(tokenIndex % 1000).padStart(3, "0");
-  const hi = String(Math.floor(tokenIndex / 1000)).padStart(3, "0");
-  return template
-    .replace(PARAM_SIZE, size)
-    .replace(PARAM_INDEX_LOW, lo)
-    .replace(PARAM_INDEX_HIGH, hi);
+  let result = template;
+  if (size != null) {
+    result = result.replace(PARAM_SIZE, size);
+  }
+  if (tokenIndex != null) {
+    const lo = String(tokenIndex % 1000).padStart(3, "0");
+    const hi = String(Math.floor(tokenIndex / 1000)).padStart(3, "0");
+    result = result.replace(PARAM_INDEX_LOW, lo).replace(PARAM_INDEX_HIGH, hi);
+  }
+  return result;
 }
 
 module.exports = {

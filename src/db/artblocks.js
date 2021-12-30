@@ -524,6 +524,7 @@ async function getTokenSummaries({ client, tokens }) {
       name,
       artist_name AS "artistName",
       slug,
+      artblocks_project_index AS "artblocksProjectIndex",
       token_index AS "tokenIndex",
       aspect_ratio AS "aspectRatio"
     FROM tokens
@@ -533,6 +534,8 @@ async function getTokenSummaries({ client, tokens }) {
         unnest($2::uint256[]) AS on_chain_token_id
     ) AS needles USING (token_contract, on_chain_token_id)
     JOIN projects USING (project_id)
+    LEFT OUTER JOIN artblocks_projects
+      ON projects.project_newid = artblocks_projects.project_id
     ORDER BY token_id
     `,
     [tokens.map((t) => hexToBuf(t.address)), tokens.map((t) => t.tokenId)]
