@@ -139,28 +139,6 @@ function formatTokenTraits(result) {
   return result;
 }
 
-async function tokenSummaries({ client, tokenIds }) {
-  // HACK(@wchargin): This function will be replaced by
-  // `tokenSummariesByOnChainId`, so we just transform to that input format.
-  if (!Array.isArray(tokenIds))
-    throw new Error("tokenSummaries: must pass array of token IDs");
-  const res = await client.query(
-    `
-    SELECT
-      token_contract AS address,
-      on_chain_token_id AS "tokenId"
-    FROM tokens
-    WHERE token_id = ANY($1::int[])
-    `,
-    [tokenIds]
-  );
-  const tokens = res.rows.map((row) => ({
-    address: bufToAddress(row.address),
-    tokenId: row.tokenId,
-  }));
-  return await tokenSummariesByOnChainId({ client, tokens });
-}
-
 // `tokens` should be a list of `{ address, tokenId }` pairs, where `address`
 // is a "0x..." string and `tokenId` is a numeric string.
 async function tokenSummariesByOnChainId({ client, tokens }) {
@@ -206,7 +184,6 @@ module.exports = {
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
   tokenFeaturesAndTraitsByNewid,
-  tokenSummaries,
   tokenSummariesByOnChainId,
   sortAsciinumeric,
   addEmailSignup,

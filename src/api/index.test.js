@@ -239,9 +239,18 @@ describe("api", () => {
         });
         newids.set(id, newid);
       }
-      const result = await api.tokenSummaries({
+      const result = await api.tokenSummariesByOnChainId({
         client,
-        tokenIds: [snapshots.THE_CUBE, snapshots.PERFECT_CHROMATIC],
+        tokens: [
+          {
+            address: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
+            tokenId: String(snapshots.PERFECT_CHROMATIC),
+          },
+          {
+            address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+            tokenId: String(snapshots.THE_CUBE),
+          },
+        ],
       });
       expect(result).toEqual([
         {
