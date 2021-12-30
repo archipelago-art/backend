@@ -14,6 +14,12 @@ function artblocksProjectIdToCollectionName(id) {
 }
 const RE_ARTBLOCKS_COLLECTION = /^ab-(0|[1-9][0-9]*)$/;
 
+const PARAM_SIZE = "{sz}";
+const PARAM_INDEX_LOW = "{lo}";
+const PARAM_INDEX_HIGH = "{hi}";
+
+const IMAGE_BASE_URL = "https://img.archipelago.art";
+
 function collectionNameToArtblocksProjectId(name) {
   const match = name.match(RE_ARTBLOCKS_COLLECTION);
   if (!match) return null;
@@ -78,6 +84,10 @@ async function _collections({ client, projectNewid }) {
     projectNewid: row.newid,
     slug: row.slug,
     artblocksProjectIndex: row.artblocksProjectIndex,
+    imageUrlTemplate:
+      row.artblocksProjectIndex == null
+        ? null
+        : artblocksImageUrlTemplate(row.artblocksProjectIndex),
     name: row.name,
     artistName: row.artistName,
     description: row.description,
@@ -174,6 +184,19 @@ async function openseaSalesByProject({ client, afterDate }) {
   return opensea.aggregateSalesByProject({ client, afterDate });
 }
 
+function artblocksImageUrlTemplate(artblocksProjectIndex) {
+  return `${IMAGE_BASE_URL}/artblocks/${PARAM_SIZE}/${artblocksProjectIndex}/${PARAM_INDEX_HIGH}/${PARAM_INDEX_LOW}`;
+}
+
+function formatImageUrl({ template, size, tokenIndex }) {
+  const lo = String(tokenIndex % 1000).padStart(3, "0");
+  const hi = String(Math.floor(tokenIndex / 1000)).padStart(3, "0");
+  return template
+    .replace(PARAM_SIZE, size)
+    .replace(PARAM_INDEX_LOW, lo)
+    .replace(PARAM_INDEX_HIGH, hi);
+}
+
 module.exports = {
   artblocksProjectIdToCollectionName,
   collectionNameToArtblocksProjectId,
@@ -188,4 +211,5 @@ module.exports = {
   sortAsciinumeric,
   addEmailSignup,
   openseaSalesByProject,
+  formatImageUrl,
 };

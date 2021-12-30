@@ -36,6 +36,7 @@ describe("api", () => {
           projectNewid: id0,
           slug: "chromie-squiggle",
           artblocksProjectIndex: 0,
+          imageUrlTemplate: expect.stringContaining("/0/"),
           name: "Chromie Squiggle",
           artistName: "Snowfro",
           description: expect.stringContaining(
@@ -49,6 +50,7 @@ describe("api", () => {
           projectNewid: id23,
           slug: "archetype",
           artblocksProjectIndex: 23,
+          imageUrlTemplate: expect.stringContaining("/23/"),
           name: "Archetype",
           artistName: "Kjetil Golid",
           description: expect.stringContaining("repetition as a counterweight"),
@@ -57,6 +59,13 @@ describe("api", () => {
           maxInvocations: 600,
         },
       ]);
+      expect(
+        api.formatImageUrl({
+          template: res[0].imageUrlTemplate,
+          size: "1200p",
+          tokenIndex: 1234,
+        })
+      ).toEqual("https://img.archipelago.art/artblocks/1200p/0/001/234");
     })
   );
 
@@ -87,6 +96,7 @@ describe("api", () => {
         projectNewid,
         slug: "archetype",
         artblocksProjectIndex: 23,
+        imageUrlTemplate: expect.stringContaining("/23/"),
         name: "Archetype",
         artistName: "Kjetil Golid",
         description: expect.stringContaining("repetition as a counterweight"),
