@@ -37,6 +37,7 @@ const migrationModules = [
   "./0034_token_index_int4",
   "./0035_hexaddr",
   "./0036_opensea_events_rename",
+  "./0037_image_progress_newids",
   // ...
 ];
 
