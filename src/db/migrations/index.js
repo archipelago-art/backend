@@ -44,6 +44,7 @@ const migrationModules = [
   "./0041_image_progress_retype_project_id_projectid",
   "./0042_image_progress_project_id_fkey",
   "./0043_image_progress_rekey_project_id",
+  "./0044_image_progress_drop_project_newid_and_completed_through_token_id",
   // ...
 ];
 
