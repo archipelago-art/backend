@@ -88,9 +88,8 @@ async function attach(server, pool) {
 
     listenClient.on("notification", async (n) => {
       if (n.channel !== artblocks.imageProgressChannel.name) return;
-      const { projectNewid, completedThroughTokenId: newProgress } = JSON.parse(
-        n.payload
-      );
+      const { projectNewid, completedThroughTokenIndex: newProgress } =
+        JSON.parse(n.payload);
       const oldProgress = imageProgress.get(projectNewid);
       log.info`pg->ws: image progress for ${projectNewid} changing from ${oldProgress} to ${newProgress}: ${n.payload}`;
       if (oldProgress === newProgress) return;
@@ -101,8 +100,8 @@ async function attach(server, pool) {
           await artblocks.getTokenFeaturesAndTraits({
             client,
             projectNewid,
-            minTokenId: oldProgress ?? -1,
-            maxTokenId: newProgress,
+            minTokenIndex: oldProgress ?? -1,
+            maxTokenIndex: newProgress,
           })
         );
       });
