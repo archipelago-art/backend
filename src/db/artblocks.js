@@ -530,11 +530,10 @@ async function getTokenSummaries({ client, tokens }) {
       token_index AS "tokenIndex",
       aspect_ratio AS "aspectRatio"
     FROM tokens
-    JOIN (
-      SELECT
-        unnest($1::address[]) AS token_contract,
-        unnest($2::uint256[]) AS on_chain_token_id
-    ) AS needles USING (token_contract, on_chain_token_id)
+    JOIN
+      unnest($1::address[], $2::uint256[])
+      AS needles(token_contract, on_chain_token_id)
+      USING (token_contract, on_chain_token_id)
     JOIN projects USING (project_id)
     LEFT OUTER JOIN artblocks_projects
       ON projects.project_newid = artblocks_projects.project_id
@@ -613,11 +612,9 @@ async function updateImageProgress({ client, progress }) {
     UPDATE image_progress
     SET
       completed_through_token_index = updates.completed_through_token_index
-    FROM (
-      SELECT
-        unnest($1::projectid[]) AS project_id,
-        unnest($2::int[]) AS completed_through_token_index
-    ) AS updates
+    FROM
+      unnest($1::projectid[], $2::int[])
+      AS updates(project_id, completed_through_token_index)
     WHERE
       image_progress.project_id = updates.project_id
       AND (
@@ -637,14 +634,10 @@ async function updateImageProgress({ client, progress }) {
       project_id,
       completed_through_token_index
     )
-    SELECT
-      project_id,
-      completed_through_token_index
-    FROM (
-      SELECT
-        unnest($1::projectid[]) AS project_id,
-        unnest($2::integer[]) AS completed_through_token_index
-    ) AS updates
+    SELECT project_id, completed_through_token_index
+    FROM
+      unnest($1::projectid[], $2::int[])
+      AS updates(project_id, completed_through_token_index)
     ON CONFLICT DO NOTHING
     RETURNING
       project_id AS "projectId",
