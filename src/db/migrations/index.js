@@ -38,6 +38,7 @@ const migrationModules = [
   "./0035_hexaddr",
   "./0036_opensea_events_rename",
   "./0037_image_progress_newids",
+  "./0038_image_progress_rekey_project_newid",
   // ...
 ];
 
