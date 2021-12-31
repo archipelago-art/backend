@@ -401,6 +401,8 @@ async function getTokenFeaturesAndTraits({
   projectNewid,
   minTokenId,
   maxTokenId,
+  minTokenIndex,
+  maxTokenIndex,
 }) {
   if (
     tokenId == null &&
@@ -438,9 +440,20 @@ async function getTokenFeaturesAndTraits({
       )
       AND (token_id >= $3 OR $3 IS NULL)
       AND (token_id <= $4 OR $4 IS NULL)
+      AND (token_index >= $7 OR $7 IS NULL)
+      AND (token_index <= $8 OR $8 IS NULL)
     ORDER BY token_id, feature_id, trait_id
     `,
-    [tokenId, projectId, minTokenId, maxTokenId, tokenNewid, projectNewid]
+    [
+      tokenId,
+      projectId,
+      minTokenId,
+      maxTokenId,
+      tokenNewid,
+      projectNewid,
+      minTokenIndex,
+      maxTokenIndex,
+    ]
   );
 
   const result = [];

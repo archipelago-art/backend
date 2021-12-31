@@ -564,12 +564,12 @@ describe("db/artblocks", () => {
         snapshots.ARCH_TRIPTYCH_3,
         snapshots.BYTEBEATS_NULL_FEATURE,
       ]);
-      const res = await artblocks.getTokenFeaturesAndTraits({
+      const res1 = await artblocks.getTokenFeaturesAndTraits({
         client,
         projectId: snapshots.ARCHETYPE,
         minTokenId: snapshots.ARCH_TRIPTYCH_2,
       });
-      expect(res).toEqual([
+      expect(res1).toEqual([
         {
           tokenId: snapshots.ARCH_TRIPTYCH_2,
           tokenNewid: addTokensResult[1].newid,
@@ -597,6 +597,12 @@ describe("db/artblocks", () => {
           ]),
         },
       ]);
+      const res2 = await artblocks.getTokenFeaturesAndTraits({
+        client,
+        projectId: snapshots.ARCHETYPE,
+        minTokenIndex: snapshots.ARCH_TRIPTYCH_2 % 1e6,
+      });
+      expect(res2).toEqual(res1);
     })
   );
 
