@@ -592,7 +592,7 @@ async function getImageProgress({ client }) {
       project_newid AS "projectNewid",
       completed_through_token_index AS "completedThroughTokenIndex"
     FROM image_progress
-    ORDER BY project_id ASC
+    ORDER BY project_newid ASC
   `);
   return res.rows;
 }
