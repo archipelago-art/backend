@@ -71,8 +71,9 @@ async function attach(server, pool) {
   const imageProgress = new Map(
     (
       await acqrel(pool, (client) => artblocks.getImageProgress({ client }))
-    ).map((row) => [row.projectNewid, row.completedThroughTokenIndex])
+    ).map((row) => [row.projectId, row.completedThroughTokenIndex])
   );
+  log.debug`got initial image progress for ${imageProgress.size} projects`;
 
   try {
     listenClientKeepalive = setInterval(async () => {

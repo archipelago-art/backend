@@ -589,7 +589,7 @@ async function getTokenHash({ client, tokenId }) {
 async function getImageProgress({ client }) {
   const res = await client.query(`
     SELECT
-      project_id AS "projectNewid",
+      project_id AS "projectId",
       completed_through_token_index AS "completedThroughTokenIndex"
     FROM image_progress
     ORDER BY project_id ASC
