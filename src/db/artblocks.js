@@ -399,8 +399,6 @@ async function getTokenFeaturesAndTraits({
   tokenNewid,
   projectId,
   projectNewid,
-  minTokenId,
-  maxTokenId,
   minTokenIndex,
   maxTokenIndex,
 }) {
@@ -429,31 +427,20 @@ async function getTokenFeaturesAndTraits({
       RIGHT OUTER JOIN tokens USING (token_id)
     WHERE true
       AND (token_id = $1 OR $1 IS NULL)
-      AND (tokens.token_newid = $5 OR $5 IS NULL)
+      AND (tokens.token_newid = $3 OR $3 IS NULL)
       AND (
         tokens.project_id = $2 OR $2 IS NULL
         OR tokens.project_id IS NULL  -- OUTER JOIN
       )
       AND (
-        tokens.project_newid = $6 OR $6 IS NULL
+        tokens.project_newid = $4 OR $4 IS NULL
         OR tokens.project_newid IS NULL  -- OUTER JOIN
       )
-      AND (token_id >= $3 OR $3 IS NULL)
-      AND (token_id <= $4 OR $4 IS NULL)
-      AND (token_index >= $7 OR $7 IS NULL)
-      AND (token_index <= $8 OR $8 IS NULL)
+      AND (token_index >= $5 OR $5 IS NULL)
+      AND (token_index <= $6 OR $6 IS NULL)
     ORDER BY token_id, feature_id, trait_id
     `,
-    [
-      tokenId,
-      projectId,
-      minTokenId,
-      maxTokenId,
-      tokenNewid,
-      projectNewid,
-      minTokenIndex,
-      maxTokenIndex,
-    ]
+    [tokenId, projectId, tokenNewid, projectNewid, minTokenIndex, maxTokenIndex]
   );
 
   const result = [];

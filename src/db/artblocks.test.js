@@ -552,7 +552,7 @@ describe("db/artblocks", () => {
   );
 
   it(
-    "supports getting features from a certain token ID upward",
+    "supports getting features from a certain token index upward",
     withTestDb(async ({ client }) => {
       await addProjects(client, [snapshots.ARCHETYPE, snapshots.BYTEBEATS]);
       expect(snapshots.BYTEBEATS_NULL_FEATURE).toBeGreaterThan(
@@ -564,12 +564,12 @@ describe("db/artblocks", () => {
         snapshots.ARCH_TRIPTYCH_3,
         snapshots.BYTEBEATS_NULL_FEATURE,
       ]);
-      const res1 = await artblocks.getTokenFeaturesAndTraits({
+      const res = await artblocks.getTokenFeaturesAndTraits({
         client,
         projectId: snapshots.ARCHETYPE,
-        minTokenId: snapshots.ARCH_TRIPTYCH_2,
+        minTokenIndex: snapshots.ARCH_TRIPTYCH_2 % 1e6,
       });
-      expect(res1).toEqual([
+      expect(res).toEqual([
         {
           tokenId: snapshots.ARCH_TRIPTYCH_2,
           tokenNewid: addTokensResult[1].newid,
@@ -597,12 +597,6 @@ describe("db/artblocks", () => {
           ]),
         },
       ]);
-      const res2 = await artblocks.getTokenFeaturesAndTraits({
-        client,
-        projectId: snapshots.ARCHETYPE,
-        minTokenIndex: snapshots.ARCH_TRIPTYCH_2 % 1e6,
-      });
-      expect(res2).toEqual(res1);
     })
   );
 
@@ -627,8 +621,8 @@ describe("db/artblocks", () => {
       const res = await artblocks.getTokenFeaturesAndTraits({
         client,
         projectId: snapshots.ARCHETYPE,
-        minTokenId: snapshots.ARCH_TRIPTYCH_1,
-        maxTokenId: snapshots.ARCH_TRIPTYCH_3,
+        minTokenIndex: snapshots.ARCH_TRIPTYCH_1 % 1e6,
+        maxTokenIndex: snapshots.ARCH_TRIPTYCH_3 % 1e6,
       });
       expect(res).toEqual([
         {
