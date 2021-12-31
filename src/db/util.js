@@ -9,6 +9,10 @@ const log = require("../util/log")(__filename);
 const ALREADY_RELEASED =
   "Release called on client which has already been released to the pool.";
 
+function isSqlSafeIdentifier(s) {
+  return !!s.match(/^[0-9A-Za-z_]+$/);
+}
+
 /**
  * Acquires a client from the pool and passes it to the given async callback,
  * awaiting and returning its result and releasing the client on the way out.
@@ -46,6 +50,7 @@ async function acqrel(pool, callback) {
 async function withPool(callback) {
   const pool = new pg.Pool();
   try {
+    pool.on("connect", (client) => setDbRole(client));
     return await callback(pool);
   } catch (e) {
     log.error`withPool callback failed: ${e}`;
@@ -53,6 +58,22 @@ async function withPool(callback) {
   } finally {
     await pool.end();
   }
+}
+
+async function setDbRole(client) {
+  const dbRole = process.env.DB_ROLE;
+  if (!dbRole) {
+    log.trace`DB_ROLE is ${JSON.stringify(dbRole)}; using default authority`;
+    return;
+  }
+  if (!isSqlSafeIdentifier(dbRole)) {
+    log.warn`ignoring potentially unsafe DB_ROLE ${JSON.stringify(dbRole)}`;
+    return;
+  }
+  // SAFETY: `dbRole` is used in identifier position and has just been checked
+  // to be SQL-safe.
+  log.trace`setting client authority to ${dbRole}`;
+  await client.query(`SET ROLE ${dbRole}`);
 }
 
 /*
