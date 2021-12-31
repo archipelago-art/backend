@@ -600,12 +600,12 @@ async function getImageProgress({ client }) {
 // Insert-or-update each given progress event. `progress` should be an array of
 // objects with fields:
 //
-//   - projectNewid: string
+//   - projectId: string (newid, not legacy Art Blocks ID)
 //   - completedThroughTokenIndex: number
 //
 // notifications along `imageProgressChannel` for changes that are not no-ops.
 async function updateImageProgress({ client, progress }) {
-  const projectIds = progress.map((x) => x.projectNewid);
+  const projectIds = progress.map((x) => x.projectId);
   const progressIndices = progress.map((x) => x.completedThroughTokenIndex);
   await client.query("BEGIN");
   const updatesRes = await client.query(

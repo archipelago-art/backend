@@ -128,8 +128,8 @@ async function updateProgress(ctx, token, listing) {
       indices: [artblocksProjectIndex],
     })
   );
-  const projectNewid = projectNewids[0];
-  if (projectNewid == null) {
+  const projectId = projectNewids[0];
+  if (projectId == null) {
     log.warn`no project ID found for Art Blocks project ${artblocksProjectIndex}; skipping`;
     return;
   }
@@ -139,7 +139,7 @@ async function updateProgress(ctx, token, listing) {
     await acqrel(ctx.pool, (client) =>
       artblocks.updateImageProgress({
         client,
-        progress: [{ projectNewid, completedThroughTokenIndex }],
+        progress: [{ projectId, completedThroughTokenIndex }],
       })
     );
   }

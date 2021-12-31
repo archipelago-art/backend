@@ -382,10 +382,10 @@ async function ingestImages(args) {
         })
       );
       const progress = Array.from(listingProgress).flatMap(([k, v], i) => {
-        const projectNewid = projectNewids[i];
-        if (projectNewid == null) return [];
+        const projectId = projectNewids[i];
+        if (projectId == null) return [];
         const completedThroughTokenIndex = v == null ? null : v % 1e6;
-        return [{ projectNewid, completedThroughTokenIndex }];
+        return [{ projectId, completedThroughTokenIndex }];
       });
       if (!dryRun) {
         await acqrel(pool, (client) =>
