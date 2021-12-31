@@ -538,7 +538,7 @@ async function getTokenSummaries({ client, tokens }) {
     JOIN projects USING (project_id)
     LEFT OUTER JOIN artblocks_projects
       ON projects.project_newid = artblocks_projects.project_id
-    ORDER BY token_id
+    ORDER BY tokens.token_contract, tokens.on_chain_token_id
     `,
     [tokens.map((t) => hexToBuf(t.address)), tokens.map((t) => t.tokenId)]
   );
