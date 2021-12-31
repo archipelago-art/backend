@@ -67,7 +67,7 @@ async function attach(server, pool) {
     clearInterval(listenClientKeepalive);
     listenClient.release(true);
   }
-  // Map from project newid to last token index.
+  // Map from project newid (string) to last token index.
   const imageProgress = new Map(
     (
       await acqrel(pool, (client) => artblocks.getImageProgress({ client }))
@@ -82,8 +82,9 @@ async function attach(server, pool) {
 
     listenClient.on("notification", async (n) => {
       if (n.channel !== artblocks.imageProgressChannel.name) return;
-      const { projectNewid, completedThroughTokenIndex: newProgress } =
-        JSON.parse(n.payload);
+      const payload = JSON.parse(n.payload);
+      const newProgress = payload.completedThroughTokenIndex;
+      const projectNewid = payload.projectId ?? payload.projectNewid;
       const oldProgress = imageProgress.get(projectNewid);
       log.info`pg->ws: image progress for ${projectNewid} changing from ${oldProgress} to ${newProgress}: ${n.payload}`;
       if (oldProgress === newProgress) return;

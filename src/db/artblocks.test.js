@@ -730,6 +730,12 @@ describe("db/artblocks", () => {
           completedThroughTokenIndex: completedThroughTokenId % 1e6,
         };
       }
+      function progressEvent(projectId, completedThroughTokenId) {
+        return {
+          projectId: newids.get(projectId),
+          ...progress(projectId, completedThroughTokenId),
+        };
+      }
 
       await artblocks.updateImageProgress({
         client,
@@ -779,10 +785,10 @@ describe("db/artblocks", () => {
         }
         expect(progressEvents.sort(cmpNewids)).toEqual(
           [
-            progress(snapshots.SQUIGGLES, 3),
-            progress(snapshots.ARCHETYPE, 23000005),
-            progress(snapshots.GALAXISS, 31000001),
-            progress(snapshots.BYTEBEATS, null),
+            progressEvent(snapshots.SQUIGGLES, 3),
+            progressEvent(snapshots.ARCHETYPE, 23000005),
+            progressEvent(snapshots.GALAXISS, 31000001),
+            progressEvent(snapshots.BYTEBEATS, null),
           ].sort(cmpNewids)
         );
       });

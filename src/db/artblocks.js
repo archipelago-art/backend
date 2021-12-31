@@ -21,7 +21,8 @@ function artblocksContractAddress(projectId) {
 // Event payloads are JSON `{ projectId: string, tokenId: string }` (these are "newids").
 const newTokensChannel = events.channel("new_tokens");
 
-// Event payloads are JSON `{ projectNewid: string, completedThroughTokenIndex: number }`.
+// Event payloads are JSON `{ projectId: string, projectNewid: string, completedThroughTokenIndex: number }`.
+// (the IDs are the same, just aliased for transition)
 const imageProgressChannel = events.channel("image_progress");
 
 function tokenBounds(projectId) {
@@ -626,6 +627,7 @@ async function updateImageProgress({ client, progress }) {
           IS DISTINCT FROM updates.completed_through_token_index
       )
     RETURNING
+      updates.project_id AS "projectId",
       updates.project_id AS "projectNewid",
       updates.completed_through_token_index AS "completedThroughTokenIndex"
     `,
@@ -647,6 +649,7 @@ async function updateImageProgress({ client, progress }) {
     ) AS updates
     ON CONFLICT DO NOTHING
     RETURNING
+      project_id AS "projectId",
       project_id AS "projectNewid",
       completed_through_token_index AS "completedThroughTokenIndex"
     `,
