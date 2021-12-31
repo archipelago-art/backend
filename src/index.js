@@ -11,7 +11,7 @@ const artblocks = require("./db/artblocks");
 const opensea = require("./db/opensea");
 const backfills = require("./db/backfills");
 const migrations = require("./db/migrations");
-const { acqrel } = require("./db/util");
+const { acqrel, withPool, withClient } = require("./db/util");
 const images = require("./img");
 const {
   processOpenseaCollection,
@@ -44,20 +44,8 @@ async function sleepMs(ms) {
   await new Promise((res) => void setTimeout(res, ms));
 }
 
-async function withDb(callback) {
-  const pool = new pg.Pool();
-  try {
-    return await acqrel(pool, (client) => callback({ pool, client }));
-  } catch (e) {
-    log.error`withDb callback failed: ${e}`;
-    throw e;
-  } finally {
-    await pool.end();
-  }
-}
-
 async function init() {
-  await withDb(async ({ client }) => {
+  await withClient(async (client) => {
     await migrations.applyAll({ client, verbose: true });
   });
 }
@@ -65,27 +53,27 @@ async function init() {
 // usage: migrate [<migration-name> [...]]
 // where each <migration-name> must be a substring of a unique migration
 async function migrate(args) {
-  await withDb(async ({ client }) => {
-    const desiredMigrations = args.map((needle) => {
-      const matches = migrations.migrations.filter((m) =>
-        m.name.includes(needle)
+  const desiredMigrations = args.map((needle) => {
+    const matches = migrations.migrations.filter((m) =>
+      m.name.includes(needle)
+    );
+    if (matches.length === 0)
+      throw new Error(`no migrations named like "${needle}"`);
+    if (matches.length > 1)
+      throw new Error(
+        `multiple migrations named like "${needle}": ${matches
+          .map((m) => m.name)
+          .join(", ")}`
       );
-      if (matches.length === 0)
-        throw new Error(`no migrations named like "${needle}"`);
-      if (matches.length > 1)
-        throw new Error(
-          `multiple migrations named like "${needle}": ${matches
-            .map((m) => m.name)
-            .join(", ")}`
-        );
-      return matches[0];
-    });
-    await migrations.apply({
+    return matches[0];
+  });
+  await withClient(async (client) =>
+    migrations.apply({
       client,
       migrations: desiredMigrations,
       verbose: true,
-    });
-  });
+    })
+  );
 }
 
 // usage: backfill <backfill-module-name>
@@ -95,48 +83,46 @@ async function backfill(args) {
   const [backfillName, ...backfillArgs] = args;
   const backfill = backfills[backfillName];
   if (backfill == null) throw new Error("unknown backfill " + backfillName);
-  await withDb(async ({ pool }) => {
+  await withPool(async (pool) => {
     await backfill({ pool, args: backfillArgs, verbose: true });
   });
 }
 
 async function addProject(args) {
   const [projectId] = args;
-  await withDb(async ({ client }) => {
-    try {
-      const project = await fetchProjectData(projectId);
-      if (project == null) {
-        console.warn("skipping phantom project %s", projectId);
-        return;
-      }
-      await artblocks.addProject({ client, project });
-      log.info`added project ${project.projectId} (${project.name})`;
-    } catch (e) {
-      log.error`failed to add project ${projectId}: ${e}`;
-      process.exitCode = 1;
+  try {
+    const project = await fetchProjectData(projectId);
+    if (project == null) {
+      console.warn("skipping phantom project %s", projectId);
       return;
     }
-  });
+    await withClient((client) => artblocks.addProject({ client, project }));
+    log.info`added project ${project.projectId} (${project.name})`;
+  } catch (e) {
+    log.error`failed to add project ${projectId}: ${e}`;
+    process.exitCode = 1;
+    return;
+  }
 }
 
 async function getProject(args) {
   const [projectId] = args;
-  await withDb(async ({ client }) => {
+  await withClient(async (client) => {
     console.log(await artblocks.getProject({ client, projectId }));
   });
 }
 
 async function addToken(args) {
   const [tokenId] = args;
-  await withDb(async ({ client }) => {
-    const token = await fetchTokenData(tokenId);
+  const token = await fetchTokenData(tokenId);
+  await withClient(async (client) => {
     await artblocks.addToken({ client, tokenId, rawTokenData: token.raw });
   });
 }
 
 async function addProjectTokens(args) {
   const [projectId] = args;
-  await withDb(async ({ pool }) => {
+  await withPool(async (pool) => {
     const ids = await acqrel(pool, (client) =>
       projectId === "all"
         ? artblocks.getAllUnfetchedTokenIds({ client })
@@ -177,7 +163,7 @@ async function addProjectTokens(args) {
 
 async function followLiveMint(args) {
   const projectId = parseInt(args[0], 10);
-  await withDb(async ({ pool }) => {
+  await withPool(async (pool) => {
     let ids = await acqrel(pool, (client) =>
       artblocks.getUnfetchedTokenIds({ client, projectId })
     );
@@ -254,7 +240,7 @@ async function tryAddTokenLive({ pool, tokenId }) {
 
 async function downloadImages(args) {
   const [rootDir] = args;
-  await withDb(async ({ pool }) => {
+  await withPool(async (pool) => {
     const tokens = await acqrel(pool, (client) =>
       artblocks.getTokenImageData({ client })
     );
@@ -286,7 +272,7 @@ async function resizeImages(args) {
   const outputSizePx = Number(rawOutputSizePx);
   if (!Number.isSafeInteger(outputSizePx))
     throw new Error("bad output size: " + outputSizePx);
-  await withDb(async ({ pool }) => {
+  await withPool(async (pool) => {
     const tokenIds = await acqrel(pool, (client) =>
       artblocks.getTokenIds({ client })
     );
@@ -337,7 +323,7 @@ async function ingestImages(args) {
   }
   const [bucketName, prefix, workDir] = args;
   let newTokens = adHocPromise();
-  await withDb(async ({ pool }) => {
+  await withPool(async (pool) => {
     await acqrel(pool, async (listenClient) => {
       listenClient.on("notification", (n) => {
         if (n.channel !== artblocks.newTokensChannel.name) return;
@@ -454,7 +440,7 @@ async function ingestOpenseaCollection(args) {
   const slug = args[0];
   const ONE_DAY = 1000 * 60 * 60 * 24;
   const windowDurationMs = ONE_DAY * +args[1];
-  await withDb(async ({ client }) => {
+  await withClient(async (client) => {
     await processOpenseaCollection({
       client,
       slug,
@@ -472,7 +458,7 @@ async function ingestOpensea(args) {
   const slug = args[0];
   const ONE_DAY = 1000 * 60 * 60 * 24;
   const windowDurationMs = ONE_DAY * 30;
-  await withDb(async ({ client }) => {
+  await withClient(async (client) => {
     await ingestAllCollections({
       client,
       slug,
@@ -486,7 +472,7 @@ async function processOpenseaSales(args) {
   if (args.length !== 0) {
     throw new Error("usage: process-opensea-sales");
   }
-  await withDb(async ({ client }) => {
+  await withClient(async (client) => {
     await processSales({ client });
   });
 }
@@ -496,7 +482,7 @@ async function aggregateOpenseaSales(args) {
     throw new Error("usage: aggregate-opensea-sales [after-date]");
   }
   const afterDate = new Date(args[0] || "2020-11-26");
-  await withDb(async ({ client }) => {
+  await withClient(async (client) => {
     const totalSales = await api.openseaSalesByProject({
       client,
       afterDate,
@@ -518,7 +504,7 @@ async function generateImage(args) {
     throw new Error("expected tokenId argument; got: " + args[0]);
   const outfile = args[1];
   const projectId = Math.floor(tokenId / 1e6);
-  const { generatorData, hash } = await withDb(async ({ client }) => {
+  const { generatorData, hash } = await withClient(async (client) => {
     const generatorData = await artblocks.getProjectScript({
       client,
       projectId,
