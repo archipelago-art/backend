@@ -21,7 +21,7 @@ function artblocksContractAddress(projectId) {
 // Event payloads are JSON `{ projectId: string, tokenId: string }` (these are "newids").
 const newTokensChannel = events.channel("new_tokens");
 
-// Event payloads are JSON `{ projectId: number, completedThroughTokenId: number }`.
+// Event payloads are JSON `{ projectId: number, projectNewid: string, completedThroughTokenId: number, completedThroughTokenIndex: number }`.
 const imageProgressChannel = events.channel("image_progress");
 
 function tokenBounds(projectId) {
@@ -132,6 +132,19 @@ async function getProject({ client, projectNewid }) {
   const row = res.rows[0];
   row.tokenContract = bufToAddress(row.tokenContract);
   return row;
+}
+
+async function projectNewidsFromArtblocksIndices({ client, indices }) {
+  const res = await client.query(
+    `
+    SELECT project_id AS "id"
+    FROM unnest($1::int[]) WITH ORDINALITY AS inputs(artblocks_project_index, i)
+    LEFT OUTER JOIN artblocks_projects USING (artblocks_project_index)
+    ORDER BY i
+    `,
+    [indices]
+  );
+  return res.rows.map((r) => r.id);
 }
 
 async function setProjectSlug({ client, projectNewid, slug }) {
@@ -507,6 +520,7 @@ async function getTokenImageData({ client }) {
   const res = await client.query(`
     SELECT
       token_id AS "tokenId",
+      project_newid AS "projectNewid",
       token_data->'image' AS "imageUrl",
       token_data->'token_hash' AS "tokenHash"
     FROM tokens
@@ -588,7 +602,8 @@ async function getImageProgress({ client }) {
   const res = await client.query(`
     SELECT
       project_id AS "projectId",
-      completed_through_token_id AS "completedThroughTokenId"
+      completed_through_token_id AS "completedThroughTokenId",
+      completed_through_token_index AS "completedThroughTokenIndex"
     FROM image_progress
     ORDER BY project_id ASC
   `);
@@ -596,43 +611,75 @@ async function getImageProgress({ client }) {
 }
 
 // Insert-or-update each given progress event. `progress` should be an array of
-// objects like `{ projectId: number, completedThroughTokenId: number }`. Sends
+// objects with fields:
+//
+//   - projectNewid: string
+//   - completedThroughTokenId: number
+//   - completedThroughTokenIndex: number
+//
 // notifications along `imageProgressChannel` for changes that are not no-ops.
 async function updateImageProgress({ client, progress }) {
-  const projectIds = progress.map((x) => x.projectId);
-  const progressValues = progress.map((x) => x.completedThroughTokenId);
+  const projectNewids = progress.map((x) => x.projectNewid);
+  const progressIds = progress.map((x) => x.completedThroughTokenId);
+  const progressIndices = progress.map((x) => x.completedThroughTokenIndex);
   await client.query("BEGIN");
   const updatesRes = await client.query(
     `
     UPDATE image_progress
-    SET completed_through_token_id = updates.completed_through_token_id
+    SET
+      completed_through_token_id = updates.completed_through_token_id,
+      completed_through_token_index = updates.completed_through_token_index
     FROM (
       SELECT
-        unnest($1::int[]) AS project_id,
-        unnest($2::int[]) AS completed_through_token_id
+        unnest($1::projectid[]) AS project_newid,
+        unnest($2::int[]) AS completed_through_token_id,
+        unnest($3::int[]) AS completed_through_token_index
     ) AS updates
     WHERE
-      image_progress.project_id = updates.project_id
-      AND
+      image_progress.project_id = (SELECT project_id FROM projects WHERE project_newid = updates.project_newid)
+      AND (
         -- only send NOTIFY events when necessary
         image_progress.completed_through_token_id
-        IS DISTINCT FROM updates.completed_through_token_id
+          IS DISTINCT FROM updates.completed_through_token_id
+        OR image_progress.completed_through_token_index
+          IS DISTINCT FROM updates.completed_through_token_index
+      )
     RETURNING
-      updates.project_id AS "projectId",
-      updates.completed_through_token_id AS "completedThroughTokenId"
+      (SELECT project_id FROM projects WHERE project_newid = updates.project_newid) AS "projectId",
+      updates.project_newid AS "projectNewid",
+      updates.completed_through_token_id AS "completedThroughTokenId",
+      updates.completed_through_token_index AS "completedThroughTokenIndex"
     `,
-    [projectIds, progressValues]
+    [projectNewids, progressIds, progressIndices]
   );
   const insertsRes = await client.query(
     `
-    INSERT INTO image_progress (project_id, completed_through_token_id)
-    VALUES (unnest($1::integer[]), unnest($2::integer[]))
+    INSERT INTO image_progress (
+      project_id,
+      project_newid,
+      completed_through_token_id,
+      completed_through_token_index
+    )
+    SELECT
+      project_id,
+      project_newid,
+      completed_through_token_id,
+      completed_through_token_index
+    FROM (
+      SELECT
+        unnest($1::projectid[]) AS project_newid,
+        unnest($2::integer[]) AS completed_through_token_id,
+        unnest($3::integer[]) AS completed_through_token_index
+    ) AS updates
+    LEFT OUTER JOIN (SELECT project_newid, project_id FROM projects) AS q USING (project_newid)
     ON CONFLICT DO NOTHING
     RETURNING
       project_id AS "projectId",
-      completed_through_token_id AS "completedThroughTokenId"
+      project_newid AS "projectNewid",
+      completed_through_token_id AS "completedThroughTokenId",
+      completed_through_token_index AS "completedThroughTokenIndex"
     `,
-    [projectIds, progressValues]
+    [projectNewids, progressIds, progressIndices]
   );
   const changes = [...updatesRes.rows, ...insertsRes.rows];
   await imageProgressChannel.sendMany(client, changes);
@@ -659,6 +706,7 @@ module.exports = {
   imageProgressChannel,
   addProject,
   getProject,
+  projectNewidsFromArtblocksIndices,
   setProjectSlug,
   getProjectIdBySlug,
   addToken,

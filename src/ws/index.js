@@ -84,7 +84,7 @@ async function attach(server, pool) {
         n.payload
       );
       const oldProgress = imageProgress.get(projectId);
-      log.info`pg->ws: image progress for ${projectId} changing from ${oldProgress} to ${newProgress}`;
+      log.info`pg->ws: image progress for ${projectId} changing from ${oldProgress} to ${newProgress}: ${n.payload}`;
       if (oldProgress === newProgress) return;
       imageProgress.set(projectId, newProgress);
       if (newProgress == null) return;

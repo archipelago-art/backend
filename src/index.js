@@ -374,12 +374,24 @@ async function ingestImages(args) {
       } else {
         log.info`updating image progress table`;
       }
-      const progress = Array.from(images.listingProgress(listing)).map(
-        ([k, v]) => ({
-          projectId: k,
-          completedThroughTokenId: v,
+      const listingProgress = images.listingProgress(listing);
+      const projectNewids = await acqrel(pool, (client) =>
+        artblocks.projectNewidsFromArtblocksIndices({
+          client,
+          indices: Array.from(listingProgress.keys()),
         })
       );
+      const progress = Array.from(listingProgress).flatMap(([k, v], i) => {
+        const projectNewid = projectNewids[i];
+        if (projectNewid == null) return [];
+        return [
+          {
+            projectNewid,
+            completedThroughTokenId: v,
+            completedThroughTokenIndex: v == null ? null : v % 1e6,
+          },
+        ];
+      });
       if (!dryRun) {
         await acqrel(pool, (client) =>
           artblocks.updateImageProgress({ client, progress })

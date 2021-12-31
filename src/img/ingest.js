@@ -107,21 +107,47 @@ async function process(ctx, token, listing) {
     }
   }
   if (allOkay) {
-    const projectId = Math.floor(token.tokenId / 1e6);
-    const completedThroughTokenId = listingProgress(listing).get(projectId); // wasteful, yes
-    if (completedThroughTokenId !== undefined) {
-      log.info`updating progress for project ${projectId} to token ${completedThroughTokenId}${
-        ctx.dryRun ? " (skipping for dry run)" : ""
-      }`;
-      if (!ctx.dryRun) {
-        await acqrel(ctx.pool, (client) =>
-          artblocks.updateImageProgress({
-            client,
-            progress: [{ projectId, completedThroughTokenId }],
-          })
-        );
-      }
-    }
+    await updateProgress(ctx, token, listing);
+  }
+}
+
+async function updateProgress(ctx, token, listing) {
+  const artblocksProjectIndex = Math.floor(token.tokenId / 1e6);
+  const completedThroughTokenId = listingProgress(listing).get(
+    artblocksProjectIndex
+  ); // wasteful, yes
+  if (completedThroughTokenId === undefined) {
+    return;
+  }
+  log.info`updating progress for project ${artblocksProjectIndex} to token ${completedThroughTokenId}${
+    ctx.dryRun ? " (skipping for dry run)" : ""
+  }`;
+  const projectNewids = await acqrel(ctx.pool, (client) =>
+    artblocks.projectNewidsFromArtblocksIndices({
+      client,
+      indices: [artblocksProjectIndex],
+    })
+  );
+  const projectNewid = projectNewids[0];
+  if (projectNewid == null) {
+    log.warn`no project ID found for Art Blocks project ${artblocksProjectIndex}; skipping`;
+    return;
+  }
+  const completedThroughTokenIndex =
+    completedThroughTokenId == null ? null : completedThroughTokenId % 1e6;
+  if (!ctx.dryRun) {
+    await acqrel(ctx.pool, (client) =>
+      artblocks.updateImageProgress({
+        client,
+        progress: [
+          {
+            projectNewid,
+            completedThroughTokenId,
+            completedThroughTokenIndex,
+          },
+        ],
+      })
+    );
   }
 }
 

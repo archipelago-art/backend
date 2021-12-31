@@ -1,5 +1,6 @@
 const backfillModules = [
   "./artblocksProjectIndices",
+  "./imageProgressNewids",
   "./newids",
   "./projectSlugs",
   "./openseaEventTypes",

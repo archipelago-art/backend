@@ -708,16 +708,29 @@ describe("db/artblocks", () => {
   it(
     "notifies for image progress",
     withTestDb(async ({ pool, client }) => {
-      await addProjects(client, [
+      const addProjectsRes = await addProjects(client, [
         snapshots.SQUIGGLES,
         snapshots.ELEVATED_DECONSTRUCTIONS,
         snapshots.ARCHETYPE,
         snapshots.BYTEBEATS,
         snapshots.GALAXISS,
       ]);
+      const newids = new Map(
+        addProjectsRes.map((x) => [x.project.projectId, x.newid])
+      );
 
       function progress(projectId, completedThroughTokenId) {
-        return { projectId, completedThroughTokenId };
+        return {
+          projectNewid: newids.get(projectId),
+          completedThroughTokenId,
+          completedThroughTokenIndex: completedThroughTokenId % 1e6,
+        };
+      }
+      function progressEvent(projectId, completedThroughTokenId) {
+        return {
+          projectId,
+          ...progress(projectId, completedThroughTokenId),
+        };
       }
 
       await artblocks.updateImageProgress({
@@ -765,10 +778,10 @@ describe("db/artblocks", () => {
         expect(
           progressEvents.sort((a, b) => a.projectId - b.projectId)
         ).toEqual([
-          progress(snapshots.SQUIGGLES, 3),
-          progress(snapshots.ARCHETYPE, 23000005),
-          progress(snapshots.GALAXISS, 31000001),
-          progress(snapshots.BYTEBEATS, null),
+          progressEvent(snapshots.SQUIGGLES, 3),
+          progressEvent(snapshots.ARCHETYPE, 23000005),
+          progressEvent(snapshots.GALAXISS, 31000001),
+          progressEvent(snapshots.BYTEBEATS, null),
         ]);
       });
     })
