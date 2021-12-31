@@ -325,11 +325,11 @@ async function populateTraitMembers({
       (SELECT token_contract FROM tokens WHERE token_id = $1),
       (SELECT on_chain_token_id FROM tokens WHERE token_id = $1)
     FROM traits
-    JOIN unnest($3::integer[], $4::jsonb[]) AS my_traits(feature_id, value)
-      USING (feature_id, value)
+    JOIN unnest($3::featureid[], $4::jsonb[]) AS my_traits(feature_newid, value)
+      USING (feature_newid, value)
     ON CONFLICT DO NOTHING
     `,
-    [tokenId, tokenNewid, featureIds, traitValues]
+    [tokenId, tokenNewid, featureNewids, traitValues]
   );
   if (!alreadyInTransaction) await client.query("COMMIT");
 }
@@ -406,7 +406,7 @@ async function getTokenFeaturesAndTraits({
   const res = await client.query(
     `
     SELECT
-      token_id AS "tokenId",
+      tokens.token_id AS "tokenId",
       tokens.token_newid AS "tokenNewid",
       token_index AS "tokenIndex",
       features.feature_newid AS "featureId",
@@ -415,9 +415,9 @@ async function getTokenFeaturesAndTraits({
       value
     FROM
       features
-      JOIN traits USING (feature_id)
-      JOIN trait_members USING (trait_id)
-      RIGHT OUTER JOIN tokens USING (token_id)
+      JOIN traits USING (feature_newid)
+      JOIN trait_members USING (trait_newid)
+      RIGHT OUTER JOIN tokens USING (token_newid)
     WHERE true
       AND (tokens.token_newid = $1 OR $1 IS NULL)
       AND (
@@ -426,7 +426,11 @@ async function getTokenFeaturesAndTraits({
       )
       AND (token_index >= $3 OR $3 IS NULL)
       AND (token_index <= $4 OR $4 IS NULL)
-    ORDER BY token_id, feature_id, trait_id
+    ORDER BY
+      tokens.token_contract,
+      tokens.on_chain_token_id,
+      feature_newid,
+      trait_newid
     `,
     [tokenNewid, projectNewid, minTokenIndex, maxTokenIndex]
   );
