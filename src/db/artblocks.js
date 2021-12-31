@@ -21,7 +21,7 @@ function artblocksContractAddress(projectId) {
 // Event payloads are JSON `{ projectId: string, tokenId: string }` (these are "newids").
 const newTokensChannel = events.channel("new_tokens");
 
-// Event payloads are JSON `{ projectId: number, projectNewid: string, completedThroughTokenId: number, completedThroughTokenIndex: number }`.
+// Event payloads are JSON `{ projectNewid: string, completedThroughTokenIndex: number }`.
 const imageProgressChannel = events.channel("image_progress");
 
 function tokenBounds(projectId) {
@@ -634,9 +634,7 @@ async function updateImageProgress({ client, progress }) {
           IS DISTINCT FROM updates.completed_through_token_index
       )
     RETURNING
-      (SELECT project_id FROM projects WHERE project_newid = updates.project_newid) AS "projectId",
       updates.project_newid AS "projectNewid",
-      updates.completed_through_token_id AS "completedThroughTokenId",
       updates.completed_through_token_index AS "completedThroughTokenIndex"
     `,
     [projectNewids, progressIds, progressIndices]
@@ -663,9 +661,7 @@ async function updateImageProgress({ client, progress }) {
     LEFT OUTER JOIN (SELECT project_newid, project_id FROM projects) AS q USING (project_newid)
     ON CONFLICT DO NOTHING
     RETURNING
-      project_id AS "projectId",
       project_newid AS "projectNewid",
-      completed_through_token_id AS "completedThroughTokenId",
       completed_through_token_index AS "completedThroughTokenIndex"
     `,
     [projectNewids, progressIds, progressIndices]

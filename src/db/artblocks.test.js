@@ -733,8 +733,8 @@ describe("db/artblocks", () => {
       }
       function progressEvent(projectId, completedThroughTokenId) {
         return {
-          projectId,
-          ...progress(projectId, completedThroughTokenId),
+          projectNewid: newids.get(projectId),
+          completedThroughTokenIndex: completedThroughTokenId % 1e6,
         };
       }
 
@@ -780,14 +780,18 @@ describe("db/artblocks", () => {
         });
         await artblocks.imageProgressChannel.send(client, null);
         await done.promise;
-        expect(
-          progressEvents.sort((a, b) => a.projectId - b.projectId)
-        ).toEqual([
-          progressEvent(snapshots.SQUIGGLES, 3),
-          progressEvent(snapshots.ARCHETYPE, 23000005),
-          progressEvent(snapshots.GALAXISS, 31000001),
-          progressEvent(snapshots.BYTEBEATS, null),
-        ]);
+        function cmpNewids(a, b) {
+          const [aId, bId] = [a.projectNewid, b.projectNewid];
+          return aId < bId ? -1 : aId > bId ? 1 : 0;
+        }
+        expect(progressEvents.sort(cmpNewids)).toEqual(
+          [
+            progressEvent(snapshots.SQUIGGLES, 3),
+            progressEvent(snapshots.ARCHETYPE, 23000005),
+            progressEvent(snapshots.GALAXISS, 31000001),
+            progressEvent(snapshots.BYTEBEATS, null),
+          ].sort(cmpNewids)
+        );
       });
     })
   );
