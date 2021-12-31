@@ -605,7 +605,7 @@ async function getImageProgress({ client }) {
 //
 // notifications along `imageProgressChannel` for changes that are not no-ops.
 async function updateImageProgress({ client, progress }) {
-  const projectNewids = progress.map((x) => x.projectNewid);
+  const projectIds = progress.map((x) => x.projectNewid);
   const progressIndices = progress.map((x) => x.completedThroughTokenIndex);
   await client.query("BEGIN");
   const updatesRes = await client.query(
@@ -629,18 +629,16 @@ async function updateImageProgress({ client, progress }) {
       updates.project_id AS "projectNewid",
       updates.completed_through_token_index AS "completedThroughTokenIndex"
     `,
-    [projectNewids, progressIndices]
+    [projectIds, progressIndices]
   );
   const insertsRes = await client.query(
     `
     INSERT INTO image_progress (
       project_id,
-      project_newid,
       completed_through_token_index
     )
     SELECT
       project_id,
-      project_id AS project_newid,
       completed_through_token_index
     FROM (
       SELECT
@@ -652,7 +650,7 @@ async function updateImageProgress({ client, progress }) {
       project_id AS "projectNewid",
       completed_through_token_index AS "completedThroughTokenIndex"
     `,
-    [projectNewids, progressIndices]
+    [projectIds, progressIndices]
   );
   const changes = [...updatesRes.rows, ...insertsRes.rows];
   await imageProgressChannel.sendMany(client, changes);
