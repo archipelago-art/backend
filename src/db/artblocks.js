@@ -634,10 +634,12 @@ async function updateImageProgress({ client, progress }) {
   const insertsRes = await client.query(
     `
     INSERT INTO image_progress (
+      project_id,
       project_newid,
       completed_through_token_index
     )
     SELECT
+      project_newid AS project_id,
       project_newid,
       completed_through_token_index
     FROM (
