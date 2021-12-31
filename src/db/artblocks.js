@@ -589,10 +589,10 @@ async function getTokenHash({ client, tokenId }) {
 async function getImageProgress({ client }) {
   const res = await client.query(`
     SELECT
-      project_newid AS "projectNewid",
+      project_id AS "projectNewid",
       completed_through_token_index AS "completedThroughTokenIndex"
     FROM image_progress
-    ORDER BY project_newid ASC
+    ORDER BY project_id ASC
   `);
   return res.rows;
 }
@@ -615,18 +615,18 @@ async function updateImageProgress({ client, progress }) {
       completed_through_token_index = updates.completed_through_token_index
     FROM (
       SELECT
-        unnest($1::projectid[]) AS project_newid,
+        unnest($1::projectid[]) AS project_id,
         unnest($2::int[]) AS completed_through_token_index
     ) AS updates
     WHERE
-      image_progress.project_newid = updates.project_newid
+      image_progress.project_id = updates.project_id
       AND (
         -- only send NOTIFY events when necessary
         image_progress.completed_through_token_index
           IS DISTINCT FROM updates.completed_through_token_index
       )
     RETURNING
-      updates.project_newid AS "projectNewid",
+      updates.project_id AS "projectNewid",
       updates.completed_through_token_index AS "completedThroughTokenIndex"
     `,
     [projectNewids, progressIndices]
@@ -639,17 +639,17 @@ async function updateImageProgress({ client, progress }) {
       completed_through_token_index
     )
     SELECT
-      project_newid AS project_id,
-      project_newid,
+      project_id,
+      project_id AS project_newid,
       completed_through_token_index
     FROM (
       SELECT
-        unnest($1::projectid[]) AS project_newid,
+        unnest($1::projectid[]) AS project_id,
         unnest($2::integer[]) AS completed_through_token_index
     ) AS updates
     ON CONFLICT DO NOTHING
     RETURNING
-      project_newid AS "projectNewid",
+      project_id AS "projectNewid",
       completed_through_token_index AS "completedThroughTokenIndex"
     `,
     [projectNewids, progressIndices]
