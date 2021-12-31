@@ -1,5 +1,6 @@
 const util = require("util");
 
+const api = require("../api");
 const artblocks = require("../db/artblocks");
 const { acqrel } = require("../db/util");
 const C = require("../util/combo");
@@ -66,10 +67,11 @@ async function attach(server, pool) {
     clearInterval(listenClientKeepalive);
     listenClient.release(true);
   }
+  // Map from project newid to last token index.
   const imageProgress = new Map(
     (
       await acqrel(pool, (client) => artblocks.getImageProgress({ client }))
-    ).map((row) => [row.projectId, row.completedThroughTokenId])
+    ).map((row) => [row.projectNewid, row.completedThroughTokenIndex])
   );
 
   try {
@@ -80,19 +82,19 @@ async function attach(server, pool) {
 
     listenClient.on("notification", async (n) => {
       if (n.channel !== artblocks.imageProgressChannel.name) return;
-      const { projectId, completedThroughTokenId: newProgress } = JSON.parse(
+      const { projectNewid, completedThroughTokenId: newProgress } = JSON.parse(
         n.payload
       );
-      const oldProgress = imageProgress.get(projectId);
-      log.info`pg->ws: image progress for ${projectId} changing from ${oldProgress} to ${newProgress}: ${n.payload}`;
+      const oldProgress = imageProgress.get(projectNewid);
+      log.info`pg->ws: image progress for ${projectNewid} changing from ${oldProgress} to ${newProgress}: ${n.payload}`;
       if (oldProgress === newProgress) return;
-      imageProgress.set(projectId, newProgress);
+      imageProgress.set(projectNewid, newProgress);
       if (newProgress == null) return;
       const tokens = await acqrel(pool, async (client) => {
         return addSlugs(
           await artblocks.getTokenFeaturesAndTraits({
             client,
-            projectId,
+            projectNewid,
             minTokenId: oldProgress ?? -1,
             maxTokenId: newProgress,
           })
@@ -162,31 +164,20 @@ function handlePing(ws, pool, request) {
   sendJson(ws, { type: "PONG", nonce: request.nonce });
 }
 
-async function getProjectId({ pool, slug }) {
-  // temporary hack, pending this module being rewritten around newids
-  const res = await pool.query(
-    `
-      SELECT project_id AS id FROM projects
-      WHERE slug = $1
-      `,
-    [slug]
-  );
-  if (res.rows.length === 0) throw new Error("no collection by slug: " + slug);
-  return res.rows[0].id;
-}
-
 async function handleGetLatestTokens(ws, pool, imageProgress, request) {
-  const { lastTokenId } = request;
-  const projectId = await getProjectId({ pool, slug: request.slug });
+  const { lastTokenId, slug } = request;
+  const projectNewid = await acqrel(pool, (client) =>
+    api.resolveProjectNewid({ client, slug })
+  );
   const minTokenId = lastTokenId == null ? 0 : lastTokenId + 1;
-  const maxTokenId = imageProgress.get(projectId) ?? -1;
+  const maxTokenIndex = imageProgress.get(projectNewid) ?? -1;
   const tokens = await acqrel(pool, async (client) => {
     return addSlugs(
       await artblocks.getTokenFeaturesAndTraits({
         client,
-        projectId,
+        projectNewid,
         minTokenId,
-        maxTokenId,
+        maxTokenIndex,
       })
     );
   });
