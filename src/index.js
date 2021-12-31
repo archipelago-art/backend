@@ -338,76 +338,82 @@ async function ingestImages(args) {
   const [bucketName, prefix, workDir] = args;
   let newTokens = adHocPromise();
   await withDb(async ({ pool }) => {
-    const listenClient = await pool.connect();
-    listenClient.on("notification", (n) => {
-      if (n.channel !== artblocks.newTokensChannel.name) return;
-      log.info`scheduling wake for new token event: ${n.payload}`;
-      newTokens.resolve();
-    });
-    await artblocks.newTokensChannel.listen(listenClient);
+    await acqrel(pool, async (listenClient) => {
+      listenClient.on("notification", (n) => {
+        if (n.channel !== artblocks.newTokensChannel.name) return;
+        log.info`scheduling wake for new token event: ${n.payload}`;
+        newTokens.resolve();
+      });
+      await artblocks.newTokensChannel.listen(listenClient);
 
-    log.info`collecting project scripts`;
-    const allScripts = await acqrel(pool, (client) =>
-      artblocks.getAllProjectScripts({ client })
-    );
-    const generatorProjects = new Map(
-      allScripts
-        .filter((x) => GENERATOR_WHITELIST.includes(x.projectId))
-        .map((x) => [
-          x.projectId,
-          { library: x.library, script: x.script, aspectRatio: x.aspectRatio },
-        ])
-    );
-    const ctx = {
-      bucket: new gcs.Storage().bucket(bucketName),
-      prefix,
-      workDir,
-      generatorProjects,
-      dryRun,
-      pool,
-    };
-    log.info`listing images in gs://${ctx.bucket.name}/${ctx.prefix}`;
-    const listing = await images.list(ctx.bucket, ctx.prefix);
-    while (true) {
-      if (dryRun) {
-        log.info`would update image progress table (skipping for dry run)`;
-      } else {
-        log.info`updating image progress table`;
-      }
-      const listingProgress = images.listingProgress(listing);
-      const projectNewids = await acqrel(pool, (client) =>
-        artblocks.projectNewidsFromArtblocksIndices({
-          client,
-          indices: Array.from(listingProgress.keys()),
-        })
+      log.info`collecting project scripts`;
+      const allScripts = await acqrel(pool, (client) =>
+        artblocks.getAllProjectScripts({ client })
       );
-      const progress = Array.from(listingProgress).flatMap(([k, v], i) => {
-        const projectId = projectNewids[i];
-        if (projectId == null) return [];
-        const completedThroughTokenIndex = v == null ? null : v % 1e6;
-        return [{ projectId, completedThroughTokenIndex }];
-      });
-      if (!dryRun) {
-        await acqrel(pool, (client) =>
-          artblocks.updateImageProgress({ client, progress })
+      const generatorProjects = new Map(
+        allScripts
+          .filter((x) => GENERATOR_WHITELIST.includes(x.projectId))
+          .map((x) => [
+            x.projectId,
+            {
+              library: x.library,
+              script: x.script,
+              aspectRatio: x.aspectRatio,
+            },
+          ])
+      );
+      const ctx = {
+        bucket: new gcs.Storage().bucket(bucketName),
+        prefix,
+        workDir,
+        generatorProjects,
+        dryRun,
+        pool,
+      };
+      log.info`listing images in gs://${ctx.bucket.name}/${ctx.prefix}`;
+      const listing = await images.list(ctx.bucket, ctx.prefix);
+      while (true) {
+        if (dryRun) {
+          log.info`would update image progress table (skipping for dry run)`;
+          log.info`updating image progress table`;
+        }
+        const listingProgress = images.listingProgress(listing);
+        const projectNewids = await acqrel(pool, (client) =>
+          artblocks.projectNewidsFromArtblocksIndices({
+            client,
+            indices: Array.from(listingProgress.keys()),
+          })
         );
+        const progress = Array.from(listingProgress).flatMap(([k, v], i) => {
+          const projectId = projectNewids[i];
+          if (projectId == null) return [];
+          const completedThroughTokenIndex = v == null ? null : v % 1e6;
+          return [{ projectId, completedThroughTokenIndex }];
+        });
+        if (!dryRun) {
+          await acqrel(pool, (client) =>
+            artblocks.updateImageProgress({ client, progress })
+          );
+        }
+        log.info`fetching token IDs and download URLs`;
+        const tokens = await acqrel(pool, (client) =>
+          artblocks.getTokenImageData({ client })
+        );
+        log.info`got ${tokens.length} tokens`;
+        log.info`got images for ${listing.size} tokens`;
+        await images.ingest(ctx, tokens, listing, {
+          concurrency: IMAGEMAGICK_CONCURRENCY,
+        });
+        log.info`sleeping for up to ${INGESTION_LATENCY_SECONDS} seconds`;
+        log.info`${await Promise.race([
+          sleepMs(INGESTION_LATENCY_SECONDS * 1000).then(
+            () => "woke from sleep"
+          ),
+          newTokens.promise.then(() => "woke from new tokens notification"),
+        ])}`;
+        newTokens = adHocPromise();
       }
-      log.info`fetching token IDs and download URLs`;
-      const tokens = await acqrel(pool, (client) =>
-        artblocks.getTokenImageData({ client })
-      );
-      log.info`got ${tokens.length} tokens`;
-      log.info`got images for ${listing.size} tokens`;
-      await images.ingest(ctx, tokens, listing, {
-        concurrency: IMAGEMAGICK_CONCURRENCY,
-      });
-      log.info`sleeping for up to ${INGESTION_LATENCY_SECONDS} seconds`;
-      log.info`${await Promise.race([
-        sleepMs(INGESTION_LATENCY_SECONDS * 1000).then(() => "woke from sleep"),
-        newTokens.promise.then(() => "woke from new tokens notification"),
-      ])}`;
-      newTokens = adHocPromise();
-    }
+    });
   });
 }
 
