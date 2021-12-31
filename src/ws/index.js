@@ -29,10 +29,16 @@ const requestParser = C.sum("type", {
     nonce: C.string,
   },
   // Sent to request tokens for a collection.
-  GET_LATEST_TOKENS: {
-    slug: C.string,
-    lastTokenId: C.orElse([C.null_, C.number]),
-  },
+  GET_LATEST_TOKENS: C.object(
+    {
+      type: C.exactly(["GET_LATEST_TOKENS"]),
+      slug: C.string,
+    },
+    {
+      lastTokenIndex: C.orElse([C.null_, C.number]),
+      lastTokenId: C.orElse([C.null_, C.number]), // deprecated
+    }
+  ),
 });
 
 const responseParser = C.sum("type", {
@@ -165,18 +171,30 @@ function handlePing(ws, pool, request) {
 }
 
 async function handleGetLatestTokens(ws, pool, imageProgress, request) {
-  const { lastTokenId, slug } = request;
+  const { lastTokenId, lastTokenIndex, slug } = request;
   const projectNewid = await acqrel(pool, (client) =>
     api.resolveProjectNewid({ client, slug })
   );
-  const minTokenId = lastTokenId == null ? 0 : lastTokenId + 1;
+  const minFilter = {};
+  if (lastTokenIndex !== undefined) {
+    minFilter.minTokenIndex = lastTokenIndex == null ? 0 : lastTokenIndex + 1;
+  } else if (lastTokenId !== undefined) {
+    minFilter.minTokenId = lastTokenId == null ? 0 : lastTokenId + 1;
+  } else {
+    sendJson(ws, {
+      type: "ERROR",
+      httpStatus: 400,
+      message: "must set either lastTokenIndex or lastTokenId",
+    });
+    return;
+  }
   const maxTokenIndex = imageProgress.get(projectNewid) ?? -1;
   const tokens = await acqrel(pool, async (client) => {
     return addSlugs(
       await artblocks.getTokenFeaturesAndTraits({
         client,
         projectNewid,
-        minTokenId,
+        ...minFilter,
         maxTokenIndex,
       })
     );
