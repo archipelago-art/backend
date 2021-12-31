@@ -625,7 +625,7 @@ async function updateImageProgress({ client, progress }) {
         unnest($3::int[]) AS completed_through_token_index
     ) AS updates
     WHERE
-      image_progress.project_id = (SELECT project_id FROM projects WHERE project_newid = updates.project_newid)
+      image_progress.project_newid = updates.project_newid
       AND (
         -- only send NOTIFY events when necessary
         image_progress.completed_through_token_id
