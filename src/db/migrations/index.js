@@ -40,6 +40,7 @@ const migrationModules = [
   "./0037_image_progress_newids",
   "./0038_image_progress_rekey_project_newid",
   "./0039_image_progress_retype_project_id_int8",
+  "./0040_image_progress_project_id_drop_legacy_fkey",
   // ...
 ];
 
