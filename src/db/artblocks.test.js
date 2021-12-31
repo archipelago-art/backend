@@ -733,7 +733,7 @@ describe("db/artblocks", () => {
       function progressEvent(projectId, completedThroughTokenId) {
         return {
           projectId: newids.get(projectId),
-          ...progress(projectId, completedThroughTokenId),
+          completedThroughTokenIndex: completedThroughTokenId % 1e6,
         };
       }
 
