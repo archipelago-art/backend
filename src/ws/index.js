@@ -84,7 +84,7 @@ async function attach(server, pool) {
       if (n.channel !== artblocks.imageProgressChannel.name) return;
       const payload = JSON.parse(n.payload);
       const newProgress = payload.completedThroughTokenIndex;
-      const projectNewid = payload.projectId ?? payload.projectNewid;
+      const projectNewid = payload.projectId;
       const oldProgress = imageProgress.get(projectNewid);
       log.info`pg->ws: image progress for ${projectNewid} changing from ${oldProgress} to ${newProgress}: ${n.payload}`;
       if (oldProgress === newProgress) return;
