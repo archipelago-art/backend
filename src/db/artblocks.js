@@ -601,13 +601,11 @@ async function getImageProgress({ client }) {
 // objects with fields:
 //
 //   - projectNewid: string
-//   - completedThroughTokenId: number
 //   - completedThroughTokenIndex: number
 //
 // notifications along `imageProgressChannel` for changes that are not no-ops.
 async function updateImageProgress({ client, progress }) {
   const projectNewids = progress.map((x) => x.projectNewid);
-  const progressIds = progress.map((x) => x.completedThroughTokenId);
   const progressIndices = progress.map((x) => x.completedThroughTokenIndex);
   await client.query("BEGIN");
   const updatesRes = await client.query(
