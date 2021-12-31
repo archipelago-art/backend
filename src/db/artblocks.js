@@ -614,55 +614,45 @@ async function updateImageProgress({ client, progress }) {
     `
     UPDATE image_progress
     SET
-      completed_through_token_id = updates.completed_through_token_id,
       completed_through_token_index = updates.completed_through_token_index
     FROM (
       SELECT
         unnest($1::projectid[]) AS project_newid,
-        unnest($2::int[]) AS completed_through_token_id,
-        unnest($3::int[]) AS completed_through_token_index
+        unnest($2::int[]) AS completed_through_token_index
     ) AS updates
     WHERE
       image_progress.project_newid = updates.project_newid
       AND (
         -- only send NOTIFY events when necessary
-        image_progress.completed_through_token_id
-          IS DISTINCT FROM updates.completed_through_token_id
-        OR image_progress.completed_through_token_index
+        image_progress.completed_through_token_index
           IS DISTINCT FROM updates.completed_through_token_index
       )
     RETURNING
       updates.project_newid AS "projectNewid",
       updates.completed_through_token_index AS "completedThroughTokenIndex"
     `,
-    [projectNewids, progressIds, progressIndices]
+    [projectNewids, progressIndices]
   );
   const insertsRes = await client.query(
     `
     INSERT INTO image_progress (
-      project_id,
       project_newid,
-      completed_through_token_id,
       completed_through_token_index
     )
     SELECT
-      project_id,
       project_newid,
-      completed_through_token_id,
       completed_through_token_index
     FROM (
       SELECT
         unnest($1::projectid[]) AS project_newid,
-        unnest($2::integer[]) AS completed_through_token_id,
-        unnest($3::integer[]) AS completed_through_token_index
+        unnest($2::integer[]) AS completed_through_token_index
     ) AS updates
-    LEFT OUTER JOIN (SELECT project_newid, project_id FROM projects) AS q USING (project_newid)
     ON CONFLICT DO NOTHING
     RETURNING
       project_newid AS "projectNewid",
       completed_through_token_index AS "completedThroughTokenIndex"
     `,
-    [projectNewids, progressIds, progressIndices]
+    [projectNewids, progressIndices]
   );
   const changes = [...updatesRes.rows, ...insertsRes.rows];
   await imageProgressChannel.sendMany(client, changes);

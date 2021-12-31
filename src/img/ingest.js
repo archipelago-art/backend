@@ -139,13 +139,7 @@ async function updateProgress(ctx, token, listing) {
     await acqrel(ctx.pool, (client) =>
       artblocks.updateImageProgress({
         client,
-        progress: [
-          {
-            projectNewid,
-            completedThroughTokenId,
-            completedThroughTokenIndex,
-          },
-        ],
+        progress: [{ projectNewid, completedThroughTokenIndex }],
       })
     );
   }
