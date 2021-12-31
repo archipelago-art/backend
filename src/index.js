@@ -48,6 +48,9 @@ async function withDb(callback) {
   const pool = new pg.Pool();
   try {
     return await acqrel(pool, (client) => callback({ pool, client }));
+  } catch (e) {
+    log.error`withDb callback failed: ${e}`;
+    throw e;
   } finally {
     await pool.end();
   }
