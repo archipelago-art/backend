@@ -325,9 +325,9 @@ async function populateTraitMembers({
     SELECT
       trait_id,
       $1,
-      $2,
-      (SELECT token_contract FROM tokens WHERE token_id = $1),
-      (SELECT on_chain_token_id FROM tokens WHERE token_id = $1)
+      $2::tokenid,
+      (SELECT token_contract FROM tokens WHERE token_newid = $2::tokenid),
+      (SELECT on_chain_token_id FROM tokens WHERE token_newid = $2::tokenid)
     FROM traits
     JOIN unnest($3::featureid[], $4::jsonb[]) AS my_traits(feature_id, value)
       USING (feature_id, value)
