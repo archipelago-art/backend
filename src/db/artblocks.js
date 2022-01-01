@@ -342,9 +342,7 @@ async function populateTraitMembers({
  * type Trait = {
  *   traitNewid: string,
  *   value: Json,
- *   tokens: integer[],
  *   tokenIndices: integer[],
- *   tokenNewids: string[],
  * }
  *
  * type Feature = {
@@ -363,9 +361,7 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
       name,
       traits.trait_id AS "traitId",
       value,
-      array_agg(tokens.token_id ORDER BY token_index) AS tokens,
-      array_agg(tokens.token_index ORDER BY token_index) AS "tokenIndices",
-      array_agg(tokens.token_newid::text ORDER BY token_index) AS "tokenNewids"
+      array_agg(token_index ORDER BY token_index) AS "tokenIndices"
     FROM features
       JOIN traits USING (feature_id)
       JOIN trait_members USING (trait_id)
