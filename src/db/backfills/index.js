@@ -1,5 +1,6 @@
 const backfillModules = [
   "./projectSlugs",
+  "./projectNewids",
   "./openseaEventTypes",
   // ...
 ];
