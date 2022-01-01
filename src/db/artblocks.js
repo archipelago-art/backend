@@ -216,17 +216,17 @@ async function addToken({ client, tokenId, rawTokenData }) {
       project_newid
     )
     VALUES (
-      $1::int, $2, $3, $4,
-      (SELECT token_contract FROM projects WHERE project_newid = $7),
-      $1::uint256, $5::int8,
-      $6, $7
+      $1::int, $2, $3,
+      (SELECT project_id FROM projects WHERE project_newid = $6),
+      (SELECT token_contract FROM projects WHERE project_newid = $6),
+      $1::uint256, $4::int8,
+      $5, $6
     )
     `,
     [
       tokenId,
       new Date(),
       rawTokenData,
-      artblocksProjectIndex,
       tokenId % PROJECT_STRIDE,
       tokenNewid,
       projectNewid,
@@ -236,7 +236,6 @@ async function addToken({ client, tokenId, rawTokenData }) {
     client,
     tokenId,
     tokenNewid,
-    projectId: artblocksProjectIndex,
     projectNewid,
     rawTokenData,
     alreadyInTransaction: true,
@@ -252,7 +251,6 @@ async function addToken({ client, tokenId, rawTokenData }) {
 async function populateTraitMembers({
   client,
   tokenId,
-  projectId,
   tokenNewid,
   projectNewid,
   rawTokenData,
@@ -533,7 +531,7 @@ async function getTokenSummaries({ client, tokens }) {
       unnest($1::address[], $2::uint256[])
       AS needles(token_contract, on_chain_token_id)
       USING (token_contract, on_chain_token_id)
-    JOIN projects USING (project_id)
+    JOIN projects USING (project_newid)
     LEFT OUTER JOIN artblocks_projects
       ON projects.project_newid = artblocks_projects.project_id
     ORDER BY tokens.token_contract, tokens.on_chain_token_id
