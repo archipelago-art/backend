@@ -32,7 +32,7 @@ function collectionNameToArtblocksProjectIdUnwrap(name) {
   return projectId;
 }
 
-async function tokenNewidBySlugAndIndex({ client, slug, tokenIndex }) {
+async function tokenIdBySlugAndIndex({ client, slug, tokenIndex }) {
   const res = await client.query(
     `
     SELECT token_id AS id
@@ -43,6 +43,10 @@ async function tokenNewidBySlugAndIndex({ client, slug, tokenIndex }) {
   );
   if (res.rows.length === 0) return null;
   return res.rows[0].id;
+}
+
+async function tokenNewidBySlugAndIndex({ client, slug, tokenIndex }) {
+  return await tokenIdBySlugAndIndex({ client, slug, tokenIndex });
 }
 
 async function resolveProjectNewid({ client, slug }) {
@@ -211,6 +215,7 @@ function formatImageUrl({ template, size, tokenIndex }) {
 module.exports = {
   artblocksProjectIdToCollectionName,
   collectionNameToArtblocksProjectId,
+  tokenIdBySlugAndIndex,
   tokenNewidBySlugAndIndex,
   resolveProjectNewid,
   collections,

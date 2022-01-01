@@ -121,12 +121,18 @@ describe("api", () => {
         tokenId: snapshots.THE_CUBE,
         rawTokenData: theCube,
       });
-      const res = await api.tokenNewidBySlugAndIndex({
+      const res1 = await api.tokenIdBySlugAndIndex({
         client,
         slug: "archetype",
         tokenIndex: 250,
       });
-      expect(res).toEqual(tokenNewid);
+      expect(res1).toEqual(tokenNewid);
+      const res2 = await api.tokenNewidBySlugAndIndex({
+        client,
+        slug: "archetype",
+        tokenIndex: 250,
+      });
+      expect(res2).toEqual(tokenNewid);
     })
   );
 
