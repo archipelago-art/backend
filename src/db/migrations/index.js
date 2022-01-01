@@ -63,6 +63,7 @@ const migrationModules = [
   "./0053_projects_rekey_project_id",
   "./0054_index_tokens_project_id_token_index",
   "./0055_projects_project_newid_nullable",
+  "./0056_deprecate_project_newid_columns",
   // ...
 ];
 
