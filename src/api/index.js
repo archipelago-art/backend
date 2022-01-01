@@ -49,7 +49,7 @@ async function tokenNewidBySlugAndIndex({ client, slug, tokenIndex }) {
   return await tokenIdBySlugAndIndex({ client, slug, tokenIndex });
 }
 
-async function resolveProjectNewid({ client, slug }) {
+async function resolveProjectId({ client, slug }) {
   const res = await client.query(
     `
     SELECT project_id AS id FROM projects
@@ -217,7 +217,7 @@ module.exports = {
   collectionNameToArtblocksProjectId,
   tokenIdBySlugAndIndex,
   tokenNewidBySlugAndIndex,
-  resolveProjectNewid,
+  resolveProjectId,
   collections,
   collection,
   projectFeaturesAndTraits,

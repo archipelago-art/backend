@@ -169,7 +169,7 @@ function handlePing(ws, pool, request) {
 async function handleGetLatestTokens(ws, pool, imageProgress, request) {
   const { lastTokenIndex, slug } = request;
   const projectNewid = await acqrel(pool, (client) =>
-    api.resolveProjectNewid({ client, slug })
+    api.resolveProjectId({ client, slug })
   );
   const minTokenIndex = lastTokenIndex == null ? 0 : lastTokenIndex + 1;
   const maxTokenIndex = imageProgress.get(projectNewid) ?? -1;
