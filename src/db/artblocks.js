@@ -460,15 +460,6 @@ async function getTokenFeaturesAndTraits({
   return result;
 }
 
-async function getTokenIds({ client }) {
-  const res = await client.query(`
-    SELECT token_id AS "tokenId"
-    FROM tokens
-    ORDER BY token_id ASC
-  `);
-  return res.rows.map((row) => row.tokenId);
-}
-
 async function getUnfetchedTokens({
   client,
   projectNewid /* optional; omit to scan all projects */,
@@ -668,7 +659,6 @@ module.exports = {
   populateTraitMembers,
   getProjectFeaturesAndTraits,
   getTokenFeaturesAndTraits,
-  getTokenIds,
   getUnfetchedTokens,
   getTokenImageData,
   getTokenSummaries,
