@@ -8,6 +8,7 @@ const log = require("../util/log")(__filename);
 // double-release error. String matching will have to do.
 const ALREADY_RELEASED =
   "Release called on client which has already been released to the pool.";
+const CLIENT_CLOSED = "Client was closed and is not queryable";
 
 function isSqlSafeIdentifier(s) {
   return !!s.match(/^[0-9A-Za-z_]+$/);
@@ -17,7 +18,8 @@ function isSqlSafeIdentifier(s) {
  * Acquires a client from the pool and passes it to the given async callback,
  * awaiting and returning its result and releasing the client on the way out.
  *
- * The callback does not need to (and should not) release the client.
+ * The callback does not need to release the client, but can do so if they need
+ * to dispose of it (i.e., call `client.release(true)`).
  */
 async function acqrel(pool, callback) {
   const client = await pool.connect();
@@ -28,7 +30,9 @@ async function acqrel(pool, callback) {
     try {
       await client.query("ROLLBACK");
     } catch (e) {
-      console.error("failed to roll back client: " + e);
+      if ((e || {}).message !== CLIENT_CLOSED) {
+        console.error("failed to roll back client: " + e);
+      }
     }
     try {
       await client.release();

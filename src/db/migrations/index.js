@@ -1,4 +1,11 @@
+const child_process = require("child_process");
+const fs = require("fs");
+const { join } = require("path");
+const util = require("util");
+
 const log = require("../../util/log")(__filename);
+const { testDbProvider } = require("../testUtil");
+const { acqrel } = require("../util");
 
 const migrationModules = [
   "./0001_projects",
@@ -60,15 +67,90 @@ const migrations = migrationModules.map((path) => ({
   migration: require(path),
 }));
 
+const ROLLUP_SQL_PATH = join(__dirname, "rollup.sql");
+const lastMigrationInRollupName =
+  "0051_features_traits_drop_legacy_newid_columns";
+const [migrationsInRollup, migrationsSinceRollup] = (() => {
+  const lastIncluded = migrations.findIndex(
+    (m) => m.name === lastMigrationInRollupName
+  );
+  const boundary = lastIncluded + 1; // works even if `lastIndex === -1`
+  return [migrations.slice(0, boundary), migrations.slice(boundary)];
+})();
+
 async function apply({ client, migrations, verbose }) {
   for (const { name, migration } of migrations) {
-    if (verbose) log.info`--- ${name}`;
+    if (verbose) log.info`applying: ${name}`;
     await migration.up({ client, verbose });
   }
 }
 
-async function applyAll({ client, verbose }) {
-  return apply({ client, migrations, verbose });
+/*
+ * Applies all migrations. Will use a rollup unless `fromScratch` is given.
+ *
+ * NOTE: This needs a pool instead of just a client (because it needs to
+ * pollute some state on the client, like the search path, and then dispose of
+ * it).
+ */
+async function applyAll({ pool, verbose, fromScratch = false }) {
+  if (fromScratch) {
+    await acqrel(pool, async (client) => {
+      await apply({ client, migrations, verbose });
+    });
+    return;
+  }
+  const buf = await util.promisify(fs.readFile)(ROLLUP_SQL_PATH);
+  const rollupSql = buf.toString("utf-8");
+  if (verbose) {
+    log.info`applying rollup of ${migrationsInRollup.length} migrations`;
+  }
+  await acqrel(pool, async (client) => {
+    await client.query("BEGIN");
+    await client.query(rollupSql);
+    await client.query("COMMIT");
+    // Rollup script clears out the search path; dispose of this client.
+    await client.release(true);
+  });
+  if (verbose) {
+    log.info`remaining: ${migrationsSinceRollup.length} migrations to apply after rollup`;
+  }
+  await acqrel(pool, async (client) => {
+    await apply({ client, migrations: migrationsSinceRollup, verbose });
+  });
 }
 
-module.exports = { migrations, apply, applyAll };
+async function generateRollupSql() {
+  const withDb = testDbProvider({ migrate: false });
+  return await withDb(async ({ database, client }) => {
+    await apply({ client, migrations: migrationsInRollup, verbose: true });
+    const res = await util.promisify(child_process.execFile)("pg_dump", [
+      // Omit `ALTER my_table OWNER TO my_role` on every object; this dump
+      // should be cluster-agnostic.
+      "--no-owner",
+      // Use `INSERT` instead of `COPY FROM STDIN` so that the dump is a
+      // sequence of SQL statements instead of just a `psql(1)` script. (This
+      // makes restores slower, but it's rare that we directly insert data in
+      // migrations.)
+      "--inserts",
+      "--encoding=utf-8",
+      "--",
+      database,
+    ]);
+    const pgdumpSql = res.stdout;
+    return [
+      "--- Archipelago SQL schema rollup",
+      `--- Generated: ${new Date().toISOString()}`,
+      `--- Scope: ${migrationsInRollup.length} migrations, through ${lastMigrationInRollupName}`,
+      "",
+      pgdumpSql,
+    ].join("\n");
+  })();
+}
+
+Object.assign(module.exports, {
+  ROLLUP_SQL_PATH,
+  migrations,
+  apply,
+  applyAll,
+  generateRollupSql,
+});

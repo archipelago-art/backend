@@ -45,8 +45,8 @@ async function sleepMs(ms) {
 }
 
 async function init() {
-  await withClient(async (client) => {
-    await migrations.applyAll({ client, verbose: true });
+  await withPool(async (pool) => {
+    await migrations.applyAll({ pool, verbose: true });
   });
 }
 

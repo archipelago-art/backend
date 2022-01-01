@@ -49,8 +49,8 @@ function testDbProvider(options = {}) {
       const pool = new pg.Pool({ ...templateConnInfo, database });
       try {
         return await acqrel(pool, async (client) => {
-          if (migrate) await migrations.applyAll({ client });
-          await callback({ database, pool, client }, ...args);
+          if (migrate) await migrations.applyAll({ pool });
+          return await callback({ database, pool, client }, ...args);
         });
       } finally {
         if (!pool.ended) {
