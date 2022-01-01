@@ -277,7 +277,7 @@ async function populateTraitMembers({
       unnest($2::featureid[]),
       unnest($3::text[])
     )
-    ON CONFLICT (project_newid, name) DO NOTHING
+    ON CONFLICT (project_id, name) DO NOTHING
     `,
     [
       projectNewid,
@@ -287,14 +287,14 @@ async function populateTraitMembers({
   );
   const featureIdsRes = await client.query(
     `
-    SELECT feature_newid AS "newid", name
+    SELECT feature_id AS "id", name
     FROM features
-    WHERE project_newid = $1 AND name = ANY($2::text[])
+    WHERE project_id = $1 AND name = ANY($2::text[])
     `,
     [projectNewid, featureNames]
   );
 
-  const featureNewids = featureIdsRes.rows.map((r) => r.newid);
+  const featureNewids = featureIdsRes.rows.map((r) => r.id);
   const traitValues = featureIdsRes.rows.map((r) =>
     JSON.stringify(featureData[r.name])
   );
@@ -309,13 +309,9 @@ async function populateTraitMembers({
       unnest($2::traitid[]),
       unnest($3::jsonb[])
     )
-    ON CONFLICT (feature_newid, value) DO NOTHING
+    ON CONFLICT (feature_id, value) DO NOTHING
     `,
-    [
-      featureNewids,
-      newIds(traitValues.length, ObjectType.TRAIT),
-      traitValues,
-    ]
+    [featureNewids, newIds(traitValues.length, ObjectType.TRAIT), traitValues]
   );
 
   await client.query(
@@ -329,8 +325,8 @@ async function populateTraitMembers({
       (SELECT token_contract FROM tokens WHERE token_id = $1),
       (SELECT on_chain_token_id FROM tokens WHERE token_id = $1)
     FROM traits
-    JOIN unnest($3::featureid[], $4::jsonb[]) AS my_traits(feature_newid, value)
-      USING (feature_newid, value)
+    JOIN unnest($3::featureid[], $4::jsonb[]) AS my_traits(feature_id, value)
+      USING (feature_id, value)
     ON CONFLICT DO NOTHING
     `,
     [tokenId, tokenNewid, featureNewids, traitValues]
@@ -358,18 +354,18 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
   const res = await client.query(
     `
     SELECT
-      features.feature_newid AS "featureId",
+      features.feature_id AS "featureId",
       name,
-      traits.trait_newid AS "traitId",
+      traits.trait_id AS "traitId",
       value,
       array_agg(token_id ORDER BY token_id) AS tokens,
       array_agg(token_newid::text ORDER BY token_id) AS "tokenNewids"
     FROM features
-      JOIN traits USING (feature_newid)
-      JOIN trait_members USING (trait_newid)
-    WHERE project_newid = $1
+      JOIN traits USING (feature_id)
+      JOIN trait_members USING (trait_id)
+    WHERE project_id = $1
     GROUP BY
-      feature_newid, trait_newid,
+      feature_id, trait_id,
       features.name, traits.value  -- functionally dependent
     ORDER BY name, value
     `,
@@ -413,14 +409,14 @@ async function getTokenFeaturesAndTraits({
       tokens.token_id AS "tokenId",
       tokens.token_newid AS "tokenNewid",
       token_index AS "tokenIndex",
-      features.feature_newid AS "featureId",
+      features.feature_id AS "featureId",
       name,
-      traits.trait_newid AS "traitId",
+      traits.trait_id AS "traitId",
       value
     FROM
       features
-      JOIN traits USING (feature_newid)
-      JOIN trait_members USING (trait_newid)
+      JOIN traits USING (feature_id)
+      JOIN trait_members USING (trait_id)
       RIGHT OUTER JOIN tokens USING (token_newid)
     WHERE true
       AND (tokens.token_newid = $1 OR $1 IS NULL)
@@ -433,8 +429,8 @@ async function getTokenFeaturesAndTraits({
     ORDER BY
       tokens.token_contract,
       tokens.on_chain_token_id,
-      feature_newid,
-      trait_newid
+      feature_id,
+      trait_id
     `,
     [tokenNewid, projectNewid, minTokenIndex, maxTokenIndex]
   );
