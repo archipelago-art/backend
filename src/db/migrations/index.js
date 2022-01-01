@@ -70,6 +70,7 @@ const migrationModules = [
   "./0060_tokens_rekey_token_id",
   "./0061_deprecate_token_newid_columns",
   "./0062_drop_token_newid_columns",
+  "./0063_trait_members_token_contract_on_chain_id_nullable",
   // ...
 ];
 
