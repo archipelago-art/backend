@@ -64,15 +64,13 @@ async function addProject({ client, project, slugOverride }) {
       num_tokens,
       slug,
       script,
-      token_contract,
-      project_newid
+      token_contract
     )
     SELECT
       $1::projectid,
       $2, $3, $4, $5, $6, $7,
       0,  -- no tokens to start: tokens must be added after project
-      $8, $9, $10,
-      $1::projectid  -- "project_newid" gets the same value as "project_id"
+      $8, $9, $10
     ON CONFLICT (project_id) DO UPDATE SET
       name = $2,
       max_invocations = $3,
@@ -227,15 +225,13 @@ async function addToken({ client, tokenId, rawTokenData }) {
       token_contract,
       on_chain_token_id,
       token_index,
-      token_newid,
-      project_newid
+      token_newid
     )
     VALUES (
-      $1::int, $2, $3,
-      (SELECT project_id FROM projects WHERE project_id = $6),
-      (SELECT token_contract FROM projects WHERE project_id = $6),
+      $1::int, $2, $3, $6::projectid,
+      (SELECT token_contract FROM projects WHERE project_id = $6::projectid),
       $1::uint256, $4::int8,
-      $5, $6
+      $5
     )
     `,
     [
