@@ -589,6 +589,7 @@ async function getTokenHash({ client, tokenId }) {
   return res.rows[0].hash;
 }
 
+// NOTE: This function is newid-compliant.
 async function getImageProgress({ client }) {
   const res = await client.query(`
     SELECT
@@ -607,6 +608,8 @@ async function getImageProgress({ client }) {
 //   - completedThroughTokenIndex: number
 //
 // notifications along `imageProgressChannel` for changes that are not no-ops.
+//
+// NOTE: This function is newid-compliant.
 async function updateImageProgress({ client, progress }) {
   const projectIds = progress.map((x) => x.projectId);
   const progressIndices = progress.map((x) => x.completedThroughTokenIndex);
