@@ -49,6 +49,7 @@ const migrationModules = [
   "./0046_trait_and_feature_unique_child_constraints",
   "./0047_features_traits_rekey_newids",
   "./0048_features_traits_rekey_ids",
+  "./0049_features_traits_legacy_newid_columns_nullable",
   // ...
 ];
 
