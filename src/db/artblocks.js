@@ -271,7 +271,7 @@ async function populateTraitMembers({
     `
     INSERT INTO features (project_id, project_newid, name, feature_newid)
     VALUES ($1, $2, unnest($3::text[]), unnest($4::featureid[]))
-    ON CONFLICT (project_id, name) DO NOTHING
+    ON CONFLICT (project_newid, name) DO NOTHING
     `,
     [
       projectId,
@@ -304,7 +304,7 @@ async function populateTraitMembers({
       unnest($3::jsonb[]),
       unnest($4::traitid[])
     )
-    ON CONFLICT (feature_id, value) DO NOTHING
+    ON CONFLICT (feature_newid, value) DO NOTHING
     `,
     [
       featureIds,
