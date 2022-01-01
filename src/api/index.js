@@ -35,14 +35,14 @@ function collectionNameToArtblocksProjectIdUnwrap(name) {
 async function tokenNewidBySlugAndIndex({ client, slug, tokenIndex }) {
   const res = await client.query(
     `
-    SELECT token_newid AS newid
+    SELECT token_id AS id
     FROM projects JOIN tokens USING (project_id)
     WHERE projects.slug = $1 AND tokens.token_index = $2
     `,
     [slug, tokenIndex]
   );
   if (res.rows.length === 0) return null;
-  return res.rows[0].newid;
+  return res.rows[0].id;
 }
 
 async function resolveProjectNewid({ client, slug }) {

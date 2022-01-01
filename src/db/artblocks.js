@@ -326,8 +326,8 @@ async function populateTraitMembers({
       trait_id,
       $1::tokenid,
       $1::tokenid,
-      (SELECT token_contract FROM tokens WHERE token_newid = $1::tokenid),
-      (SELECT on_chain_token_id FROM tokens WHERE token_newid = $1::tokenid)
+      (SELECT token_contract FROM tokens WHERE token_id = $1::tokenid),
+      (SELECT on_chain_token_id FROM tokens WHERE token_id = $1::tokenid)
     FROM traits
     JOIN unnest($2::featureid[], $3::jsonb[]) AS my_traits(feature_id, value)
       USING (feature_id, value)
@@ -365,7 +365,7 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
     FROM features
       JOIN traits USING (feature_id)
       JOIN trait_members USING (trait_id)
-      JOIN tokens USING (token_newid)
+      JOIN tokens USING (token_id)
     WHERE features.project_id = $1
     GROUP BY
       feature_id, trait_id,
@@ -410,7 +410,7 @@ async function getTokenFeaturesAndTraits({
   const res = await client.query(
     `
     SELECT
-      tokens.token_newid AS "tokenNewid",
+      tokens.token_id AS "tokenNewid",
       token_index AS "tokenIndex",
       features.feature_id AS "featureId",
       name,
@@ -420,9 +420,9 @@ async function getTokenFeaturesAndTraits({
       features
       JOIN traits USING (feature_id)
       JOIN trait_members USING (trait_id)
-      RIGHT OUTER JOIN tokens USING (token_newid)
+      RIGHT OUTER JOIN tokens USING (token_id)
     WHERE true
-      AND (tokens.token_newid = $1 OR $1 IS NULL)
+      AND (tokens.token_id = $1 OR $1 IS NULL)
       AND (
         tokens.project_id = $2 OR $2 IS NULL
         OR tokens.project_id IS NULL  -- OUTER JOIN
@@ -504,7 +504,7 @@ async function getTokenSummaries({ client, tokens }) {
   const res = await client.query(
     `
     SELECT
-      token_newid AS "tokenNewid",
+      token_id AS "tokenNewid",
       name,
       artist_name AS "artistName",
       slug,
