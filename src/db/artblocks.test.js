@@ -167,15 +167,13 @@ describe("db/artblocks", () => {
   it(
     'inserts token data when "features" is an array',
     withTestDb(async ({ client }) => {
-      const [{ newid: projectNewid }] = await addProjects(client, [
+      const [{ newid: projectId }] = await addProjects(client, [
         snapshots.GALAXISS,
       ]);
-      const [{ newid: tokenNewid }] = await addTokens(client, [
-        snapshots.GALAXISS_FEATURES_ARRAY,
-      ]);
+      await addTokens(client, [snapshots.GALAXISS_FEATURES_ARRAY]);
       const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
-        projectNewid,
+        projectId,
       });
       expect(actualFeatures).toEqual(
         expect.arrayContaining([
@@ -217,7 +215,7 @@ describe("db/artblocks", () => {
       ]);
       const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
-        projectNewid,
+        projectId: projectNewid,
       });
       expect(actualFeatures).toEqual(
         expect.arrayContaining([
@@ -272,7 +270,9 @@ describe("db/artblocks", () => {
   it(
     "inserts token data for 404s",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
+      const [{ newid: projectId }] = await addProjects(client, [
+        snapshots.ARCHETYPE,
+      ]);
       await artblocks.addToken({
         client,
         tokenId: snapshots.THE_CUBE,
@@ -280,7 +280,7 @@ describe("db/artblocks", () => {
       });
       const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
-        projectId: snapshots.ARCHETYPE,
+        projectId,
       });
       expect(actualFeatures).toEqual([]);
     })
@@ -391,7 +391,9 @@ describe("db/artblocks", () => {
   it(
     "supports getProjectFeaturesAndTraits",
     withTestDb(async ({ client }) => {
-      const [{ newid }] = await addProjects(client, [snapshots.ARCHETYPE]);
+      const [{ newid: projectId }] = await addProjects(client, [
+        snapshots.ARCHETYPE,
+      ]);
       const addTokensResult = await addTokens(client, [
         snapshots.THE_CUBE,
         snapshots.ARCH_TRIPTYCH_1,
@@ -403,7 +405,7 @@ describe("db/artblocks", () => {
       );
       const res = await artblocks.getProjectFeaturesAndTraits({
         client,
-        projectNewid: newid,
+        projectId,
       });
       function expectedTrait(value, tokens) {
         return {
@@ -469,15 +471,16 @@ describe("db/artblocks", () => {
     "supports getTokenFeaturesAndTraits",
     withTestDb(async ({ client }) => {
       await addProjects(client, [snapshots.ARCHETYPE]);
-      const tokenId = snapshots.THE_CUBE;
-      const [{ newid: tokenNewid }] = await addTokens(client, [tokenId]);
+      const [{ newid: tokenId }] = await addTokens(client, [
+        snapshots.THE_CUBE,
+      ]);
       const res = await artblocks.getTokenFeaturesAndTraits({
         client,
-        tokenNewid,
+        tokenId,
       });
       expect(res).toEqual([
         {
-          tokenId: tokenNewid,
+          tokenId,
           tokenIndex: 250,
           traits: expect.arrayContaining([
             {
@@ -502,15 +505,16 @@ describe("db/artblocks", () => {
     "allows filtering token features by newid",
     withTestDb(async ({ client }) => {
       await addProjects(client, [snapshots.ARCHETYPE]);
-      const tokenId = snapshots.THE_CUBE;
-      const [{ newid: tokenNewid }] = await addTokens(client, [tokenId]);
+      const [{ newid: tokenId }] = await addTokens(client, [
+        snapshots.THE_CUBE,
+      ]);
       const res = await artblocks.getTokenFeaturesAndTraits({
         client,
-        tokenNewid,
+        tokenId,
       });
       expect(res).toEqual([
         {
-          tokenId: tokenNewid,
+          tokenId,
           tokenIndex: 250,
           traits: expect.arrayContaining([
             {
@@ -534,7 +538,7 @@ describe("db/artblocks", () => {
   it(
     "respects token-feature project filters even for tokens with no traits",
     withTestDb(async ({ client }) => {
-      const [{ newid: archetypeNewid }] = await addProjects(client, [
+      const [{ newid: projectId }] = await addProjects(client, [
         snapshots.ARCHETYPE,
         snapshots.ELEVATED_DECONSTRUCTIONS,
       ]);
@@ -544,7 +548,7 @@ describe("db/artblocks", () => {
       ]);
       const res = await artblocks.getTokenFeaturesAndTraits({
         client,
-        projectNewid: archetypeNewid,
+        projectId,
       });
       expect(res).toEqual([
         expect.objectContaining({ tokenIndex: snapshots.THE_CUBE % 1e6 }),
@@ -556,7 +560,7 @@ describe("db/artblocks", () => {
   it(
     "supports getting features from a certain token index upward",
     withTestDb(async ({ client }) => {
-      const [{ newid: archetypeNewid }] = await addProjects(client, [
+      const [{ newid: projectId }] = await addProjects(client, [
         snapshots.ARCHETYPE,
         snapshots.BYTEBEATS,
       ]);
@@ -571,7 +575,7 @@ describe("db/artblocks", () => {
       ]);
       const res = await artblocks.getTokenFeaturesAndTraits({
         client,
-        projectNewid: archetypeNewid,
+        projectId,
         minTokenIndex: snapshots.ARCH_TRIPTYCH_2 % 1e6,
       });
       expect(res).toEqual([
@@ -606,7 +610,7 @@ describe("db/artblocks", () => {
   it(
     "includes tokens in range queries even if they have no traits",
     withTestDb(async ({ client }) => {
-      const [{ newid: archetypeNewid }] = await addProjects(client, [
+      const [{ newid: projectId }] = await addProjects(client, [
         snapshots.ARCHETYPE,
       ]);
       const [{ newid: newid1 }, { newid: newid3 }] = await addTokens(client, [
@@ -625,7 +629,7 @@ describe("db/artblocks", () => {
       });
       const res = await artblocks.getTokenFeaturesAndTraits({
         client,
-        projectNewid: archetypeNewid,
+        projectId,
         minTokenIndex: snapshots.ARCH_TRIPTYCH_1 % 1e6,
         maxTokenIndex: snapshots.ARCH_TRIPTYCH_3 % 1e6,
       });

@@ -9,7 +9,7 @@ const slug = require("../util/slugify");
 
 const types = {};
 types.tokenData = C.object({
-  projectId: C.string, // newid
+  projectId: C.string,
   tokenId: C.string,
   tokenIndex: C.number,
   traits: C.array(
@@ -67,7 +67,7 @@ async function attach(server, pool) {
     clearInterval(listenClientKeepalive);
     listenClient.release(true);
   }
-  // Map from project newid (string) to last token index.
+  // Map from project ID to last token index.
   const imageProgress = new Map(
     (
       await acqrel(pool, (client) => artblocks.getImageProgress({ client }))
@@ -85,21 +85,21 @@ async function attach(server, pool) {
       if (n.channel !== artblocks.imageProgressChannel.name) return;
       const payload = JSON.parse(n.payload);
       const newProgress = payload.completedThroughTokenIndex;
-      const projectNewid = payload.projectId;
-      const oldProgress = imageProgress.get(projectNewid);
-      log.info`pg->ws: image progress for ${projectNewid} changing from ${oldProgress} to ${newProgress}: ${n.payload}`;
+      const projectId = payload.projectId;
+      const oldProgress = imageProgress.get(projectId);
+      log.info`pg->ws: image progress for ${projectId} changing from ${oldProgress} to ${newProgress}: ${n.payload}`;
       if (oldProgress === newProgress) return;
-      imageProgress.set(projectNewid, newProgress);
+      imageProgress.set(projectId, newProgress);
       if (newProgress == null) return;
       const tokens = await acqrel(pool, async (client) => {
         return formatOutgoingTokens(
           await artblocks.getTokenFeaturesAndTraits({
             client,
-            projectNewid,
+            projectId,
             minTokenIndex: oldProgress ?? -1,
             maxTokenIndex: newProgress,
           }),
-          projectNewid
+          projectId
         );
       });
       const msg = formatResponse({ type: "NEW_TOKENS", tokens });
@@ -168,20 +168,20 @@ function handlePing(ws, pool, request) {
 
 async function handleGetLatestTokens(ws, pool, imageProgress, request) {
   const { lastTokenIndex, slug } = request;
-  const projectNewid = await acqrel(pool, (client) =>
+  const projectId = await acqrel(pool, (client) =>
     api.resolveProjectId({ client, slug })
   );
   const minTokenIndex = lastTokenIndex == null ? 0 : lastTokenIndex + 1;
-  const maxTokenIndex = imageProgress.get(projectNewid) ?? -1;
+  const maxTokenIndex = imageProgress.get(projectId) ?? -1;
   const tokens = await acqrel(pool, async (client) => {
     return formatOutgoingTokens(
       await artblocks.getTokenFeaturesAndTraits({
         client,
-        projectNewid,
+        projectId,
         minTokenIndex,
         maxTokenIndex,
       }),
-      projectNewid
+      projectId
     );
   });
 

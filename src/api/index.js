@@ -45,6 +45,7 @@ async function tokenIdBySlugAndIndex({ client, slug, tokenIndex }) {
   return res.rows[0].id;
 }
 
+// Deprecated in favor of `tokenIdBySlugAndIndex` (drop-in).
 async function tokenNewidBySlugAndIndex({ client, slug, tokenIndex }) {
   return await tokenIdBySlugAndIndex({ client, slug, tokenIndex });
 }
@@ -61,7 +62,7 @@ async function resolveProjectId({ client, slug }) {
   return res.rows[0].id;
 }
 
-async function _collections({ client, projectNewid }) {
+async function _collections({ client, projectId }) {
   const res = await client.query(
     `
     SELECT
@@ -81,7 +82,7 @@ async function _collections({ client, projectNewid }) {
       artblocks_project_index ASC,
       project_id ASC
     `,
-    [projectNewid]
+    [projectId]
   );
   return res.rows.map((row) => ({
     projectId: row.id,
@@ -101,22 +102,22 @@ async function _collections({ client, projectNewid }) {
 }
 
 async function collections({ client }) {
-  return await _collections({ client, projectNewid: null });
+  return await _collections({ client, projectId: null });
 }
 
 async function collection({ client, slug }) {
-  const projectNewid = await resolveProjectNewid({ client, slug });
-  if (projectNewid == null) return null;
-  const res = await _collections({ client, projectNewid });
+  const projectId = await resolveProjectId({ client, slug });
+  if (projectId == null) return null;
+  const res = await _collections({ client, projectId });
   return res[0] ?? null;
 }
 
 async function projectFeaturesAndTraits({ client, slug }) {
-  const projectNewid = await resolveProjectNewid({ client, slug });
-  if (projectNewid == null) return null;
+  const projectId = await resolveProjectId({ client, slug });
+  if (projectId == null) return null;
   const res = await artblocks.getProjectFeaturesAndTraits({
     client,
-    projectNewid,
+    projectId,
   });
   for (const feature of res) {
     feature.slug = slugify(feature.name);
@@ -128,20 +129,19 @@ async function projectFeaturesAndTraits({ client, slug }) {
   return res;
 }
 
-// `tokenId` should be the `newid` (numeric string of large integer)
 async function tokenFeaturesAndTraits({ client, tokenId }) {
-  return tokenFeaturesAndTraitsByNewid({ client, tokenNewid: tokenId });
-}
-
-async function tokenFeaturesAndTraitsByNewid({ client, tokenNewid }) {
-  if (typeof tokenNewid !== "string")
-    throw new Error("bad token ID: " + tokenNewid);
+  if (typeof tokenId !== "string") throw new Error("bad token ID: " + tokenId);
   const res = await artblocks.getTokenFeaturesAndTraits({
     client,
-    tokenNewid,
+    tokenId,
   });
   if (res.length !== 1) return [];
   return formatTokenTraits(res[0].traits);
+}
+
+// Deprecated in favor of `tokenFeaturesAndTraits` (drop-in except for arg name).
+async function tokenFeaturesAndTraitsByNewid({ client, tokenNewid }) {
+  return await tokenFeaturesAndTraits({ client, tokenId: tokenNewid });
 }
 
 function formatTokenTraits(result) {

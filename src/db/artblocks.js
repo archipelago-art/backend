@@ -346,7 +346,7 @@ async function populateTraitMembers({
  *
  * returns Feature[]
  */
-async function getProjectFeaturesAndTraits({ client, projectNewid }) {
+async function getProjectFeaturesAndTraits({ client, projectId }) {
   const res = await client.query(
     `
     SELECT
@@ -365,7 +365,7 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
       features.name, traits.value  -- functionally dependent
     ORDER BY name, value
     `,
-    [projectNewid]
+    [projectId]
   );
 
   const result = [];
@@ -392,12 +392,12 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
 
 async function getTokenFeaturesAndTraits({
   client,
-  tokenNewid,
-  projectNewid,
+  tokenId,
+  projectId,
   minTokenIndex,
   maxTokenIndex,
 }) {
-  if (tokenNewid == null && projectNewid == null) {
+  if (tokenId == null && projectId == null) {
     throw new Error("must filter by either project ID or token ID");
   }
   const res = await client.query(
@@ -428,7 +428,7 @@ async function getTokenFeaturesAndTraits({
       feature_id,
       trait_id
     `,
-    [tokenNewid, projectNewid, minTokenIndex, maxTokenIndex]
+    [tokenId, projectId, minTokenIndex, maxTokenIndex]
   );
 
   const result = [];
