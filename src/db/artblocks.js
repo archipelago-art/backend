@@ -228,10 +228,10 @@ async function addToken({ client, tokenId, rawTokenData }) {
       token_newid
     )
     VALUES (
-      $1::int, $2, $3, $6::projectid,
+      $5::tokenid, $2, $3, $6::projectid,
       (SELECT token_contract FROM projects WHERE project_id = $6::projectid),
       $1::uint256, $4::int8,
-      $5
+      $5::tokenid
     )
     `,
     [
@@ -324,16 +324,16 @@ async function populateTraitMembers({
     INSERT INTO trait_members (trait_id, token_id, token_newid, token_contract, on_chain_token_id)
     SELECT
       trait_id,
-      $1,
-      $2::tokenid,
-      (SELECT token_contract FROM tokens WHERE token_newid = $2::tokenid),
-      (SELECT on_chain_token_id FROM tokens WHERE token_newid = $2::tokenid)
+      $1::tokenid,
+      $1::tokenid,
+      (SELECT token_contract FROM tokens WHERE token_newid = $1::tokenid),
+      (SELECT on_chain_token_id FROM tokens WHERE token_newid = $1::tokenid)
     FROM traits
-    JOIN unnest($3::featureid[], $4::jsonb[]) AS my_traits(feature_id, value)
+    JOIN unnest($2::featureid[], $3::jsonb[]) AS my_traits(feature_id, value)
       USING (feature_id, value)
     ON CONFLICT DO NOTHING
     `,
-    [tokenId, tokenNewid, featureNewids, traitValues]
+    [tokenNewid, featureNewids, traitValues]
   );
   if (!alreadyInTransaction) await client.query("COMMIT");
 }
