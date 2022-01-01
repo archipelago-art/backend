@@ -15,7 +15,7 @@ async function backfillProjectSlugs({ pool, verbose }) {
     UPDATE projects
     SET slug = updates.slug
     FROM (
-      SELECT unnest($1::int[]) AS project_id, unnest($2::text[]) AS slug
+      SELECT unnest($1::int8[]) AS project_id, unnest($2::text[]) AS slug
     ) AS updates
     WHERE projects.project_id = updates.project_id AND projects.slug IS NULL
     RETURNING updates.project_id AS id, name, updates.slug AS slug

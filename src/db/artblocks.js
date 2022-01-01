@@ -68,9 +68,11 @@ async function addProject({ client, project, slugOverride }) {
       project_newid
     )
     SELECT
-      $1, $2, $3, $4, $5, $6, $7,
+      $1::projectid,  -- "project_id" gets the same value as "project_newid"
+      $2, $3, $4, $5, $6, $7,
       0,  -- no tokens to start: tokens must be added after project
-      $8, $9, $10, $11
+      $8, $9, $10,
+      $1::projectid
     ON CONFLICT (project_newid) DO UPDATE SET
       name = $2,
       max_invocations = $3,
@@ -83,7 +85,7 @@ async function addProject({ client, project, slugOverride }) {
       token_contract = $10
     `,
     [
-      project.projectId,
+      projectNewid,
       project.name,
       project.maxInvocations,
       project.artistName,
@@ -93,7 +95,6 @@ async function addProject({ client, project, slugOverride }) {
       slugOverride ?? slug(project.name),
       project.script,
       hexToBuf(artblocksContractAddress(project.projectId)),
-      projectNewid,
     ]
   );
   await client.query(
