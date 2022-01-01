@@ -9,6 +9,7 @@ const slug = require("../util/slugify");
 
 const types = {};
 types.tokenData = C.object({
+  projectId: C.string, // newid
   tokenId: C.number,
   tokenNewid: C.string,
   tokenIndex: C.number,
@@ -92,13 +93,14 @@ async function attach(server, pool) {
       imageProgress.set(projectNewid, newProgress);
       if (newProgress == null) return;
       const tokens = await acqrel(pool, async (client) => {
-        return addSlugs(
+        return formatOutgoingTokens(
           await artblocks.getTokenFeaturesAndTraits({
             client,
             projectNewid,
             minTokenIndex: oldProgress ?? -1,
             maxTokenIndex: newProgress,
-          })
+          }),
+          projectNewid
         );
       });
       const msg = formatResponse({ type: "NEW_TOKENS", tokens });
@@ -173,22 +175,24 @@ async function handleGetLatestTokens(ws, pool, imageProgress, request) {
   const minTokenIndex = lastTokenIndex == null ? 0 : lastTokenIndex + 1;
   const maxTokenIndex = imageProgress.get(projectNewid) ?? -1;
   const tokens = await acqrel(pool, async (client) => {
-    return addSlugs(
+    return formatOutgoingTokens(
       await artblocks.getTokenFeaturesAndTraits({
         client,
         projectNewid,
         minTokenIndex,
         maxTokenIndex,
-      })
+      }),
+      projectNewid
     );
   });
 
   sendJson(ws, { type: "NEW_TOKENS", tokens });
 }
 
-function addSlugs(tokenFeaturesAndTraits) {
+function formatOutgoingTokens(tokenFeaturesAndTraits, projectId) {
   return tokenFeaturesAndTraits.map((token) => ({
     ...token,
+    projectId,
     traits: token.traits.map((trait) => ({
       ...trait,
       featureSlug: slug(trait.name),
