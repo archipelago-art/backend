@@ -319,12 +319,8 @@ async function populateTraitMembers({
 
   await client.query(
     `
-    INSERT INTO trait_members (trait_id, token_id, token_contract, on_chain_token_id)
-    SELECT
-      trait_id,
-      $1::tokenid,
-      (SELECT token_contract FROM tokens WHERE token_id = $1::tokenid),
-      (SELECT on_chain_token_id FROM tokens WHERE token_id = $1::tokenid)
+    INSERT INTO trait_members (trait_id, token_id)
+    SELECT trait_id, $1::tokenid
     FROM traits
     JOIN unnest($2::featureid[], $3::jsonb[]) AS my_traits(feature_id, value)
       USING (feature_id, value)
