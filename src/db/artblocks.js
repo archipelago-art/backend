@@ -269,27 +269,31 @@ async function populateTraitMembers({
   const featureNames = Object.keys(featureData);
   await client.query(
     `
-    INSERT INTO features (project_id, project_newid, name, feature_newid)
-    VALUES ($1, $2, unnest($3::text[]), unnest($4::featureid[]))
+    INSERT INTO features (project_id, project_newid, feature_id, feature_newid, name)
+    VALUES (
+      $1::projectid,
+      $1::projectid,
+      unnest($2::featureid[]),
+      unnest($2::featureid[]),
+      unnest($3::text[])
+    )
     ON CONFLICT (project_newid, name) DO NOTHING
     `,
     [
-      projectId,
       projectNewid,
-      featureNames,
       newIds(featureNames.length, ObjectType.FEATURE),
+      featureNames,
     ]
   );
   const featureIdsRes = await client.query(
     `
-    SELECT feature_id AS "id", feature_newid AS "newid", name
+    SELECT feature_newid AS "newid", name
     FROM features
     WHERE project_newid = $1 AND name = ANY($2::text[])
     `,
     [projectNewid, featureNames]
   );
 
-  const featureIds = featureIdsRes.rows.map((r) => r.id);
   const featureNewids = featureIdsRes.rows.map((r) => r.newid);
   const traitValues = featureIdsRes.rows.map((r) =>
     JSON.stringify(featureData[r.name])
@@ -297,20 +301,20 @@ async function populateTraitMembers({
 
   await client.query(
     `
-    INSERT INTO traits (feature_id, feature_newid, value, trait_newid)
+    INSERT INTO traits (feature_id, feature_newid, trait_id, trait_newid, value)
     VALUES (
-      unnest($1::integer[]),
-      unnest($2::featureid[]),
-      unnest($3::jsonb[]),
-      unnest($4::traitid[])
+      unnest($1::featureid[]),
+      unnest($1::featureid[]),
+      unnest($2::traitid[]),
+      unnest($2::traitid[]),
+      unnest($3::jsonb[])
     )
     ON CONFLICT (feature_newid, value) DO NOTHING
     `,
     [
-      featureIds,
       featureNewids,
-      traitValues,
       newIds(traitValues.length, ObjectType.TRAIT),
+      traitValues,
     ]
   );
 
