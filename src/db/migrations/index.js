@@ -65,6 +65,7 @@ const migrationModules = [
   "./0055_projects_project_newid_nullable",
   "./0056_deprecate_project_newid_columns",
   "./0057_drop_project_newid_columns",
+  "./0058_index_trait_members_token_newid",
   // ...
 ];
 
