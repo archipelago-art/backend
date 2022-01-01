@@ -298,7 +298,7 @@ describe("db/artblocks", () => {
       const baseTokenId = projectId * 1e6;
       const maxInvocations = 6;
       const scriptJson = JSON.stringify({ aspectRatio: "1" });
-      await artblocks.addProject({
+      const projectNewid = await artblocks.addProject({
         client,
         project: { projectId, name: "Test", maxInvocations, scriptJson },
       });
@@ -313,8 +313,10 @@ describe("db/artblocks", () => {
         rawTokenData: null,
       });
       expect(
-        await artblocks.getUnfetchedTokenIds({ client, projectId })
-      ).toEqual([0, 1, 3, 4, 5].map((i) => baseTokenId + i));
+        await artblocks.getUnfetchedTokens({ client, projectNewid })
+      ).toEqual(
+        [0, 1, 3, 4, 5].map((tokenIndex) => ({ projectNewid, tokenIndex }))
+      );
     })
   );
 
@@ -342,7 +344,7 @@ describe("db/artblocks", () => {
         rawTokenData: s({ features: { Size: "small", Color: "blue" } }),
       },
     ];
-    await Promise.all(
+    const projectNewids = await Promise.all(
       projects.map((p) => artblocks.addProject({ client, project: p }))
     );
     await Promise.all(
@@ -354,18 +356,26 @@ describe("db/artblocks", () => {
         })
       )
     );
+    return projectNewids;
   }
 
   it(
     "computes unfetched token IDs across all projects",
     withTestDb(async ({ client }) => {
-      const p1 = 1e6 * 1;
-      const p2 = 1e6 * 2;
-      await addTestData(client);
-      expect(await artblocks.getAllUnfetchedTokenIds({ client })).toEqual([
-        ...[p1 + 2, p1 + 3, p1 + 4],
-        ...[p2 + 3, p2 + 4],
-      ]);
+      const [p1, p2] = await addTestData(client);
+      const p1Results = [2, 3, 4].map((tokenIndex) => ({
+        projectNewid: p1,
+        tokenIndex,
+      }));
+      const p2Results = [3, 4].map((tokenIndex) => ({
+        projectNewid: p2,
+        tokenIndex,
+      }));
+      const expected =
+        BigInt(p1) < BigInt(p2)
+          ? [...p1Results, ...p2Results]
+          : [...p2Results, ...p1Results];
+      expect(await artblocks.getUnfetchedTokens({ client })).toEqual(expected);
     })
   );
 

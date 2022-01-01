@@ -147,6 +147,20 @@ async function projectNewidsFromArtblocksIndices({ client, indices }) {
   return res.rows.map((r) => r.id);
 }
 
+// NOTE: This function is newid-compliant.
+async function artblocksProjectIndicesFromNewids({ client, projectNewids }) {
+  const res = await client.query(
+    `
+    SELECT artblocks_project_index AS "idx"
+    FROM unnest($1::projectid[]) WITH ORDINALITY AS inputs(project_id, i)
+    LEFT OUTER JOIN artblocks_projects USING (project_id)
+    ORDER BY i
+    `,
+    [projectNewids]
+  );
+  return res.rows.map((r) => r.idx);
+}
+
 async function setProjectSlug({ client, projectNewid, slug }) {
   if (typeof slug !== "string") {
     throw new Error(
@@ -460,45 +474,28 @@ async function getTokenIds({ client }) {
   return res.rows.map((row) => row.tokenId);
 }
 
-async function getUnfetchedTokenIds({ client, projectId }) {
+async function getUnfetchedTokens({
+  client,
+  projectNewid /* optional; omit to scan all projects */,
+}) {
   const res = await client.query(
     `
-    SELECT token_id AS "tokenId"
-    FROM
-      generate_series(
-        $2::int,
-        $2::int + (
-          SELECT max_invocations
-          FROM projects
-          WHERE project_id = $1
-        ) - 1
-      ) AS token_id
-      LEFT OUTER JOIN tokens USING (token_id)
-    WHERE token_data IS NULL
-    ORDER BY token_id ASC
+    SELECT project_newid AS "projectNewid", token_index AS "tokenIndex"
+    FROM (
+      SELECT project_newid, token_index
+      FROM
+        projects,
+        LATERAL generate_series(0, max_invocations - 1) AS token_index
+    ) AS q
+    LEFT OUTER JOIN tokens USING (project_newid, token_index)
+    WHERE
+      token_data IS NULL  -- either no "tokens" row or failed fetch
+      AND (project_newid = $1 OR $1 IS NULL)
+    ORDER BY project_newid, token_index
     `,
-    [projectId, projectId * PROJECT_STRIDE]
+    [projectNewid]
   );
-  return res.rows.map((row) => row.tokenId);
-}
-
-async function getAllUnfetchedTokenIds({ client }) {
-  const res = await client.query(
-    `
-    SELECT token_id AS "tokenId"
-    FROM
-      projects,
-      LATERAL generate_series(
-        project_id * $1,
-        project_id * $1 + max_invocations - 1
-      ) AS token_id
-      LEFT OUTER JOIN tokens USING (token_id)
-    WHERE token_data IS NULL
-    ORDER BY token_id ASC
-    `,
-    [PROJECT_STRIDE]
-  );
-  return res.rows.map((row) => row.tokenId);
+  return res.rows;
 }
 
 async function getTokenImageData({ client }) {
@@ -671,6 +668,7 @@ module.exports = {
   addProject,
   getProject,
   projectNewidsFromArtblocksIndices,
+  artblocksProjectIndicesFromNewids,
   setProjectSlug,
   getProjectIdBySlug,
   addToken,
@@ -678,8 +676,7 @@ module.exports = {
   getProjectFeaturesAndTraits,
   getTokenFeaturesAndTraits,
   getTokenIds,
-  getUnfetchedTokenIds,
-  getAllUnfetchedTokenIds,
+  getUnfetchedTokens,
   getTokenImageData,
   getTokenSummaries,
   getProjectScript,

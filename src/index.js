@@ -121,35 +121,71 @@ async function addToken(args) {
 }
 
 async function addProjectTokens(args) {
-  const [projectId] = args;
+  const [slug] = args;
   await withPool(async (pool) => {
-    const ids = await acqrel(pool, (client) =>
-      projectId === "all"
-        ? artblocks.getAllUnfetchedTokenIds({ client })
-        : artblocks.getUnfetchedTokenIds({ client, projectId })
-    );
-    log.info`got ${ids.length} missing IDs`;
+    const tokens = await acqrel(pool, async (client) => {
+      let projectNewid = null;
+      if (slug !== "all") {
+        projectNewid = await artblocks.getProjectIdBySlug({ client, slug });
+        if (projectNewid == null) {
+          throw new Error(`no project with slug "${slug}"`);
+        }
+      }
+      return await artblocks.getUnfetchedTokens({ client, projectNewid });
+    });
+    log.info`got ${tokens.length} missing tokens`;
+    const artblocksProjectIndices = await acqrel(pool, async (client) => {
+      const projectNewidToCount = new Map();
+      for (const t of tokens) {
+        const k = t.projectNewid;
+        projectNewidToCount.set(k, 1 + (projectNewidToCount.get(k) || 0));
+      }
+      const projectNewids = Array.from(projectNewidToCount.keys());
+      const res = await artblocks.artblocksProjectIndicesFromNewids({
+        client,
+        projectNewids,
+      });
+      const result = new Map();
+      for (let i = 0; i < projectNewids.length; i++) {
+        const k = projectNewids[i];
+        const v = res[i];
+        if (v == null) {
+          const n = projectNewidToCount.get(k);
+          log.warn`project ${k} is not an Art Blocks project; skipping ${n} tokens`;
+          continue;
+        }
+        result.set(k, v);
+      }
+      return result;
+    });
     const chunks = [];
     async function worker() {
       while (true) {
-        const tokenId = ids.shift();
-        if (tokenId == null) return;
+        const item = tokens.shift();
+        if (item == null) return;
+        const artblocksProjectIndex = artblocksProjectIndices.get(
+          item.projectNewid
+        );
+        if (artblocksProjectIndex == null) continue;
+        const artblocksTokenId =
+          artblocksProjectIndex * artblocks.PROJECT_STRIDE + item.tokenIndex;
         try {
-          const token = await fetchTokenData(tokenId);
+          log.trace`fetching token ${artblocksTokenId} (project ${item.projectNewid}, index ${item.tokenIndex})`;
+          const token = await fetchTokenData(artblocksTokenId);
           if (token.found) {
             await acqrel(pool, (client) =>
               artblocks.addToken({
                 client,
-                tokenId,
+                tokenId: artblocksTokenId,
                 rawTokenData: token.raw,
               })
             );
-            log.info`added token ${tokenId}`;
+            log.info`added token ${artblocksTokenId}`;
           } else {
-            log.info`skipping token ${tokenId} (not found)`;
+            log.info`skipping token ${artblocksTokenId} (not found)`;
           }
         } catch (e) {
-          log.warn`failed to add token ${tokenId}: ${e}`;
+          log.warn`failed to add token ${artblocksTokenId}: ${e}`;
         }
       }
     }
@@ -162,20 +198,44 @@ async function addProjectTokens(args) {
 }
 
 async function followLiveMint(args) {
-  const projectId = parseInt(args[0], 10);
+  const [slug] = args;
   await withPool(async (pool) => {
-    let ids = await acqrel(pool, (client) =>
-      artblocks.getUnfetchedTokenIds({ client, projectId })
-    );
+    const projectNewid = await acqrel(pool, async (client) => {
+      const res = await artblocks.getProjectIdBySlug({ client, slug });
+      if (res == null) {
+        throw new Error(`no project with slug "${slug}"`);
+      }
+      return res;
+    });
+    let indices = await acqrel(pool, async (client) => {
+      const res = await artblocks.getUnfetchedTokens({ client, projectNewid });
+      return res.map((t) => t.tokenIndex);
+    });
+    const artblocksProjectIndex = await acqrel(pool, async (client) => {
+      const [res] = await artblocks.artblocksProjectIndicesFromNewids({
+        client,
+        projectNewids: [projectNewid],
+      });
+      if (res == null) {
+        throw new Error(`project ${slug} is not an Art Blocks project`);
+      }
+      return res;
+    });
+    const baseTokenId = artblocksProjectIndex * artblocks.PROJECT_STRIDE;
+
     let sleepDuration = LIVE_MINT_INITIAL_DELAY_MS;
     while (true) {
-      if (ids.length === 0) {
+      if (indices.length === 0) {
         log.info`project ${projectId} is fully minted`;
         return;
       }
-      log.info`checking for ${ids[0]}`;
-      if (!(await tryAddTokenLive({ pool, tokenId: ids[0] }))) {
-        log.info`token ${ids[0]} not ready yet; zzz ${sleepDuration / 1000}s`;
+      log.info`checking for token ${indices[0]}`;
+      if (
+        !(await tryAddTokenLive({ pool, tokenId: baseTokenId + indices[0] }))
+      ) {
+        log.info`token ${indices[0]} not ready yet; zzz ${
+          sleepDuration / 1000
+        }s`;
         await sleepMs(sleepDuration);
         // exponential backoff up to a limit
         sleepDuration = Math.min(
@@ -186,9 +246,9 @@ async function followLiveMint(args) {
       }
       // found a token, reset exponential backoff
       sleepDuration = LIVE_MINT_INITIAL_DELAY_MS;
-      log.info`added token ${ids[0]}; reaching ahead`;
-      ids.shift();
-      const workItems = [...ids];
+      log.info`added token ${indices[0]}; reaching ahead`;
+      indices.shift();
+      const workItems = [...indices];
       let bailed = false;
       async function worker() {
         while (true) {
@@ -196,15 +256,16 @@ async function followLiveMint(args) {
             log.info`sibling task bailed; bailing`;
             return;
           }
-          const tokenId = workItems.shift();
-          if (tokenId == null) return;
+          const tokenIndex = workItems.shift();
+          if (tokenIndex == null) return;
+          const tokenId = baseTokenId + tokenIndex;
           if (!(await tryAddTokenLive({ pool, tokenId }))) {
             log.info`token ${tokenId} not ready yet; bailing`;
             bailed = true;
             return;
           }
-          log.info`added token ${tokenId}`;
-          ids = ids.filter((x) => x !== tokenId);
+          log.info`added token ${tokenIndex}`;
+          indices = indices.filter((x) => x !== tokenIndex);
         }
       }
       await Promise.all(
@@ -212,7 +273,7 @@ async function followLiveMint(args) {
           .fill()
           .map(() => worker())
       );
-      if (ids.length > 0) {
+      if (indices.length > 0) {
         log.info`going back to sleep`;
         await sleepMs(LIVE_MINT_INITIAL_DELAY_MS);
       }
