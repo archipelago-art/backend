@@ -10,7 +10,7 @@ const slug = require("../util/slugify");
 const types = {};
 types.tokenData = C.object({
   projectId: C.string, // newid
-  tokenNewid: C.string,
+  tokenId: C.string,
   tokenIndex: C.number,
   traits: C.array(
     C.object({

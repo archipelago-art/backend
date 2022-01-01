@@ -477,7 +477,7 @@ describe("db/artblocks", () => {
       });
       expect(res).toEqual([
         {
-          tokenNewid,
+          tokenId: tokenNewid,
           tokenIndex: 250,
           traits: expect.arrayContaining([
             {
@@ -510,7 +510,7 @@ describe("db/artblocks", () => {
       });
       expect(res).toEqual([
         {
-          tokenNewid,
+          tokenId: tokenNewid,
           tokenIndex: 250,
           traits: expect.arrayContaining([
             {
@@ -576,7 +576,7 @@ describe("db/artblocks", () => {
       });
       expect(res).toEqual([
         {
-          tokenNewid: addTokensResult[1].newid,
+          tokenId: addTokensResult[1].newid,
           tokenIndex: 45,
           traits: expect.arrayContaining([
             {
@@ -588,7 +588,7 @@ describe("db/artblocks", () => {
           ]),
         },
         {
-          tokenNewid: addTokensResult[2].newid,
+          tokenId: addTokensResult[2].newid,
           tokenIndex: 467,
           traits: expect.arrayContaining([
             {
@@ -631,7 +631,7 @@ describe("db/artblocks", () => {
       });
       expect(res).toEqual([
         {
-          tokenNewid: newid1,
+          tokenId: newid1,
           tokenIndex: 36,
           traits: expect.arrayContaining([
             {
@@ -643,12 +643,12 @@ describe("db/artblocks", () => {
           ]),
         },
         {
-          tokenNewid: newid2,
+          tokenId: newid2,
           tokenIndex: 45,
           traits: [],
         },
         {
-          tokenNewid: newid3,
+          tokenId: newid3,
           tokenIndex: 467,
           traits: expect.arrayContaining([
             {

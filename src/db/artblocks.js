@@ -403,7 +403,7 @@ async function getTokenFeaturesAndTraits({
   const res = await client.query(
     `
     SELECT
-      tokens.token_id AS "tokenNewid",
+      tokens.token_id AS "tokenId",
       token_index AS "tokenIndex",
       features.feature_id AS "featureId",
       name,
@@ -434,9 +434,9 @@ async function getTokenFeaturesAndTraits({
   const result = [];
   let currentToken = {};
   for (const row of res.rows) {
-    if (currentToken.tokenNewid !== row.tokenNewid) {
+    if (currentToken.tokenId !== row.tokenId) {
       currentToken = {
-        tokenNewid: row.tokenNewid,
+        tokenId: row.tokenId,
         tokenIndex: row.tokenIndex,
         traits: [],
       };
