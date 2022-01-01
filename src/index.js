@@ -517,23 +517,49 @@ async function aggregateOpenseaSales(args) {
 }
 
 async function generateImage(args) {
-  if (args.length !== 2) {
-    throw new Error("usage: generate-image <token-id> <outfile>");
+  if (args.length !== 3) {
+    throw new Error("usage: generate-image <slug> <token-index> <outfile>");
   }
-  const tokenId = Number(args[0]);
-  if (!Number.isInteger(tokenId) || tokenId < 0)
-    throw new Error("expected tokenId argument; got: " + args[0]);
-  const outfile = args[1];
-  const projectId = Math.floor(tokenId / 1e6);
-  const { generatorData, hash } = await withClient(async (client) => {
-    const generatorData = await artblocks.getProjectScript({
-      client,
-      projectId,
+  const [slug, rawTokenIndex, outfile] = args;
+  const tokenIndex = Number(rawTokenIndex);
+  if (!Number.isInteger(tokenIndex) || tokenIndex < 0)
+    throw new Error("expected tokenIndex argument; got: " + args[0]);
+
+  const { generatorData, tokenData } = await withPool(async (pool) => {
+    const projectId = await acqrel(pool, async (client) => {
+      const res = await artblocks.getProjectIdBySlug({ client, slug });
+      if (res == null) {
+        throw new Error(`no project with slug "${slug}"`);
+      }
+      return res;
     });
-    const hash = await artblocks.getTokenHash({ client, tokenId });
-    return { generatorData, hash };
+    const generatorData = await acqrel(pool, (client) =>
+      artblocks.getProjectScript({
+        client,
+        projectId,
+      })
+    );
+
+    const artblocksProjectIndex = await acqrel(pool, async (client) => {
+      const [res] = await artblocks.artblocksProjectIndicesFromNewids({
+        client,
+        projectNewids: [projectId],
+      });
+      if (res == null) {
+        throw new Error(`project ${slug} is not an Art Blocks project`);
+      }
+      return res;
+    });
+    const hash = await acqrel(pool, (client) =>
+      artblocks.getTokenHash({ client, slug, tokenIndex })
+    );
+    const tokenId =
+      artblocksProjectIndex * artblocks.PROJECT_STRIDE + tokenIndex;
+    const tokenData = { tokenId, hash };
+
+    return { generatorData, tokenData };
   });
-  const tokenData = { tokenId: String(tokenId), hash };
+
   await images.generate(generatorData, tokenData, outfile);
 }
 

@@ -550,14 +550,14 @@ async function getAllProjectScripts({ client }) {
   return res.rows;
 }
 
-async function getTokenHash({ client, tokenId }) {
+async function getTokenHash({ client, slug, tokenIndex }) {
   const res = await client.query(
     `
     SELECT token_data->>'token_hash' AS hash
-    FROM tokens
-    WHERE token_id = $1
+    FROM projects JOIN tokens USING (project_id)
+    WHERE slug = $1 AND token_index = $2
     `,
-    [tokenId]
+    [slug, tokenIndex]
   );
   if (res.rows.length === 0) return null;
   return res.rows[0].hash;
