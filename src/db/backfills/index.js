@@ -2,6 +2,7 @@ const backfillModules = [
   "./artblocksProjectIndices",
   "./newids",
   "./projectSlugs",
+  "./traitsFeaturesNewids",
   "./openseaEventTypes",
   // ...
 ];
