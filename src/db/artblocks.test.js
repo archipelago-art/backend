@@ -477,7 +477,6 @@ describe("db/artblocks", () => {
       });
       expect(res).toEqual([
         {
-          tokenId: snapshots.THE_CUBE,
           tokenNewid,
           tokenIndex: 250,
           traits: expect.arrayContaining([
@@ -511,7 +510,6 @@ describe("db/artblocks", () => {
       });
       expect(res).toEqual([
         {
-          tokenId: snapshots.THE_CUBE,
           tokenNewid,
           tokenIndex: 250,
           traits: expect.arrayContaining([
@@ -549,7 +547,7 @@ describe("db/artblocks", () => {
         projectNewid: archetypeNewid,
       });
       expect(res).toEqual([
-        expect.objectContaining({ tokenId: snapshots.THE_CUBE }),
+        expect.objectContaining({ tokenIndex: snapshots.THE_CUBE % 1e6 }),
         // nothing for Elevated Deconstructions
       ]);
     })
@@ -578,7 +576,6 @@ describe("db/artblocks", () => {
       });
       expect(res).toEqual([
         {
-          tokenId: snapshots.ARCH_TRIPTYCH_2,
           tokenNewid: addTokensResult[1].newid,
           tokenIndex: 45,
           traits: expect.arrayContaining([
@@ -591,7 +588,6 @@ describe("db/artblocks", () => {
           ]),
         },
         {
-          tokenId: snapshots.ARCH_TRIPTYCH_3,
           tokenNewid: addTokensResult[2].newid,
           tokenIndex: 467,
           traits: expect.arrayContaining([
@@ -635,7 +631,6 @@ describe("db/artblocks", () => {
       });
       expect(res).toEqual([
         {
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
           tokenNewid: newid1,
           tokenIndex: 36,
           traits: expect.arrayContaining([
@@ -648,13 +643,11 @@ describe("db/artblocks", () => {
           ]),
         },
         {
-          tokenId: snapshots.ARCH_TRIPTYCH_2,
           tokenNewid: newid2,
           tokenIndex: 45,
           traits: [],
         },
         {
-          tokenId: snapshots.ARCH_TRIPTYCH_3,
           tokenNewid: newid3,
           tokenIndex: 467,
           traits: expect.arrayContaining([
@@ -691,7 +684,6 @@ describe("db/artblocks", () => {
       });
       expect(res).toEqual([
         {
-          tokenId: 23000036,
           tokenNewid: addTokensResult[0].newid,
           name: "Archetype",
           artistName: "Kjetil Golid",
@@ -701,7 +693,6 @@ describe("db/artblocks", () => {
           aspectRatio: 1,
         },
         {
-          tokenId: 23000045,
           tokenNewid: addTokensResult[1].newid,
           name: "Archetype",
           artistName: "Kjetil Golid",

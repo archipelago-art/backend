@@ -410,7 +410,6 @@ async function getTokenFeaturesAndTraits({
   const res = await client.query(
     `
     SELECT
-      tokens.token_id AS "tokenId",
       tokens.token_newid AS "tokenNewid",
       token_index AS "tokenIndex",
       features.feature_id AS "featureId",
@@ -442,9 +441,8 @@ async function getTokenFeaturesAndTraits({
   const result = [];
   let currentToken = {};
   for (const row of res.rows) {
-    if (currentToken.tokenId !== row.tokenId) {
+    if (currentToken.tokenNewid !== row.tokenNewid) {
       currentToken = {
-        tokenId: row.tokenId,
         tokenNewid: row.tokenNewid,
         tokenIndex: row.tokenIndex,
         traits: [],
@@ -512,7 +510,6 @@ async function getTokenSummaries({ client, tokens }) {
   const res = await client.query(
     `
     SELECT
-      token_id AS "tokenId",
       token_newid AS "tokenNewid",
       name,
       artist_name AS "artistName",
