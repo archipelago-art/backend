@@ -269,11 +269,9 @@ async function populateTraitMembers({
   const featureNames = Object.keys(featureData);
   await client.query(
     `
-    INSERT INTO features (project_id, project_newid, feature_id, feature_newid, name)
+    INSERT INTO features (project_id, feature_id, name)
     VALUES (
       $1::projectid,
-      $1::projectid,
-      unnest($2::featureid[]),
       unnest($2::featureid[]),
       unnest($3::text[])
     )
@@ -301,11 +299,9 @@ async function populateTraitMembers({
 
   await client.query(
     `
-    INSERT INTO traits (feature_id, feature_newid, trait_id, trait_newid, value)
+    INSERT INTO traits (feature_id, trait_id, value)
     VALUES (
       unnest($1::featureid[]),
-      unnest($1::featureid[]),
-      unnest($2::traitid[]),
       unnest($2::traitid[]),
       unnest($3::jsonb[])
     )
@@ -316,11 +312,10 @@ async function populateTraitMembers({
 
   await client.query(
     `
-    INSERT INTO trait_members (trait_id, token_id, trait_newid, token_newid, token_contract, on_chain_token_id)
+    INSERT INTO trait_members (trait_id, token_id, token_newid, token_contract, on_chain_token_id)
     SELECT
       trait_id,
       $1,
-      trait_newid,
       $2,
       (SELECT token_contract FROM tokens WHERE token_id = $1),
       (SELECT on_chain_token_id FROM tokens WHERE token_id = $1)
