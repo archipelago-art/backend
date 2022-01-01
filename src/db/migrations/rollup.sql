@@ -1,6 +1,6 @@
 --- Archipelago SQL schema rollup
---- Generated: 2022-01-01T04:01:39.211Z
---- Scope: 51 migrations, through 0051_features_traits_drop_legacy_newid_columns
+--- Generated: 2022-01-01T09:42:38.348Z
+--- Scope: 57 migrations, through 0057_drop_project_newid_columns
 
 --
 -- PostgreSQL database dump
@@ -225,7 +225,7 @@ CREATE TABLE public.opensea_sales (
 --
 
 CREATE TABLE public.projects (
-    project_id integer NOT NULL,
+    project_id public.projectid NOT NULL,
     name text NOT NULL,
     max_invocations integer NOT NULL,
     artist_name text,
@@ -235,8 +235,7 @@ CREATE TABLE public.projects (
     num_tokens integer NOT NULL,
     slug text,
     script text,
-    token_contract public.address NOT NULL,
-    project_newid public.projectid NOT NULL
+    token_contract public.address NOT NULL
 );
 
 
@@ -248,12 +247,11 @@ CREATE TABLE public.tokens (
     token_id integer NOT NULL,
     fetch_time timestamp with time zone NOT NULL,
     token_data json,
-    project_id integer NOT NULL,
+    project_id public.projectid NOT NULL,
     token_contract public.address NOT NULL,
     on_chain_token_id public.uint256 NOT NULL,
     token_index integer NOT NULL,
-    token_newid public.tokenid NOT NULL,
-    project_newid public.projectid NOT NULL
+    token_newid public.tokenid NOT NULL
 );
 
 
@@ -488,14 +486,6 @@ ALTER TABLE ONLY public.projects
 
 
 --
--- Name: projects projects_project_newid_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.projects
-    ADD CONSTRAINT projects_project_newid_key UNIQUE (project_newid);
-
-
---
 -- Name: projects projects_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -558,10 +548,10 @@ CREATE INDEX tokens_project_id ON public.tokens USING btree (project_id);
 
 
 --
--- Name: tokens_project_newid_token_index; Type: INDEX; Schema: public; Owner: -
+-- Name: tokens_project_id_token_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX tokens_project_newid_token_index ON public.tokens USING btree (project_newid, token_index);
+CREATE UNIQUE INDEX tokens_project_id_token_index ON public.tokens USING btree (project_id, token_index);
 
 
 --
@@ -583,7 +573,15 @@ CREATE INDEX trait_members_token_id_trait_id ON public.trait_members USING btree
 --
 
 ALTER TABLE ONLY public.artblocks_projects
-    ADD CONSTRAINT artblocks_projects_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_newid);
+    ADD CONSTRAINT artblocks_projects_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
+
+
+--
+-- Name: features features_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.features
+    ADD CONSTRAINT features_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
 
 
 --
@@ -591,15 +589,15 @@ ALTER TABLE ONLY public.artblocks_projects
 --
 
 ALTER TABLE ONLY public.image_progress
-    ADD CONSTRAINT image_progress_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_newid);
+    ADD CONSTRAINT image_progress_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
 
 
 --
--- Name: tokens tokens_project_newid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: tokens tokens_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tokens
-    ADD CONSTRAINT tokens_project_newid_fkey FOREIGN KEY (project_newid) REFERENCES public.projects(project_newid);
+    ADD CONSTRAINT tokens_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
 
 
 --
