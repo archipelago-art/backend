@@ -384,7 +384,7 @@ describe("db/artblocks", () => {
           tokenId: 1000001,
           rawTokenData: JSON.stringify({ features: { Size: "weird" } }),
         })
-      ).rejects.toThrow('unique constraint "tokens_pkey"');
+      ).rejects.toThrow("violates unique constraint");
     })
   );
 
