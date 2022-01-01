@@ -119,7 +119,7 @@ async function aggregateSalesByProject({ client, afterDate }) {
     `
     SELECT
       sum(price) AS sum,
-      projects.project_newid AS "projectId",
+      projects.project_id AS "projectId",
       min(slug) AS slug
     FROM opensea_sales
     JOIN tokens
@@ -127,10 +127,10 @@ async function aggregateSalesByProject({ client, afterDate }) {
         opensea_sales.token_id = tokens.on_chain_token_id AND
         opensea_sales.token_contract = tokens.token_contract
     JOIN projects
-      ON tokens.project_newid = projects.project_newid
+      ON tokens.project_id = projects.project_id
     WHERE sale_time >= $1 AND
       (currency_contract IS NULL OR currency_contract = $2)
-    GROUP BY projects.project_newid
+    GROUP BY projects.project_id
     ORDER BY sum(price) DESC
     `,
     [afterDate, dbUtil.hexToBuf(WETH_ADDRESS)]

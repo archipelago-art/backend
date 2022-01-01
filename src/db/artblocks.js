@@ -68,12 +68,12 @@ async function addProject({ client, project, slugOverride }) {
       project_newid
     )
     SELECT
-      $1::projectid,  -- "project_id" gets the same value as "project_newid"
+      $1::projectid,
       $2, $3, $4, $5, $6, $7,
       0,  -- no tokens to start: tokens must be added after project
       $8, $9, $10,
-      $1::projectid
-    ON CONFLICT (project_newid) DO UPDATE SET
+      $1::projectid  -- "project_newid" gets the same value as "project_id"
+    ON CONFLICT (project_id) DO UPDATE SET
       name = $2,
       max_invocations = $3,
       artist_name = $4,
@@ -113,7 +113,7 @@ async function getProject({ client, projectNewid }) {
   const res = await await client.query(
     `
     SELECT
-      project_newid AS "projectNewid",
+      project_id AS "projectNewid",
       name as "name",
       max_invocations AS "maxInvocations",
       artist_name AS "artistName",
@@ -125,7 +125,7 @@ async function getProject({ client, projectNewid }) {
       script AS "script",
       token_contract AS "tokenContract"
     FROM projects
-    WHERE project_newid = $1
+    WHERE project_id = $1
     `,
     [projectNewid]
   );
@@ -170,7 +170,7 @@ async function setProjectSlug({ client, projectNewid, slug }) {
   }
   const res = await client.query(
     `
-    UPDATE projects SET slug = $2 WHERE project_newid = $1
+    UPDATE projects SET slug = $2 WHERE project_id = $1
     `,
     [projectNewid, slug]
   );
@@ -181,7 +181,7 @@ async function setProjectSlug({ client, projectNewid, slug }) {
 async function getProjectIdBySlug({ client, slug }) {
   const res = await client.query(
     `
-    SELECT project_newid AS id FROM projects
+    SELECT project_id AS id FROM projects
     WHERE slug = $1
     `,
     [slug]
@@ -213,7 +213,7 @@ async function addToken({ client, tokenId, rawTokenData }) {
     `
     UPDATE projects
     SET num_tokens = num_tokens + 1
-    WHERE project_newid = $1
+    WHERE project_id = $1
     `,
     [projectNewid]
   );
@@ -232,8 +232,8 @@ async function addToken({ client, tokenId, rawTokenData }) {
     )
     VALUES (
       $1::int, $2, $3,
-      (SELECT project_id FROM projects WHERE project_newid = $6),
-      (SELECT token_contract FROM projects WHERE project_newid = $6),
+      (SELECT project_id FROM projects WHERE project_id = $6),
+      (SELECT token_contract FROM projects WHERE project_id = $6),
       $1::uint256, $4::int8,
       $5, $6
     )
@@ -429,8 +429,8 @@ async function getTokenFeaturesAndTraits({
     WHERE true
       AND (tokens.token_newid = $1 OR $1 IS NULL)
       AND (
-        tokens.project_newid = $2 OR $2 IS NULL
-        OR tokens.project_newid IS NULL  -- OUTER JOIN
+        tokens.project_id = $2 OR $2 IS NULL
+        OR tokens.project_id IS NULL  -- OUTER JOIN
       )
       AND (token_index >= $3 OR $3 IS NULL)
       AND (token_index <= $4 OR $4 IS NULL)
@@ -481,18 +481,18 @@ async function getUnfetchedTokens({
 }) {
   const res = await client.query(
     `
-    SELECT project_newid AS "projectNewid", token_index AS "tokenIndex"
+    SELECT project_id AS "projectNewid", token_index AS "tokenIndex"
     FROM (
-      SELECT project_newid, token_index
+      SELECT project_id, token_index
       FROM
         projects,
         LATERAL generate_series(0, max_invocations - 1) AS token_index
     ) AS q
-    LEFT OUTER JOIN tokens USING (project_newid, token_index)
+    LEFT OUTER JOIN tokens USING (project_id, token_index)
     WHERE
       token_data IS NULL  -- either no "tokens" row or failed fetch
-      AND (project_newid = $1 OR $1 IS NULL)
-    ORDER BY project_newid, token_index
+      AND (project_id = $1 OR $1 IS NULL)
+    ORDER BY project_id, token_index
     `,
     [projectNewid]
   );
@@ -503,7 +503,7 @@ async function getTokenImageData({ client }) {
   const res = await client.query(`
     SELECT
       token_id AS "tokenId",
-      project_newid AS "projectNewid",
+      project_id AS "projectNewid",
       token_data->'image' AS "imageUrl",
       token_data->'token_hash' AS "tokenHash"
     FROM tokens
@@ -529,9 +529,8 @@ async function getTokenSummaries({ client, tokens }) {
       unnest($1::address[], $2::uint256[])
       AS needles(token_contract, on_chain_token_id)
       USING (token_contract, on_chain_token_id)
-    JOIN projects USING (project_newid)
-    LEFT OUTER JOIN artblocks_projects
-      ON projects.project_newid = artblocks_projects.project_id
+    JOIN projects USING (project_id)
+    LEFT OUTER JOIN artblocks_projects USING (project_id)
     ORDER BY tokens.token_contract, tokens.on_chain_token_id
     `,
     [tokens.map((t) => hexToBuf(t.address)), tokens.map((t) => t.tokenId)]

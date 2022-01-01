@@ -36,7 +36,7 @@ async function tokenNewidBySlugAndIndex({ client, slug, tokenIndex }) {
   const res = await client.query(
     `
     SELECT token_newid AS newid
-    FROM projects JOIN tokens USING (project_newid)
+    FROM projects JOIN tokens USING (project_id)
     WHERE projects.slug = $1 AND tokens.token_index = $2
     `,
     [slug, tokenIndex]
@@ -48,7 +48,7 @@ async function tokenNewidBySlugAndIndex({ client, slug, tokenIndex }) {
 async function resolveProjectNewid({ client, slug }) {
   const res = await client.query(
     `
-    SELECT project_newid AS id FROM projects
+    SELECT project_id AS id FROM projects
     WHERE slug = $1
     `,
     [slug]
@@ -61,7 +61,7 @@ async function _collections({ client, projectNewid }) {
   const res = await client.query(
     `
     SELECT
-      projects.project_newid AS "newid",
+      projects.project_id AS "newid",
       artblocks_project_index AS "artblocksProjectIndex",
       slug AS "slug",
       name AS "name",
@@ -71,12 +71,11 @@ async function _collections({ client, projectNewid }) {
       num_tokens AS "numTokens",
       max_invocations AS "maxInvocations"
     FROM projects
-    LEFT OUTER JOIN artblocks_projects
-      ON projects.project_newid = artblocks_projects.project_id
-    WHERE project_newid = $1 OR $1 IS NULL
+    LEFT OUTER JOIN artblocks_projects USING (project_id)
+    WHERE project_id = $1 OR $1 IS NULL
     ORDER BY
       artblocks_project_index ASC,
-      project_newid ASC
+      project_id ASC
     `,
     [projectNewid]
   );
