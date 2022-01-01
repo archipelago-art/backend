@@ -48,6 +48,7 @@ const migrationModules = [
   "./0045_currencies",
   "./0046_trait_and_feature_unique_child_constraints",
   "./0047_features_traits_rekey_newids",
+  "./0048_features_traits_rekey_ids",
   // ...
 ];
 
