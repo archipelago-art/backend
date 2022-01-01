@@ -60,6 +60,7 @@ const migrationModules = [
   "./0050_features_traits_deprecate_legacy_newid_columns",
   "./0051_features_traits_drop_legacy_newid_columns",
   "./0052_projects_rekey_project_newid",
+  "./0053_projects_rekey_project_id",
   // ...
 ];
 
