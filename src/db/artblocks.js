@@ -343,6 +343,7 @@ async function populateTraitMembers({
  *   traitNewid: string,
  *   value: Json,
  *   tokens: integer[],
+ *   tokenIndices: integer[],
  *   tokenNewids: string[],
  * }
  *
@@ -362,12 +363,14 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
       name,
       traits.trait_id AS "traitId",
       value,
-      array_agg(token_id ORDER BY token_id) AS tokens,
-      array_agg(token_newid::text ORDER BY token_id) AS "tokenNewids"
+      array_agg(tokens.token_id ORDER BY token_index) AS tokens,
+      array_agg(tokens.token_index ORDER BY token_index) AS "tokenIndices",
+      array_agg(tokens.token_newid::text ORDER BY token_index) AS "tokenNewids"
     FROM features
       JOIN traits USING (feature_id)
       JOIN trait_members USING (trait_id)
-    WHERE project_id = $1
+      JOIN tokens USING (token_newid)
+    WHERE features.project_id = $1
     GROUP BY
       feature_id, trait_id,
       features.name, traits.value  -- functionally dependent
@@ -391,6 +394,7 @@ async function getProjectFeaturesAndTraits({ client, projectNewid }) {
       traitId: row.traitId,
       value: row.value,
       tokens: row.tokens,
+      tokenIndices: row.tokenIndices,
       tokenNewids: row.tokenNewids,
     });
   }

@@ -172,6 +172,7 @@ describe("api", () => {
                 value: "Cube",
                 traitId: expect.any(String),
                 tokens: [snapshots.THE_CUBE],
+                tokenIndices: [snapshots.THE_CUBE % 1e6],
                 tokenNewids: [newids.get(snapshots.THE_CUBE)],
                 slug: "cube",
               },

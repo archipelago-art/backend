@@ -187,6 +187,7 @@ describe("db/artblocks", () => {
                 traitId: expect.any(String),
                 value: "Pleasant palette",
                 tokens: [snapshots.GALAXISS_FEATURES_ARRAY],
+                tokenIndices: [snapshots.GALAXISS_FEATURES_ARRAY % 1e6],
                 tokenNewids: [tokenNewid],
               }),
             ],
@@ -199,6 +200,7 @@ describe("db/artblocks", () => {
                 traitId: expect.any(String),
                 value: "Night theme",
                 tokens: [snapshots.GALAXISS_FEATURES_ARRAY],
+                tokenIndices: [snapshots.GALAXISS_FEATURES_ARRAY % 1e6],
                 tokenNewids: [tokenNewid],
               }),
             ],
@@ -229,6 +231,7 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: "Electric",
                 tokens: [snapshots.BYTEBEATS_NULL_FEATURE],
+                tokenIndices: [snapshots.BYTEBEATS_NULL_FEATURE % 1e6],
                 tokenNewids: [tokenNewid],
               }),
             ],
@@ -239,6 +242,7 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: 4978,
                 tokens: [snapshots.BYTEBEATS_NULL_FEATURE],
+                tokenIndices: [snapshots.BYTEBEATS_NULL_FEATURE % 1e6],
                 tokenNewids: [tokenNewid],
               }),
             ],
@@ -249,6 +253,7 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 value: null,
                 tokens: [snapshots.BYTEBEATS_NULL_FEATURE],
+                tokenIndices: [snapshots.BYTEBEATS_NULL_FEATURE % 1e6],
                 tokenNewids: [tokenNewid],
               }),
             ],
@@ -415,6 +420,7 @@ describe("db/artblocks", () => {
           traitId: expect.any(String),
           value,
           tokens,
+          tokenIndices: tokens.map((id) => id % 1e6),
           tokenNewids: tokens.map((id) => artblocksTokenIdToTokenNewid.get(id)),
         };
       }
