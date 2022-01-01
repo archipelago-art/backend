@@ -59,6 +59,7 @@ const migrationModules = [
   "./0049_features_traits_legacy_newid_columns_nullable",
   "./0050_features_traits_deprecate_legacy_newid_columns",
   "./0051_features_traits_drop_legacy_newid_columns",
+  "./0052_projects_rekey_project_newid",
   // ...
 ];
 
