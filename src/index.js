@@ -328,46 +328,6 @@ async function downloadImages(args) {
   });
 }
 
-async function resizeImages(args) {
-  const [inputDir, outputDir, rawOutputSizePx] = args;
-  const outputSizePx = Number(rawOutputSizePx);
-  if (!Number.isSafeInteger(outputSizePx))
-    throw new Error("bad output size: " + outputSizePx);
-  await withPool(async (pool) => {
-    const tokenIds = await acqrel(pool, (client) =>
-      artblocks.getTokenIds({ client })
-    );
-    log.info`got ${tokenIds.length} token IDs`;
-    const chunks = [];
-    async function worker() {
-      while (true) {
-        const tokenId = tokenIds.shift();
-        if (tokenId == null) return;
-        try {
-          const outputPath = await images.resize(
-            inputDir,
-            outputDir,
-            tokenId,
-            outputSizePx
-          );
-          if (outputPath == null) {
-            log.warn`declined to resize image for ${tokenId} (input did not exist)`;
-          } else {
-            log.info`resized image for ${tokenId} to ${outputPath}`;
-          }
-        } catch (e) {
-          log.error`failed to resize image for ${tokenId}: ${e}`;
-        }
-      }
-    }
-    await Promise.all(
-      Array(IMAGEMAGICK_CONCURRENCY)
-        .fill()
-        .map(() => worker())
-    );
-  });
-}
-
 async function ingestImages(args) {
   const gcs = require("@google-cloud/storage");
   let dryRun = false;
@@ -590,7 +550,6 @@ async function main() {
     ["add-project-tokens", addProjectTokens],
     ["follow-live-mint", followLiveMint],
     ["download-images", downloadImages],
-    ["resize-images", resizeImages],
     ["ingest-images", ingestImages],
     ["generate-image", generateImage],
     ["token-feed-wss", tokenFeedWss],
