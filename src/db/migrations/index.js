@@ -64,6 +64,7 @@ const migrationModules = [
   "./0054_index_tokens_project_id_token_index",
   "./0055_projects_project_newid_nullable",
   "./0056_deprecate_project_newid_columns",
+  "./0057_drop_project_newid_columns",
   // ...
 ];
 
