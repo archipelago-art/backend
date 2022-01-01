@@ -299,35 +299,6 @@ async function tryAddTokenLive({ pool, tokenId }) {
   }
 }
 
-async function downloadImages(args) {
-  const [rootDir] = args;
-  await withPool(async (pool) => {
-    const tokens = await acqrel(pool, (client) =>
-      artblocks.getTokenImageData({ client })
-    );
-    log.info`got ${tokens.length} token image URLs`;
-    const chunks = [];
-    async function worker() {
-      while (true) {
-        const workUnit = tokens.shift();
-        if (workUnit == null) return;
-        const { tokenId, imageUrl } = workUnit;
-        try {
-          const path = await images.download(rootDir, imageUrl, tokenId);
-          log.info`downloaded image for ${tokenId} to ${path}`;
-        } catch (e) {
-          log.error`failed to download image for ${tokenId}: ${e}`;
-        }
-      }
-    }
-    await Promise.all(
-      Array(NETWORK_CONCURRENCY)
-        .fill()
-        .map(() => worker())
-    );
-  });
-}
-
 async function ingestImages(args) {
   const gcs = require("@google-cloud/storage");
   let dryRun = false;
@@ -575,7 +546,6 @@ async function main() {
     ["add-token", addToken],
     ["add-project-tokens", addProjectTokens],
     ["follow-live-mint", followLiveMint],
-    ["download-images", downloadImages],
     ["ingest-images", ingestImages],
     ["generate-image", generateImage],
     ["token-feed-wss", tokenFeedWss],
