@@ -72,6 +72,7 @@ const migrationModules = [
   "./0062_drop_token_newid_columns",
   "./0063_trait_members_token_contract_on_chain_id_nullable",
   "./0064_drop_trait_members_token_contract_on_chain_id",
+  "./0065_drop_legacy_id_sequences",
   // ...
 ];
 
