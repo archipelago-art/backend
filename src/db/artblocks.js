@@ -485,15 +485,18 @@ async function getUnfetchedTokens({
 }
 
 async function getTokenImageData({ client }) {
-  const res = await client.query(`
+  const res = await client.query(
+    `
     SELECT
-      token_id AS "tokenId",
+      artblocks_project_index * $1 + token_index AS "tokenId",
       project_id AS "projectNewid",
       token_data->'image' AS "imageUrl",
       token_data->'token_hash' AS "tokenHash"
-    FROM tokens
-    ORDER BY token_id ASC
-  `);
+    FROM tokens JOIN artblocks_projects USING (project_id)
+    ORDER BY artblocks_project_index, token_index
+    `,
+    [PROJECT_STRIDE]
+  );
   return res.rows;
 }
 
