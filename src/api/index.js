@@ -61,7 +61,7 @@ async function _collections({ client, projectNewid }) {
   const res = await client.query(
     `
     SELECT
-      projects.project_id AS "newid",
+      projects.project_id AS "id",
       artblocks_project_index AS "artblocksProjectIndex",
       slug AS "slug",
       name AS "name",
@@ -80,7 +80,7 @@ async function _collections({ client, projectNewid }) {
     [projectNewid]
   );
   return res.rows.map((row) => ({
-    projectNewid: row.newid,
+    projectId: row.id,
     slug: row.slug,
     artblocksProjectIndex: row.artblocksProjectIndex,
     imageUrlTemplate:

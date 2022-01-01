@@ -33,7 +33,7 @@ describe("api", () => {
       const res = await api.collections({ client });
       expect(res).toEqual([
         {
-          projectNewid: id0,
+          projectId: id0,
           slug: "chromie-squiggle",
           artblocksProjectIndex: 0,
           imageUrlTemplate: expect.stringContaining("/0/"),
@@ -47,7 +47,7 @@ describe("api", () => {
           maxInvocations: 10000,
         },
         {
-          projectNewid: id23,
+          projectId: id23,
           slug: "archetype",
           artblocksProjectIndex: 23,
           imageUrlTemplate: expect.stringContaining("/23/"),
@@ -81,7 +81,7 @@ describe("api", () => {
         await sc.project(snapshots.SQUIGGLES)
       );
       const theCube = await sc.token(snapshots.THE_CUBE);
-      const projectNewid = await artblocks.addProject({
+      const projectId = await artblocks.addProject({
         client,
         project: archetype,
       });
@@ -93,7 +93,7 @@ describe("api", () => {
       });
       const res = await api.collection({ client, slug: "archetype" });
       expect(res).toEqual({
-        projectNewid,
+        projectId,
         slug: "archetype",
         artblocksProjectIndex: 23,
         imageUrlTemplate: expect.stringContaining("/23/"),
