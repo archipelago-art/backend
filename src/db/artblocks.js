@@ -284,9 +284,9 @@ async function populateTraitMembers({
     `
     SELECT feature_id AS "id", feature_newid AS "newid", name
     FROM features
-    WHERE project_id = $1 AND name = ANY($2::text[])
+    WHERE project_newid = $1 AND name = ANY($2::text[])
     `,
-    [projectId, featureNames]
+    [projectNewid, featureNames]
   );
 
   const featureIds = featureIdsRes.rows.map((r) => r.id);
