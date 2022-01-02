@@ -138,9 +138,9 @@ async function addProjectTokens(args) {
         projectNewidToCount.set(k, 1 + (projectNewidToCount.get(k) || 0));
       }
       const projectNewids = Array.from(projectNewidToCount.keys());
-      const res = await artblocks.artblocksProjectIndicesFromNewids({
+      const res = await artblocks.artblocksProjectIndicesFromIds({
         client,
-        projectNewids,
+        projectIds,
       });
       const result = new Map();
       for (let i = 0; i < projectNewids.length; i++) {
@@ -209,9 +209,9 @@ async function followLiveMint(args) {
       return res.map((t) => t.tokenIndex);
     });
     const artblocksProjectIndex = await acqrel(pool, async (client) => {
-      const [res] = await artblocks.artblocksProjectIndicesFromNewids({
+      const [res] = await artblocks.artblocksProjectIndicesFromIds({
         client,
-        projectNewids: [projectNewid],
+        projectIds: [projectNewid],
       });
       if (res == null) {
         throw new Error(`project ${slug} is not an Art Blocks project`);
@@ -514,9 +514,9 @@ async function generateImage(args) {
     );
 
     const artblocksProjectIndex = await acqrel(pool, async (client) => {
-      const [res] = await artblocks.artblocksProjectIndicesFromNewids({
+      const [res] = await artblocks.artblocksProjectIndicesFromIds({
         client,
-        projectNewids: [projectId],
+        projectIds: [projectId],
       });
       if (res == null) {
         throw new Error(`project ${slug} is not an Art Blocks project`);

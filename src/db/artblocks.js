@@ -120,10 +120,7 @@ async function projectIdsFromArtblocksIndices({ client, indices }) {
   return res.rows.map((r) => r.id);
 }
 
-async function artblocksProjectIndicesFromNewids({
-  client,
-  projectNewids: projectIds,
-}) {
+async function artblocksProjectIndicesFromIds({ client, projectIds }) {
   const res = await client.query(
     `
     SELECT artblocks_project_index AS "idx"
@@ -609,7 +606,7 @@ module.exports = {
   imageProgressChannel,
   addProject,
   projectIdsFromArtblocksIndices,
-  artblocksProjectIndicesFromNewids,
+  artblocksProjectIndicesFromIds,
   setProjectSlug,
   getProjectIdBySlug,
   addToken,
