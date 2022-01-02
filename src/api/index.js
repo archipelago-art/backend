@@ -45,11 +45,6 @@ async function tokenIdBySlugAndIndex({ client, slug, tokenIndex }) {
   return res.rows[0].id;
 }
 
-// Deprecated in favor of `tokenIdBySlugAndIndex` (drop-in).
-async function tokenNewidBySlugAndIndex({ client, slug, tokenIndex }) {
-  return await tokenIdBySlugAndIndex({ client, slug, tokenIndex });
-}
-
 async function resolveProjectId({ client, slug }) {
   const res = await client.query(
     `
@@ -139,11 +134,6 @@ async function tokenFeaturesAndTraits({ client, tokenId }) {
   return formatTokenTraits(res[0].traits);
 }
 
-// Deprecated in favor of `tokenFeaturesAndTraits` (drop-in except for arg name).
-async function tokenFeaturesAndTraitsByNewid({ client, tokenNewid }) {
-  return await tokenFeaturesAndTraits({ client, tokenId: tokenNewid });
-}
-
 function formatTokenTraits(result) {
   for (const row of result) {
     row.featureSlug = slugify(row.name);
@@ -216,13 +206,11 @@ module.exports = {
   artblocksProjectIdToCollectionName,
   collectionNameToArtblocksProjectId,
   tokenIdBySlugAndIndex,
-  tokenNewidBySlugAndIndex,
   resolveProjectId,
   collections,
   collection,
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
-  tokenFeaturesAndTraitsByNewid,
   tokenSummariesByOnChainId,
   sortAsciinumeric,
   addEmailSignup,

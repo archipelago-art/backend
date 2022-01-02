@@ -121,18 +121,12 @@ describe("api", () => {
         artblocksTokenId: snapshots.THE_CUBE,
         rawTokenData: theCube,
       });
-      const res1 = await api.tokenIdBySlugAndIndex({
+      const res = await api.tokenIdBySlugAndIndex({
         client,
         slug: "archetype",
         tokenIndex: 250,
       });
-      expect(res1).toEqual(tokenNewid);
-      const res2 = await api.tokenNewidBySlugAndIndex({
-        client,
-        slug: "archetype",
-        tokenIndex: 250,
-      });
-      expect(res2).toEqual(tokenNewid);
+      expect(res).toEqual(tokenNewid);
     })
   );
 
@@ -205,11 +199,11 @@ describe("api", () => {
         artblocksTokenId: tokenId,
         rawTokenData,
       });
-      const res1 = await api.tokenFeaturesAndTraits({
+      const res = await api.tokenFeaturesAndTraits({
         client,
         tokenId: tokenNewid,
       });
-      expect(res1).toEqual(
+      expect(res).toEqual(
         expect.arrayContaining([
           {
             name: "Framed",
@@ -229,11 +223,6 @@ describe("api", () => {
           },
         ])
       );
-      const res2 = await api.tokenFeaturesAndTraitsByNewid({
-        client,
-        tokenNewid,
-      });
-      expect(res2).toEqual(res1);
     })
   );
 
