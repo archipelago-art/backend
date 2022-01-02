@@ -83,6 +83,12 @@ class Logger {
   constructor(context) {
     this._context = context;
     this._cachedThreshold = null;
+
+    this.trace = this._makeLogHandler(LEVELS.TRACE);
+    this.debug = this._makeLogHandler(LEVELS.DEBUG);
+    this.info = this._makeLogHandler(LEVELS.INFO);
+    this.warn = this._makeLogHandler(LEVELS.WARN);
+    this.error = this._makeLogHandler(LEVELS.ERROR);
   }
 
   _threshold() {
@@ -120,20 +126,13 @@ class Logger {
     return `${OPEN_BRACKET}${now} ${level.display} ${this._context}${CLOSE_BRACKET} ${msg}`;
   }
 
-  // `trace`, `debug`, `info`, `warn`, `error` methods added below
+  _makeLogHandler(level) {
+    const handler = (parts, ...interpolands) =>
+      this._log(level, parts, interpolands);
+    handler.isEnabled = () => level.threshold >= this._threshold();
+    return handler;
+  }
 }
-
-function makeLogHandler(level) {
-  return function (parts, ...interpolands) {
-    return this._log(level, parts, interpolands);
-  };
-}
-
-Logger.prototype.trace = makeLogHandler(LEVELS.TRACE);
-Logger.prototype.debug = makeLogHandler(LEVELS.DEBUG);
-Logger.prototype.info = makeLogHandler(LEVELS.INFO);
-Logger.prototype.warn = makeLogHandler(LEVELS.WARN);
-Logger.prototype.error = makeLogHandler(LEVELS.ERROR);
 
 function parseSpec(spec) {
   spec = (spec || "").trim() || DEFAULT_LOG_LEVEL.name;
