@@ -444,7 +444,7 @@ async function getTokenImageData({ client }) {
     `
     SELECT
       artblocks_project_index * $1 + token_index AS "tokenId",
-      project_id AS "projectNewid",
+      project_id AS "projectId",
       token_data->'image' AS "imageUrl",
       token_data->'token_hash' AS "tokenHash"
     FROM tokens JOIN artblocks_projects USING (project_id)

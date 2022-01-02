@@ -122,19 +122,9 @@ async function updateProgress(ctx, token, listing) {
   log.info`updating progress for project ${artblocksProjectIndex} to token ${completedThroughTokenId}${
     ctx.dryRun ? " (skipping for dry run)" : ""
   }`;
-  const projectNewids = await acqrel(ctx.pool, (client) =>
-    artblocks.projectIdsFromArtblocksIndices({
-      client,
-      indices: [artblocksProjectIndex],
-    })
-  );
-  const projectId = projectNewids[0];
-  if (projectId == null) {
-    log.warn`no project ID found for Art Blocks project ${artblocksProjectIndex}; skipping`;
-    return;
-  }
   const completedThroughTokenIndex =
     completedThroughTokenId == null ? null : completedThroughTokenId % 1e6;
+  const { projectId } = token;
   if (!ctx.dryRun) {
     await acqrel(ctx.pool, (client) =>
       artblocks.updateImageProgress({
@@ -151,7 +141,8 @@ async function updateProgress(ctx, token, listing) {
  *
  * `tokens` should be a list of objects with:
  *
- *    - `tokenId`: number, like `23000250`
+ *    - `tokenId`: number, like `23000250`: NOTE: Art Blocks token ID, not Archipelago ID
+ *    - `projectId`: string (Archipelago project ID)
  *    - `imageUrl`: string from which to download the image
  *    - `tokenHash`: string ("0x...") from which to generate the image
  *
