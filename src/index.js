@@ -113,10 +113,14 @@ async function getProject(args) {
 }
 
 async function addToken(args) {
-  const [tokenId] = args;
-  const token = await fetchTokenData(tokenId);
+  const [artblocksTokenId] = args;
+  const token = await fetchTokenData(artblocksTokenId);
   await withClient(async (client) => {
-    await artblocks.addToken({ client, tokenId, rawTokenData: token.raw });
+    await artblocks.addToken({
+      client,
+      artblocksTokenId,
+      rawTokenData: token.raw,
+    });
   });
 }
 
@@ -176,7 +180,7 @@ async function addProjectTokens(args) {
             await acqrel(pool, (client) =>
               artblocks.addToken({
                 client,
-                tokenId: artblocksTokenId,
+                artblocksTokenId,
                 rawTokenData: token.raw,
               })
             );
@@ -231,7 +235,10 @@ async function followLiveMint(args) {
       }
       log.info`checking for token ${indices[0]}`;
       if (
-        !(await tryAddTokenLive({ pool, tokenId: baseTokenId + indices[0] }))
+        !(await tryAddTokenLive({
+          pool,
+          artblocksTokenId: baseTokenId + indices[0],
+        }))
       ) {
         log.info`token ${indices[0]} not ready yet; zzz ${
           sleepDuration / 1000
@@ -258,9 +265,9 @@ async function followLiveMint(args) {
           }
           const tokenIndex = workItems.shift();
           if (tokenIndex == null) return;
-          const tokenId = baseTokenId + tokenIndex;
-          if (!(await tryAddTokenLive({ pool, tokenId }))) {
-            log.info`token ${tokenId} not ready yet; bailing`;
+          const artblocksTokenId = baseTokenId + tokenIndex;
+          if (!(await tryAddTokenLive({ pool, artblocksTokenId }))) {
+            log.info`token ${artblocksTokenId} not ready yet; bailing`;
             bailed = true;
             return;
           }
@@ -281,20 +288,22 @@ async function followLiveMint(args) {
   });
 }
 
-async function tryAddTokenLive({ pool, tokenId }) {
+async function tryAddTokenLive({ pool, artblocksTokenId }) {
   try {
-    const token = await fetchTokenData(tokenId, { checkFeaturesPresent: true });
+    const token = await fetchTokenData(artblocksTokenId, {
+      checkFeaturesPresent: true,
+    });
     if (!token.found) return false;
     await acqrel(pool, (client) =>
       artblocks.addToken({
         client,
-        tokenId,
+        artblocksTokenId,
         rawTokenData: token.raw,
       })
     );
     return true;
   } catch (e) {
-    log.warn`failed to add token ${tokenId}: ${e}`;
+    log.warn`failed to add token ${artblocksTokenId}: ${e}`;
     return false;
   }
 }

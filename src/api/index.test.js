@@ -27,7 +27,7 @@ describe("api", () => {
       const id0 = await artblocks.addProject({ client, project: squiggles });
       await artblocks.addToken({
         client,
-        tokenId: snapshots.THE_CUBE,
+        artblocksTokenId: snapshots.THE_CUBE,
         rawTokenData: theCube,
       });
       const res = await api.collections({ client });
@@ -88,7 +88,7 @@ describe("api", () => {
       await artblocks.addProject({ client, project: squiggles });
       await artblocks.addToken({
         client,
-        tokenId: snapshots.THE_CUBE,
+        artblocksTokenId: snapshots.THE_CUBE,
         rawTokenData: theCube,
       });
       const res = await api.collection({ client, slug: "archetype" });
@@ -118,7 +118,7 @@ describe("api", () => {
       await artblocks.addProject({ client, project: archetype });
       const tokenNewid = await artblocks.addToken({
         client,
-        tokenId: snapshots.THE_CUBE,
+        artblocksTokenId: snapshots.THE_CUBE,
         rawTokenData: theCube,
       });
       const res1 = await api.tokenIdBySlugAndIndex({
@@ -158,7 +158,7 @@ describe("api", () => {
         const rawTokenData = await sc.token(tokenId);
         const newid = await artblocks.addToken({
           client,
-          tokenId,
+          artblocksTokenId: tokenId,
           rawTokenData,
         });
         newids.set(tokenId, newid);
@@ -202,7 +202,7 @@ describe("api", () => {
       await artblocks.addProject({ client, project: archetype });
       const tokenNewid = await artblocks.addToken({
         client,
-        tokenId,
+        artblocksTokenId: tokenId,
         rawTokenData,
       });
       const res1 = await api.tokenFeaturesAndTraits({
@@ -249,7 +249,7 @@ describe("api", () => {
         const rawTokenData = await sc.token(id);
         const newid = await artblocks.addToken({
           client,
-          tokenId: id,
+          artblocksTokenId: id,
           rawTokenData,
         });
         newids.set(id, newid);
@@ -343,7 +343,11 @@ describe("api", () => {
           }))
         );
         for (const { tokenId, rawTokenData } of tokens) {
-          await artblocks.addToken({ client, tokenId, rawTokenData });
+          await artblocks.addToken({
+            client,
+            artblocksTokenId: tokenId,
+            rawTokenData,
+          });
         }
         return tokens;
       }
