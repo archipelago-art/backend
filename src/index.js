@@ -105,13 +105,6 @@ async function addProject(args) {
   }
 }
 
-async function getProject(args) {
-  const [projectId] = args;
-  await withClient(async (client) => {
-    console.log(await artblocks.getProject({ client, projectId }));
-  });
-}
-
 async function addToken(args) {
   const [artblocksTokenId] = args;
   const token = await fetchTokenData(artblocksTokenId);
@@ -551,7 +544,6 @@ async function main() {
     ["migrate", migrate],
     ["backfill", backfill],
     ["add-project", addProject],
-    ["get-project", getProject],
     ["add-token", addToken],
     ["add-project-tokens", addProjectTokens],
     ["follow-live-mint", followLiveMint],
