@@ -12,7 +12,6 @@
     "prettier:write": "npm run prettier -- --write"
   },
   "author": "William Chargin <wchargin@gmail.com>",
-  "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "jest": "^27.2.0",
     "node-fetch": "^2.6.2",
