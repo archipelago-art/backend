@@ -23,7 +23,7 @@ async function processEventsWindow({
   const since =
     (await getLastUpdated({ client, slug })) || BEGINNING_OF_HISTORY;
   const windowEnd = new Date(+since + windowDurationMs);
-  log.trace`${slug}: scanning window starting ${since.toISOString()}`;
+  log.debug`${slug}: scanning window starting ${since.toISOString()}`;
   const events = await fetchEventsByTypes({
     source: { slug },
     since,

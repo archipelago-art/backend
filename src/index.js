@@ -167,7 +167,7 @@ async function addProjectTokens(args) {
         const artblocksTokenId =
           artblocksProjectIndex * artblocks.PROJECT_STRIDE + item.tokenIndex;
         try {
-          log.trace`fetching token ${artblocksTokenId} (project ${item.projectId}, index ${item.tokenIndex})`;
+          log.debug`fetching token ${artblocksTokenId} (project ${item.projectId}, index ${item.tokenIndex})`;
           const token = await fetchTokenData(artblocksTokenId);
           if (token.found) {
             await acqrel(pool, (client) =>
