@@ -382,9 +382,7 @@ async function getProjectFeaturesAndTraits({ client, projectId }) {
     currentFeature.traits.push({
       traitId: row.traitId,
       value: row.value,
-      tokens: row.tokens,
       tokenIndices: row.tokenIndices,
-      tokenNewids: row.tokenNewids,
     });
   }
   return result;
