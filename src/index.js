@@ -358,14 +358,14 @@ async function ingestImages(args) {
           log.info`updating image progress table`;
         }
         const listingProgress = images.listingProgress(listing);
-        const projectNewids = await acqrel(pool, (client) =>
+        const projectIds = await acqrel(pool, (client) =>
           artblocks.projectIdsFromArtblocksIndices({
             client,
             indices: Array.from(listingProgress.keys()),
           })
         );
         const progress = Array.from(listingProgress).flatMap(([k, v], i) => {
-          const projectId = projectNewids[i];
+          const projectId = projectIds[i];
           if (projectId == null) return [];
           const completedThroughTokenIndex = v == null ? null : v % 1e6;
           return [{ projectId, completedThroughTokenIndex }];
