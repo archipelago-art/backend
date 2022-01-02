@@ -107,32 +107,6 @@ async function addProject({ client, project, slugOverride }) {
   return projectId;
 }
 
-async function getProject({ client, projectNewid: projectId }) {
-  const res = await await client.query(
-    `
-    SELECT
-      project_id AS "projectNewid",
-      name as "name",
-      max_invocations AS "maxInvocations",
-      artist_name AS "artistName",
-      description AS "description",
-      script_json AS "scriptJson",
-      aspect_ratio AS "aspectRatio",
-      num_tokens AS "numTokens",
-      slug AS "slug",
-      script AS "script",
-      token_contract AS "tokenContract"
-    FROM projects
-    WHERE project_id = $1
-    `,
-    [projectId]
-  );
-  if (res.rows.length === 0) return null;
-  const row = res.rows[0];
-  row.tokenContract = bufToAddress(row.tokenContract);
-  return row;
-}
-
 async function projectNewidsFromArtblocksIndices({ client, indices }) {
   const res = await client.query(
     `
@@ -634,7 +608,6 @@ module.exports = {
   newTokensChannel,
   imageProgressChannel,
   addProject,
-  getProject,
   projectNewidsFromArtblocksIndices,
   artblocksProjectIndicesFromNewids,
   setProjectSlug,
