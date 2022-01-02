@@ -459,7 +459,7 @@ async function getTokenSummaries({ client, tokens }) {
   const res = await client.query(
     `
     SELECT
-      token_id AS "tokenNewid",
+      token_id AS "tokenId",
       name,
       artist_name AS "artistName",
       slug,

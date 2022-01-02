@@ -269,7 +269,7 @@ describe("api", () => {
       });
       expect(result).toEqual([
         {
-          tokenNewid: newids.get(snapshots.PERFECT_CHROMATIC),
+          tokenId: newids.get(snapshots.PERFECT_CHROMATIC),
           name: "Chromie Squiggle",
           slug: "chromie-squiggle",
           artblocksProjectIndex: 0,
@@ -279,7 +279,7 @@ describe("api", () => {
           aspectRatio: 1.5,
         },
         {
-          tokenNewid: newids.get(snapshots.THE_CUBE),
+          tokenId: newids.get(snapshots.THE_CUBE),
           name: "Archetype",
           slug: "archetype",
           artblocksProjectIndex: 23,

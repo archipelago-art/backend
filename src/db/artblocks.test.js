@@ -715,7 +715,7 @@ describe("db/artblocks", () => {
       });
       expect(res).toEqual([
         {
-          tokenNewid: addTokensResult[0].newid,
+          tokenId: addTokensResult[0].newid,
           name: "Archetype",
           artistName: "Kjetil Golid",
           slug: "archetype",
@@ -724,7 +724,7 @@ describe("db/artblocks", () => {
           aspectRatio: 1,
         },
         {
-          tokenNewid: addTokensResult[1].newid,
+          tokenId: addTokensResult[1].newid,
           name: "Archetype",
           artistName: "Kjetil Golid",
           slug: "archetype",
