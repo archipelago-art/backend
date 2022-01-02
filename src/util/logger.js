@@ -71,7 +71,7 @@ const LEVELS = Object.freeze({
   },
 });
 
-const DEFAULT_LOG_LEVEL = LEVELS.TRACE;
+const DEFAULT_LOG_LEVEL = LEVELS.DEBUG;
 
 const OPEN_BRACKET = chalk.gray("[");
 const CLOSE_BRACKET = chalk.gray("]");
