@@ -45,12 +45,12 @@ describe("backfills/projectSlugs", () => {
   it(
     "doesn't overwrite slugs that are already set",
     withTestDb(async ({ client, pool }) => {
-      const squigglesNewid = await addProject(client, snapshots.SQUIGGLES);
+      const squigglesId = await addProject(client, snapshots.SQUIGGLES);
       await addProject(client, snapshots.ARCHETYPE);
       await client.query(`UPDATE projects SET slug = NULL`);
       await artblocks.setProjectSlug({
         client,
-        projectNewid: squigglesNewid,
+        projectId: squigglesId,
         slug: "squigglez",
       });
       await backfillProjectSlugs({ pool });

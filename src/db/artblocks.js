@@ -133,7 +133,7 @@ async function artblocksProjectIndicesFromIds({ client, projectIds }) {
   return res.rows.map((r) => r.idx);
 }
 
-async function setProjectSlug({ client, projectNewid: projectId, slug }) {
+async function setProjectSlug({ client, projectId, slug }) {
   if (typeof slug !== "string") {
     throw new Error(
       "new slug should be a string, but got: " + JSON.stringify(project)
