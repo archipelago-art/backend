@@ -417,11 +417,11 @@ async function getTokenFeaturesAndTraits({
 
 async function getUnfetchedTokens({
   client,
-  projectNewid: projectId /* optional; omit to scan all projects */,
+  projectId /* optional; omit to scan all projects */,
 }) {
   const res = await client.query(
     `
-    SELECT project_id AS "projectNewid", token_index AS "tokenIndex"
+    SELECT project_id AS "projectId", token_index AS "tokenIndex"
     FROM (
       SELECT project_id, token_index
       FROM

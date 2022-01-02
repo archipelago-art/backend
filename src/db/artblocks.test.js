@@ -313,13 +313,18 @@ describe("db/artblocks", () => {
   it(
     "computes unfetched token IDs for a single project",
     withTestDb(async ({ client }) => {
-      const projectId = 12;
-      const baseTokenId = projectId * 1e6;
+      const artblocksProjectIndex = 12;
+      const baseTokenId = artblocksProjectIndex * 1e6;
       const maxInvocations = 6;
       const scriptJson = JSON.stringify({ aspectRatio: "1" });
-      const projectNewid = await artblocks.addProject({
+      const projectId = await artblocks.addProject({
         client,
-        project: { projectId, name: "Test", maxInvocations, scriptJson },
+        project: {
+          projectId: artblocksProjectIndex,
+          name: "Test",
+          maxInvocations,
+          scriptJson,
+        },
       });
       await artblocks.addToken({
         client,
@@ -331,10 +336,8 @@ describe("db/artblocks", () => {
         artblocksTokenId: baseTokenId + 4,
         rawTokenData: null,
       });
-      expect(
-        await artblocks.getUnfetchedTokens({ client, projectNewid })
-      ).toEqual(
-        [0, 1, 3, 4, 5].map((tokenIndex) => ({ projectNewid, tokenIndex }))
+      expect(await artblocks.getUnfetchedTokens({ client, projectId })).toEqual(
+        [0, 1, 3, 4, 5].map((tokenIndex) => ({ projectId, tokenIndex }))
       );
     })
   );
@@ -383,11 +386,11 @@ describe("db/artblocks", () => {
     withTestDb(async ({ client }) => {
       const [p1, p2] = await addTestData(client);
       const p1Results = [2, 3, 4].map((tokenIndex) => ({
-        projectNewid: p1,
+        projectId: p1,
         tokenIndex,
       }));
       const p2Results = [3, 4].map((tokenIndex) => ({
-        projectNewid: p2,
+        projectId: p2,
         tokenIndex,
       }));
       const expected =

@@ -121,33 +121,33 @@ async function addProjectTokens(args) {
   const [slug] = args;
   await withPool(async (pool) => {
     const tokens = await acqrel(pool, async (client) => {
-      let projectNewid = null;
+      let projectId = null;
       if (slug !== "all") {
-        projectNewid = await artblocks.getProjectIdBySlug({ client, slug });
-        if (projectNewid == null) {
+        projectId = await artblocks.getProjectIdBySlug({ client, slug });
+        if (projectId == null) {
           throw new Error(`no project with slug "${slug}"`);
         }
       }
-      return await artblocks.getUnfetchedTokens({ client, projectNewid });
+      return await artblocks.getUnfetchedTokens({ client, projectId });
     });
     log.info`got ${tokens.length} missing tokens`;
     const artblocksProjectIndices = await acqrel(pool, async (client) => {
-      const projectNewidToCount = new Map();
+      const projectIdToCount = new Map();
       for (const t of tokens) {
-        const k = t.projectNewid;
-        projectNewidToCount.set(k, 1 + (projectNewidToCount.get(k) || 0));
+        const k = t.projectId;
+        projectIdToCount.set(k, 1 + (projectIdToCount.get(k) || 0));
       }
-      const projectNewids = Array.from(projectNewidToCount.keys());
+      const projectIds = Array.from(projectIdToCount.keys());
       const res = await artblocks.artblocksProjectIndicesFromIds({
         client,
         projectIds,
       });
       const result = new Map();
-      for (let i = 0; i < projectNewids.length; i++) {
-        const k = projectNewids[i];
+      for (let i = 0; i < projectIds.length; i++) {
+        const k = projectIds[i];
         const v = res[i];
         if (v == null) {
-          const n = projectNewidToCount.get(k);
+          const n = projectIdToCount.get(k);
           log.warn`project ${k} is not an Art Blocks project; skipping ${n} tokens`;
           continue;
         }
@@ -161,13 +161,13 @@ async function addProjectTokens(args) {
         const item = tokens.shift();
         if (item == null) return;
         const artblocksProjectIndex = artblocksProjectIndices.get(
-          item.projectNewid
+          item.projectId
         );
         if (artblocksProjectIndex == null) continue;
         const artblocksTokenId =
           artblocksProjectIndex * artblocks.PROJECT_STRIDE + item.tokenIndex;
         try {
-          log.trace`fetching token ${artblocksTokenId} (project ${item.projectNewid}, index ${item.tokenIndex})`;
+          log.trace`fetching token ${artblocksTokenId} (project ${item.projectId}, index ${item.tokenIndex})`;
           const token = await fetchTokenData(artblocksTokenId);
           if (token.found) {
             await acqrel(pool, (client) =>
@@ -197,7 +197,7 @@ async function addProjectTokens(args) {
 async function followLiveMint(args) {
   const [slug] = args;
   await withPool(async (pool) => {
-    const projectNewid = await acqrel(pool, async (client) => {
+    const projectId = await acqrel(pool, async (client) => {
       const res = await artblocks.getProjectIdBySlug({ client, slug });
       if (res == null) {
         throw new Error(`no project with slug "${slug}"`);
@@ -205,13 +205,13 @@ async function followLiveMint(args) {
       return res;
     });
     let indices = await acqrel(pool, async (client) => {
-      const res = await artblocks.getUnfetchedTokens({ client, projectNewid });
+      const res = await artblocks.getUnfetchedTokens({ client, projectId });
       return res.map((t) => t.tokenIndex);
     });
     const artblocksProjectIndex = await acqrel(pool, async (client) => {
       const [res] = await artblocks.artblocksProjectIndicesFromIds({
         client,
-        projectIds: [projectNewid],
+        projectIds: [projectId],
       });
       if (res == null) {
         throw new Error(`project ${slug} is not an Art Blocks project`);
