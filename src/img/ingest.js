@@ -123,7 +123,7 @@ async function updateProgress(ctx, token, listing) {
     ctx.dryRun ? " (skipping for dry run)" : ""
   }`;
   const projectNewids = await acqrel(ctx.pool, (client) =>
-    artblocks.projectNewidsFromArtblocksIndices({
+    artblocks.projectIdsFromArtblocksIndices({
       client,
       indices: [artblocksProjectIndex],
     })

@@ -359,7 +359,7 @@ async function ingestImages(args) {
         }
         const listingProgress = images.listingProgress(listing);
         const projectNewids = await acqrel(pool, (client) =>
-          artblocks.projectNewidsFromArtblocksIndices({
+          artblocks.projectIdsFromArtblocksIndices({
             client,
             indices: Array.from(listingProgress.keys()),
           })

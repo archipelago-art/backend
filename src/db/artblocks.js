@@ -107,7 +107,7 @@ async function addProject({ client, project, slugOverride }) {
   return projectId;
 }
 
-async function projectNewidsFromArtblocksIndices({ client, indices }) {
+async function projectIdsFromArtblocksIndices({ client, indices }) {
   const res = await client.query(
     `
     SELECT project_id AS "id"
@@ -608,7 +608,7 @@ module.exports = {
   newTokensChannel,
   imageProgressChannel,
   addProject,
-  projectNewidsFromArtblocksIndices,
+  projectIdsFromArtblocksIndices,
   artblocksProjectIndicesFromNewids,
   setProjectSlug,
   getProjectIdBySlug,
