@@ -1,6 +1,6 @@
 --- Archipelago SQL schema rollup
---- Generated: 2022-01-01T09:42:38.348Z
---- Scope: 57 migrations, through 0057_drop_project_newid_columns
+--- Generated: 2022-01-02T01:16:59.626Z
+--- Scope: 65 migrations, through 0065_drop_legacy_id_sequences
 
 --
 -- PostgreSQL database dump
@@ -152,26 +152,6 @@ CREATE TABLE public.features (
 
 
 --
--- Name: features_feature_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.features_feature_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: features_feature_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.features_feature_id_seq OWNED BY public.features.feature_id;
-
-
---
 -- Name: image_progress; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -244,14 +224,13 @@ CREATE TABLE public.projects (
 --
 
 CREATE TABLE public.tokens (
-    token_id integer NOT NULL,
+    token_id public.tokenid NOT NULL,
     fetch_time timestamp with time zone NOT NULL,
     token_data json,
     project_id public.projectid NOT NULL,
     token_contract public.address NOT NULL,
     on_chain_token_id public.uint256 NOT NULL,
-    token_index integer NOT NULL,
-    token_newid public.tokenid NOT NULL
+    token_index integer NOT NULL
 );
 
 
@@ -261,10 +240,7 @@ CREATE TABLE public.tokens (
 
 CREATE TABLE public.trait_members (
     trait_id public.traitid NOT NULL,
-    token_id integer,
-    token_contract public.address NOT NULL,
-    on_chain_token_id public.uint256 NOT NULL,
-    token_newid public.tokenid NOT NULL
+    token_id public.tokenid NOT NULL
 );
 
 
@@ -277,26 +253,6 @@ CREATE TABLE public.traits (
     feature_id public.featureid NOT NULL,
     value jsonb NOT NULL
 );
-
-
---
--- Name: traits_trait_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.traits_trait_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: traits_trait_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.traits_trait_id_seq OWNED BY public.traits.trait_id;
 
 
 --
@@ -373,20 +329,6 @@ INSERT INTO public.currencies VALUES (1544284093318430723, '\x6b175474e89094c44d
 -- Data for Name: traits; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-
-
---
--- Name: features_feature_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('public.features_feature_id_seq', 1, false);
-
-
---
--- Name: traits_trait_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('public.traits_trait_id_seq', 1, false);
 
 
 --
@@ -502,14 +444,6 @@ ALTER TABLE ONLY public.tokens
 
 
 --
--- Name: tokens tokens_token_newid_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tokens
-    ADD CONSTRAINT tokens_token_newid_key UNIQUE (token_newid);
-
-
---
 -- Name: trait_members trait_members_trait_id_token_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -606,14 +540,6 @@ ALTER TABLE ONLY public.tokens
 
 ALTER TABLE ONLY public.trait_members
     ADD CONSTRAINT trait_members_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.tokens(token_id);
-
-
---
--- Name: trait_members trait_members_token_newid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.trait_members
-    ADD CONSTRAINT trait_members_token_newid_fkey FOREIGN KEY (token_newid) REFERENCES public.tokens(token_newid);
 
 
 --
