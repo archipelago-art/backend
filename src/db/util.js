@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+
 const ethers = require("ethers");
 const pg = require("pg");
 
@@ -28,7 +30,7 @@ async function acqrel(pool, callback) {
     return await callback(client);
   } finally {
     try {
-      await client.query("ROLLBACK");
+      await client.query("ROLLBACK  -- release client");
     } catch (e) {
       if ((e || {}).message !== CLIENT_CLOSED) {
         console.error("failed to roll back client: " + e);
@@ -44,6 +46,42 @@ async function acqrel(pool, callback) {
   }
 }
 
+const SYM_CLIENT_ID = Symbol("archipelagoClientId");
+
+class ArchipelagoClient extends pg.Client {
+  constructor(...args) {
+    super(...args);
+    this[SYM_CLIENT_ID] = btoa(crypto.randomBytes(6).toString("latin1"));
+  }
+
+  async query(query, values) {
+    const logging = log.trace.isEnabled();
+    let ok = false;
+    let start;
+    if (logging) {
+      start = process.hrtime.bigint();
+    }
+    try {
+      const res = await super.query(query, values);
+      ok = true;
+      return res;
+    } finally {
+      if (logging) {
+        const end = process.hrtime.bigint();
+        const micros = (end - start) / 1000n;
+        const millis = (Number(micros) / 1000).toFixed(3);
+        const clientId = this[SYM_CLIENT_ID];
+        const queryStatus = `query ${ok ? "done" : "FAIL"} in ${millis}ms`;
+        const shortQuery = query
+          .replace(/^ +/gm, "")
+          .replace(/(?<!^)\n+/g, " ")
+          .replace(/\n/g, "");
+        log.trace`client ${clientId}: ${queryStatus}: ${shortQuery}`;
+      }
+    }
+  }
+}
+
 /*
  * Opens a new pool and passes it to the given async callback, awaiting and
  * returning its result and closing the pool on the way out.
@@ -52,7 +90,7 @@ async function acqrel(pool, callback) {
  * be sure that all clients eventually close, or this will deadlock.
  */
 async function withPool(callback) {
-  const pool = new pg.Pool();
+  const pool = new pg.Pool({ Client: ArchipelagoClient });
   try {
     pool.on("connect", (client) => setDbRole(client));
     return await callback(pool);
