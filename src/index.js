@@ -418,10 +418,17 @@ async function tokenFeedWss(args) {
     server: httpServer,
     clientTracking: true,
   });
-  const pool = new pg.Pool();
-  await attach(wsServer, pool);
-  httpServer.listen(port);
-  log.info`listening on port ${port}`;
+  await withPool(async (pool) => {
+    const shutDown = await attach(wsServer, pool);
+    httpServer.listen(port);
+    log.info`listening on port ${port}`;
+    await new Promise((res) => {
+      httpServer.once("close", async () => {
+        await shutDown();
+        res();
+      });
+    });
+  });
 }
 
 async function ingestOpenseaCollection(args) {
