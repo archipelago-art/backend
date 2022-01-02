@@ -190,10 +190,10 @@ async function getProjectIdBySlug({ client, slug }) {
   return res.rows[0].id;
 }
 
-async function addToken({ client, tokenId, rawTokenData }) {
+async function addToken({ client, artblocksTokenId, rawTokenData }) {
   await client.query("BEGIN");
   const tokenNewid = newId(ObjectType.TOKEN);
-  const artblocksProjectIndex = Math.floor(tokenId / PROJECT_STRIDE);
+  const artblocksProjectIndex = Math.floor(artblocksTokenId / PROJECT_STRIDE);
   const projectNewidRes = await client.query(
     `
     SELECT project_id AS id FROM artblocks_projects
@@ -203,7 +203,7 @@ async function addToken({ client, tokenId, rawTokenData }) {
   );
   if (projectNewidRes.rows.length !== 1) {
     throw new Error(
-      `expected project ${projectId} to exist for token ${tokenId}`
+      `expected project ${projectId} to exist for token ${artblocksTokenId}`
     );
   }
   const projectNewid = projectNewidRes.rows[0].id;
@@ -233,17 +233,17 @@ async function addToken({ client, tokenId, rawTokenData }) {
     )
     `,
     [
-      tokenId,
+      artblocksTokenId,
       new Date(),
       rawTokenData,
-      tokenId % PROJECT_STRIDE,
+      artblocksTokenId % PROJECT_STRIDE,
       tokenNewid,
       projectNewid,
     ]
   );
   await populateTraitMembers({
     client,
-    tokenId,
+    tokenId: artblocksTokenId,
     tokenNewid,
     projectNewid,
     rawTokenData,

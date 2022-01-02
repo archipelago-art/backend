@@ -24,14 +24,18 @@ describe("db/artblocks", () => {
   async function addTokens(client, tokenIds) {
     const tokens = await Promise.all(
       tokenIds.map(async (id) => ({
-        tokenId: id,
+        artblocksTokenId: id,
         rawTokenData: await sc.token(id),
       }))
     );
     const result = [];
-    for (const { tokenId, rawTokenData } of tokens) {
-      const newid = await artblocks.addToken({ client, tokenId, rawTokenData });
-      result.push({ tokenId, rawTokenData, newid });
+    for (const { artblocksTokenId, rawTokenData } of tokens) {
+      const newid = await artblocks.addToken({
+        client,
+        artblocksTokenId,
+        rawTokenData,
+      });
+      result.push({ artblocksTokenId, rawTokenData, newid });
     }
     return result;
   }
@@ -254,13 +258,13 @@ describe("db/artblocks", () => {
   it(
     'rejects token data when "features" is not an array or object',
     withTestDb(async ({ client }) => {
-      const tokenId = snapshots.PERFECT_CHROMATIC;
+      const artblocksTokenId = snapshots.PERFECT_CHROMATIC;
       await addProjects(client, [snapshots.SQUIGGLES]);
       const rawTokenData = JSON.stringify({ features: "hmm" });
       await expect(
         artblocks.addToken({
           client,
-          tokenId,
+          artblocksTokenId,
           rawTokenData,
         })
       ).rejects.toThrow("expected object or array");
@@ -275,7 +279,7 @@ describe("db/artblocks", () => {
       ]);
       await artblocks.addToken({
         client,
-        tokenId: snapshots.THE_CUBE,
+        artblocksTokenId: snapshots.THE_CUBE,
         rawTokenData: null,
       });
       const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
@@ -299,12 +303,12 @@ describe("db/artblocks", () => {
       });
       await artblocks.addToken({
         client,
-        tokenId: baseTokenId + 2,
+        artblocksTokenId: baseTokenId + 2,
         rawTokenData: JSON.stringify({ features: {} }),
       });
       await artblocks.addToken({
         client,
-        tokenId: baseTokenId + 4,
+        artblocksTokenId: baseTokenId + 4,
         rawTokenData: null,
       });
       expect(
@@ -346,7 +350,7 @@ describe("db/artblocks", () => {
       tokens.map((t) =>
         artblocks.addToken({
           client,
-          tokenId: t.tokenId,
+          artblocksTokenId: t.tokenId,
           rawTokenData: t.rawTokenData,
         })
       )
@@ -381,7 +385,7 @@ describe("db/artblocks", () => {
       await expect(() =>
         artblocks.addToken({
           client,
-          tokenId: 1000001,
+          artblocksTokenId: 1000001,
           rawTokenData: JSON.stringify({ features: { Size: "weird" } }),
         })
       ).rejects.toThrow("violates unique constraint");
@@ -624,7 +628,7 @@ describe("db/artblocks", () => {
       });
       const newid2 = await artblocks.addToken({
         client,
-        tokenId: snapshots.ARCH_TRIPTYCH_2,
+        artblocksTokenId: snapshots.ARCH_TRIPTYCH_2,
         rawTokenData: triptych2WithoutTraits,
       });
       const res = await artblocks.getTokenFeaturesAndTraits({
