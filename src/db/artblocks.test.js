@@ -1,4 +1,4 @@
-const { acqrel } = require("./util");
+const { acqrel, bufToAddress } = require("./util");
 const { testDbProvider } = require("./testUtil");
 
 const artblocks = require("./artblocks");
@@ -40,11 +40,11 @@ describe("db/artblocks", () => {
     return result;
   }
 
-  async function getProject({ client, projectNewid: projectId }) {
-    const res = await await client.query(
+  async function getProject({ client, projectId }) {
+    const res = await client.query(
       `
       SELECT
-        project_id AS "projectNewid",
+        project_id AS "projectId",
         name as "name",
         max_invocations AS "maxInvocations",
         artist_name AS "artistName",
@@ -75,7 +75,7 @@ describe("db/artblocks", () => {
       ] = await addProjects(client, [snapshots.ARCHETYPE, snapshots.SQUIGGLES]);
       expect(archetypeNewid).toMatch(/[0-9]+/);
       const expected = {
-        projectNewid: archetypeNewid,
+        projectId: archetypeNewid,
         artistName: "Kjetil Golid",
         name: "Archetype",
         maxInvocations: 600,
@@ -92,12 +92,10 @@ describe("db/artblocks", () => {
         script: archetypeInput.script,
         tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
       };
-      expect(
-        await getProject({ client, projectNewid: archetypeNewid })
-      ).toEqual(expected);
-      expect(
-        await getProject({ client, projectNewid: squigglesNewid })
-      ).toEqual(
+      expect(await getProject({ client, projectId: archetypeNewid })).toEqual(
+        expected
+      );
+      expect(await getProject({ client, projectId: squigglesNewid })).toEqual(
         expect.objectContaining({
           tokenContract: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
         })
@@ -138,17 +136,13 @@ describe("db/artblocks", () => {
         snapshots.ARCH_TRIPTYCH_1,
         snapshots.ARCH_TRIPTYCH_2,
       ]);
-      expect(
-        await getProject({ client, projectNewid: squigglesNewid })
-      ).toEqual(
+      expect(await getProject({ client, projectId: squigglesNewid })).toEqual(
         expect.objectContaining({
           name: squiggles.name,
           numTokens: 1,
         })
       );
-      expect(
-        await getProject({ client, projectNewid: archetypeNewid })
-      ).toEqual(
+      expect(await getProject({ client, projectId: archetypeNewid })).toEqual(
         expect.objectContaining({
           name: "Archetypo",
           numTokens: 2, // preserved
@@ -180,7 +174,7 @@ describe("db/artblocks", () => {
         ]);
         const [{ newid: tokenNewid }] = await addTokens(client, [tokenId]);
 
-        expect(await getProject({ client, projectNewid })).toEqual(
+        expect(await getProject({ client, projectId: projectNewid })).toEqual(
           expect.objectContaining({
             numTokens: 1,
           })
