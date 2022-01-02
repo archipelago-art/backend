@@ -116,7 +116,7 @@ describe("api", () => {
       );
       const theCube = await sc.token(snapshots.THE_CUBE);
       await artblocks.addProject({ client, project: archetype });
-      const tokenNewid = await artblocks.addToken({
+      const tokenId = await artblocks.addToken({
         client,
         artblocksTokenId: snapshots.THE_CUBE,
         rawTokenData: theCube,
@@ -126,7 +126,7 @@ describe("api", () => {
         slug: "archetype",
         tokenIndex: 250,
       });
-      expect(res).toEqual(tokenNewid);
+      expect(res).toEqual(tokenId);
     })
   );
 
@@ -147,15 +147,15 @@ describe("api", () => {
         );
         await artblocks.addProject({ client, project });
       }
-      const newids = new Map();
+      const ids = new Map();
       for (const tokenId of snapshots.TOKENS) {
         const rawTokenData = await sc.token(tokenId);
-        const newid = await artblocks.addToken({
+        const id = await artblocks.addToken({
           client,
           artblocksTokenId: tokenId,
           rawTokenData,
         });
-        newids.set(tokenId, newid);
+        ids.set(tokenId, id);
       }
       const res = await api.projectFeaturesAndTraits({
         client,
@@ -191,18 +191,14 @@ describe("api", () => {
       const collection = api.artblocksProjectIdToCollectionName(
         archetype.projectId
       );
-      const tokenId = snapshots.THE_CUBE;
-      const rawTokenData = await sc.token(tokenId);
+      const rawTokenData = await sc.token(snapshots.THE_CUBE);
       await artblocks.addProject({ client, project: archetype });
-      const tokenNewid = await artblocks.addToken({
+      const tokenId = await artblocks.addToken({
         client,
-        artblocksTokenId: tokenId,
+        artblocksTokenId: snapshots.THE_CUBE,
         rawTokenData,
       });
-      const res = await api.tokenFeaturesAndTraits({
-        client,
-        tokenId: tokenNewid,
-      });
+      const res = await api.tokenFeaturesAndTraits({ client, tokenId });
       expect(res).toEqual(
         expect.arrayContaining([
           {
@@ -233,15 +229,18 @@ describe("api", () => {
         const project = parseProjectData(id, await sc.project(id));
         await artblocks.addProject({ client, project });
       }
-      const newids = new Map();
-      for (const id of [snapshots.THE_CUBE, snapshots.PERFECT_CHROMATIC]) {
-        const rawTokenData = await sc.token(id);
-        const newid = await artblocks.addToken({
+      const ids = new Map();
+      for (const artblocksTokenId of [
+        snapshots.THE_CUBE,
+        snapshots.PERFECT_CHROMATIC,
+      ]) {
+        const rawTokenData = await sc.token(artblocksTokenId);
+        const tokenId = await artblocks.addToken({
           client,
-          artblocksTokenId: id,
+          artblocksTokenId,
           rawTokenData,
         });
-        newids.set(id, newid);
+        ids.set(artblocksTokenId, tokenId);
       }
       const result = await api.tokenSummariesByOnChainId({
         client,
@@ -258,7 +257,7 @@ describe("api", () => {
       });
       expect(result).toEqual([
         {
-          tokenId: newids.get(snapshots.PERFECT_CHROMATIC),
+          tokenId: ids.get(snapshots.PERFECT_CHROMATIC),
           name: "Chromie Squiggle",
           slug: "chromie-squiggle",
           artblocksProjectIndex: 0,
@@ -268,7 +267,7 @@ describe("api", () => {
           aspectRatio: 1.5,
         },
         {
-          tokenId: newids.get(snapshots.THE_CUBE),
+          tokenId: ids.get(snapshots.THE_CUBE),
           name: "Archetype",
           slug: "archetype",
           artblocksProjectIndex: 23,
@@ -319,8 +318,8 @@ describe("api", () => {
         );
         const result = [];
         for (const project of projects) {
-          const newid = await artblocks.addProject({ client, project });
-          result.push(newid);
+          const id = await artblocks.addProject({ client, project });
+          result.push(id);
         }
         return result;
       }
