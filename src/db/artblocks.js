@@ -18,10 +18,10 @@ function artblocksContractAddress(projectId) {
     : CONTRACT_ARTBLOCKS_STANDARD;
 }
 
-// Event payloads are JSON `{ projectId: string, tokenId: string }` (these are "newids").
+// Event payloads are JSON `{ projectId: string, tokenId: string }`.
 const newTokensChannel = events.channel("new_tokens");
 
-// Event payloads are JSON `{ projectId: string, completedThroughTokenIndex: number }` (a newid string).
+// Event payloads are JSON `{ projectId: string, completedThroughTokenIndex: number }`.
 const imageProgressChannel = events.channel("image_progress");
 
 function tokenBounds(projectId) {
@@ -40,16 +40,16 @@ async function addProject({ client, project, slugOverride }) {
   const rawAspectRatio = JSON.parse(project.scriptJson).aspectRatio;
   const aspectRatio = normalizeAspectRatio(rawAspectRatio);
   await client.query("BEGIN");
-  const projectNewidRes = await client.query(
+  const projectIdRes = await client.query(
     `
     SELECT project_id AS id FROM artblocks_projects
     WHERE artblocks_project_index = $1
     `,
     [project.projectId]
   );
-  const projectNewid =
-    projectNewidRes.rows.length > 0
-      ? projectNewidRes.rows[0].id
+  const projectId =
+    projectIdRes.rows.length > 0
+      ? projectIdRes.rows[0].id
       : newId(ObjectType.PROJECT);
   await client.query(
     `
@@ -83,7 +83,7 @@ async function addProject({ client, project, slugOverride }) {
       token_contract = $10
     `,
     [
-      projectNewid,
+      projectId,
       project.name,
       project.maxInvocations,
       project.artistName,
@@ -101,13 +101,13 @@ async function addProject({ client, project, slugOverride }) {
     VALUES ($1, $2)
     ON CONFLICT DO NOTHING
     `,
-    [projectNewid, project.projectId]
+    [projectId, project.projectId]
   );
   await client.query("COMMIT");
-  return projectNewid;
+  return projectId;
 }
 
-async function getProject({ client, projectNewid }) {
+async function getProject({ client, projectNewid: projectId }) {
   const res = await await client.query(
     `
     SELECT
@@ -125,7 +125,7 @@ async function getProject({ client, projectNewid }) {
     FROM projects
     WHERE project_id = $1
     `,
-    [projectNewid]
+    [projectId]
   );
   if (res.rows.length === 0) return null;
   const row = res.rows[0];
@@ -146,8 +146,10 @@ async function projectNewidsFromArtblocksIndices({ client, indices }) {
   return res.rows.map((r) => r.id);
 }
 
-// NOTE: This function is newid-compliant.
-async function artblocksProjectIndicesFromNewids({ client, projectNewids }) {
+async function artblocksProjectIndicesFromNewids({
+  client,
+  projectNewids: projectIds,
+}) {
   const res = await client.query(
     `
     SELECT artblocks_project_index AS "idx"
@@ -155,12 +157,12 @@ async function artblocksProjectIndicesFromNewids({ client, projectNewids }) {
     LEFT OUTER JOIN artblocks_projects USING (project_id)
     ORDER BY i
     `,
-    [projectNewids]
+    [projectIds]
   );
   return res.rows.map((r) => r.idx);
 }
 
-async function setProjectSlug({ client, projectNewid, slug }) {
+async function setProjectSlug({ client, projectNewid: projectId, slug }) {
   if (typeof slug !== "string") {
     throw new Error(
       "new slug should be a string, but got: " + JSON.stringify(project)
@@ -170,10 +172,10 @@ async function setProjectSlug({ client, projectNewid, slug }) {
     `
     UPDATE projects SET slug = $2 WHERE project_id = $1
     `,
-    [projectNewid, slug]
+    [projectId, slug]
   );
   if (res.rowCount === 0)
-    throw new Error("no project found by ID " + projectNewid);
+    throw new Error("no project found by ID " + projectId);
 }
 
 async function getProjectIdBySlug({ client, slug }) {
@@ -192,28 +194,28 @@ async function getProjectIdBySlug({ client, slug }) {
 
 async function addToken({ client, artblocksTokenId, rawTokenData }) {
   await client.query("BEGIN");
-  const tokenNewid = newId(ObjectType.TOKEN);
+  const tokenId = newId(ObjectType.TOKEN);
   const artblocksProjectIndex = Math.floor(artblocksTokenId / PROJECT_STRIDE);
-  const projectNewidRes = await client.query(
+  const projectIdRes = await client.query(
     `
     SELECT project_id AS id FROM artblocks_projects
     WHERE artblocks_project_index = $1
     `,
     [artblocksProjectIndex]
   );
-  if (projectNewidRes.rows.length !== 1) {
+  if (projectIdRes.rows.length !== 1) {
     throw new Error(
-      `expected project ${projectId} to exist for token ${artblocksTokenId}`
+      `expected project ${artblocksProjectIndex} to exist for token ${artblocksTokenId}`
     );
   }
-  const projectNewid = projectNewidRes.rows[0].id;
+  const projectId = projectIdRes.rows[0].id;
   const updateProjectsRes = await client.query(
     `
     UPDATE projects
     SET num_tokens = num_tokens + 1
     WHERE project_id = $1
     `,
-    [projectNewid]
+    [projectId]
   );
   await client.query(
     `
@@ -237,31 +239,26 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
       new Date(),
       rawTokenData,
       artblocksTokenId % PROJECT_STRIDE,
-      tokenNewid,
-      projectNewid,
+      tokenId,
+      projectId,
     ]
   );
   await populateTraitMembers({
     client,
-    tokenId: artblocksTokenId,
-    tokenNewid,
-    projectNewid,
+    tokenId,
+    projectId,
     rawTokenData,
     alreadyInTransaction: true,
   });
-  await newTokensChannel.send(client, {
-    projectId: projectNewid,
-    tokenId: tokenNewid,
-  });
+  await newTokensChannel.send(client, { projectId, tokenId });
   await client.query("COMMIT");
-  return tokenNewid;
+  return tokenId;
 }
 
 async function populateTraitMembers({
   client,
   tokenId,
-  tokenNewid,
-  projectNewid,
+  projectId,
   rawTokenData,
   alreadyInTransaction = false,
 }) {
@@ -284,11 +281,7 @@ async function populateTraitMembers({
     )
     ON CONFLICT (project_id, name) DO NOTHING
     `,
-    [
-      projectNewid,
-      newIds(featureNames.length, ObjectType.FEATURE),
-      featureNames,
-    ]
+    [projectId, newIds(featureNames.length, ObjectType.FEATURE), featureNames]
   );
   const featureIdsRes = await client.query(
     `
@@ -296,10 +289,10 @@ async function populateTraitMembers({
     FROM features
     WHERE project_id = $1 AND name = ANY($2::text[])
     `,
-    [projectNewid, featureNames]
+    [projectId, featureNames]
   );
 
-  const featureNewids = featureIdsRes.rows.map((r) => r.id);
+  const featureIds = featureIdsRes.rows.map((r) => r.id);
   const traitValues = featureIdsRes.rows.map((r) =>
     JSON.stringify(featureData[r.name])
   );
@@ -314,7 +307,7 @@ async function populateTraitMembers({
     )
     ON CONFLICT (feature_id, value) DO NOTHING
     `,
-    [featureNewids, newIds(traitValues.length, ObjectType.TRAIT), traitValues]
+    [featureIds, newIds(traitValues.length, ObjectType.TRAIT), traitValues]
   );
 
   await client.query(
@@ -326,20 +319,20 @@ async function populateTraitMembers({
       USING (feature_id, value)
     ON CONFLICT DO NOTHING
     `,
-    [tokenNewid, featureNewids, traitValues]
+    [tokenId, featureIds, traitValues]
   );
   if (!alreadyInTransaction) await client.query("COMMIT");
 }
 
 /*
  * type Trait = {
- *   traitNewid: string,
+ *   traitId: string,
  *   value: Json,
  *   tokenIndices: integer[],
  * }
  *
  * type Feature = {
- *   featureNewid: string,
+ *   featureId: string,
  *   name: string,
  *   traits: Trait[],
  * }
@@ -453,7 +446,7 @@ async function getTokenFeaturesAndTraits({
 
 async function getUnfetchedTokens({
   client,
-  projectNewid /* optional; omit to scan all projects */,
+  projectNewid: projectId /* optional; omit to scan all projects */,
 }) {
   const res = await client.query(
     `
@@ -470,7 +463,7 @@ async function getUnfetchedTokens({
       AND (project_id = $1 OR $1 IS NULL)
     ORDER BY project_id, token_index
     `,
-    [projectNewid]
+    [projectId]
   );
   return res.rows;
 }
@@ -557,7 +550,6 @@ async function getTokenHash({ client, slug, tokenIndex }) {
   return res.rows[0].hash;
 }
 
-// NOTE: This function is newid-compliant.
 async function getImageProgress({ client }) {
   const res = await client.query(`
     SELECT
@@ -572,12 +564,10 @@ async function getImageProgress({ client }) {
 // Insert-or-update each given progress event. `progress` should be an array of
 // objects with fields:
 //
-//   - projectId: string (newid, not legacy Art Blocks ID)
+//   - projectId: string
 //   - completedThroughTokenIndex: number
 //
 // notifications along `imageProgressChannel` for changes that are not no-ops.
-//
-// NOTE: This function is newid-compliant.
 async function updateImageProgress({ client, progress }) {
   const projectIds = progress.map((x) => x.projectId);
   const progressIndices = progress.map((x) => x.completedThroughTokenIndex);
