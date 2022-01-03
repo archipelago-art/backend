@@ -195,26 +195,26 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
     `
     INSERT INTO tokens (
       token_id,
-      fetch_time,
-      token_data,
       project_id,
+      token_index,
       token_contract,
       on_chain_token_id,
-      token_index
+      fetch_time,
+      token_data
     )
     VALUES (
-      $5::tokenid, $2, $3, $6::projectid,
-      (SELECT token_contract FROM projects WHERE project_id = $6::projectid),
-      $1::uint256, $4::int8
+      $1, $2, $3,
+      (SELECT token_contract FROM projects WHERE project_id = $2::projectid),
+      $4, $5, $6
     )
     `,
     [
+      tokenId,
+      projectId,
+      artblocksTokenId % PROJECT_STRIDE,
       artblocksTokenId,
       new Date(),
       rawTokenData,
-      artblocksTokenId % PROJECT_STRIDE,
-      tokenId,
-      projectId,
     ]
   );
   await populateTraitMembers({
