@@ -82,6 +82,17 @@ class ArchipelagoClient extends pg.Client {
   }
 }
 
+/**
+ * Opens a new pool with Archipelago middleware. Ownership of the pool is
+ * transferred to the caller. Most callers should use `withPool` instead.
+ */
+function newPool(options = {}) {
+  if (options.Client != null) {
+    throw new Error("custom client conflict");
+  }
+  return new pg.Pool({ ...options, Client: ArchipelagoClient });
+}
+
 /*
  * Opens a new pool and passes it to the given async callback, awaiting and
  * returning its result and closing the pool on the way out.
@@ -90,7 +101,7 @@ class ArchipelagoClient extends pg.Client {
  * be sure that all clients eventually close, or this will deadlock.
  */
 async function withPool(callback) {
-  const pool = new pg.Pool({ Client: ArchipelagoClient });
+  const pool = newPool();
   try {
     pool.on("connect", (client) => setDbRole(client));
     return await callback(pool);
@@ -151,6 +162,7 @@ function bufToAddress(buf) {
 
 module.exports = {
   acqrel,
+  newPool,
   withPool,
   withClient,
   hexToBuf,
