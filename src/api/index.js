@@ -1,5 +1,5 @@
 const artblocks = require("../db/artblocks");
-const opensea = require("../db/opensea");
+const opensea = require("../db/opensea/legacySales");
 const emails = require("../db/emails");
 const { bufToAddress } = require("../db/util");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");

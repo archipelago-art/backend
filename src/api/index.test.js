@@ -2,7 +2,7 @@ const { testDbProvider } = require("../db/testUtil");
 
 const api = require(".");
 const artblocks = require("../db/artblocks");
-const opensea = require("../db/opensea");
+const opensea = require("../db/opensea/legacySales");
 const emails = require("../db/emails");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");

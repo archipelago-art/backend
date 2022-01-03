@@ -1,4 +1,5 @@
-const { addEvents, getLastUpdated, setLastUpdated } = require("../db/opensea");
+const { addRawEvents } = require("../db/opensea/ingestEvents");
+const { getLastUpdated, setLastUpdated } = require("../db/opensea/progress");
 const log = require("../util/log")(__filename);
 const { getSlugs } = require("./collections");
 const { fetchEventsByTypes } = require("./fetch");
@@ -34,7 +35,7 @@ async function processEventsWindow({
   // Filter for asset != null to skip all the asset bundles, which we don't
   // care about (rare + very difficult to correctly attribute the price to the pieces)
   const strippedEvents = events.filter((x) => x.asset != null).map(stripEvent);
-  await addEvents({ client, events: strippedEvents });
+  await addRawEvents({ client, events: strippedEvents });
   log.info`${slug}: added ${
     strippedEvents.length
   } events in window ending ${windowEnd.toISOString()}`;
