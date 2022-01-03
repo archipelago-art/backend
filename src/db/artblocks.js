@@ -205,7 +205,7 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
     VALUES (
       $1, $2, $3,
       (SELECT token_contract FROM projects WHERE project_id = $2::projectid),
-      $4, $5, $6
+      $4, now(), $5
     )
     `,
     [
@@ -213,7 +213,6 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
       projectId,
       artblocksTokenId % PROJECT_STRIDE,
       artblocksTokenId,
-      new Date(),
       rawTokenData,
     ]
   );
