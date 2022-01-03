@@ -51,7 +51,7 @@ const SYM_CLIENT_ID = Symbol("archipelagoClientId");
 class ArchipelagoClient extends pg.Client {
   constructor(...args) {
     super(...args);
-    this[SYM_CLIENT_ID] = btoa(crypto.randomBytes(6).toString("latin1"));
+    this[SYM_CLIENT_ID] = crypto.randomBytes(6).toString("base64");
   }
 
   async query(query, values) {
