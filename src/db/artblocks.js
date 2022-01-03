@@ -606,7 +606,6 @@ module.exports = {
   setProjectSlug,
   getProjectIdBySlug,
   addToken,
-  populateTraitMembers,
   getProjectFeaturesAndTraits,
   getTokenFeaturesAndTraits,
   getUnfetchedTokens,
