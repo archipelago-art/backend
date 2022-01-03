@@ -383,6 +383,47 @@ async function getProjectFeaturesAndTraits({ client, projectId }) {
   return result;
 }
 
+/**
+ * Finds distinct traits for the same feature that have the same value after
+ * JSON stringification: e.g., `"0"` vs `0`, or `"null"` vs `null`. Returns all
+ * token IDs with any of these traits.
+ */
+async function findSuspiciousTraits({ client }) {
+  const res = await client.query(
+    `
+    SELECT DISTINCT token_id AS "tokenId"
+    FROM (
+      SELECT trait_id
+      FROM traits
+      JOIN (
+        SELECT feature_id, value->>0 AS value_string
+        FROM traits
+        GROUP BY feature_id, value->>0
+        HAVING count(1) > 1
+      ) AS q
+      ON traits.feature_id = q.feature_id AND traits.value->>0 = q.value_string
+    ) AS suspicious_traits
+    JOIN trait_members USING (trait_id)
+    ORDER BY token_id
+    `
+  );
+  return res.rows.map((r) => r.tokenId);
+}
+
+async function getArtblocksTokenIds({ client, tokenIds }) {
+  const res = await client.query(
+    `
+    SELECT
+      token_id AS "tokenId",
+      artblocks_project_index * 1000000 + token_index AS "artblocksTokenId"
+    FROM tokens JOIN artblocks_projects USING (project_id)
+    WHERE token_id = ANY($1::tokenid[])
+    `,
+    [tokenIds]
+  );
+  return res.rows;
+}
+
 async function getTokenFeaturesAndTraits({
   client,
   tokenId,
@@ -643,6 +684,8 @@ module.exports = {
   addToken,
   updateTokenData,
   getProjectFeaturesAndTraits,
+  findSuspiciousTraits,
+  getArtblocksTokenIds,
   getTokenFeaturesAndTraits,
   getUnfetchedTokens,
   getTokenImageData,
