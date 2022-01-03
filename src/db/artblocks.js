@@ -219,7 +219,6 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
     tokenId,
     projectId,
     rawTokenData,
-    alreadyInTransaction: true,
   });
   await newTokensChannel.send(client, { projectId, tokenId });
   await client.query("COMMIT");
@@ -231,10 +230,8 @@ async function populateTraitMembers({
   tokenId,
   projectId,
   rawTokenData,
-  alreadyInTransaction = false,
 }) {
   if (rawTokenData == null) return;
-  if (!alreadyInTransaction) await client.query("BEGIN");
   const featureData = JSON.parse(rawTokenData).features;
   if (typeof featureData !== "object" /* arrays are okay */) {
     throw new Error(
@@ -292,7 +289,6 @@ async function populateTraitMembers({
     `,
     [tokenId, featureIds, traitValues]
   );
-  if (!alreadyInTransaction) await client.query("COMMIT");
 }
 
 /*
