@@ -306,6 +306,66 @@ describe("db/artblocks", () => {
   );
 
   it(
+    "updates token data with new traits",
+    withTestDb(async ({ client }) => {
+      await addProjects(client, [snapshots.ARCHETYPE]);
+      const artblocksTokenId = snapshots.THE_CUBE;
+      async function dataWithFeatures(features) {
+        return JSON.stringify({
+          ...JSON.parse(await sc.token(artblocksTokenId)),
+          features,
+        });
+      }
+      async function getTraits(tokenId) {
+        const res = await artblocks.getTokenFeaturesAndTraits({
+          client,
+          tokenId,
+        });
+        return res[0].traits.sort((a, b) =>
+          a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+        );
+      }
+      async function getFetchTime(tokenId) {
+        const res = await client.query(
+          `
+          SELECT fetch_time AS "fetchTime" FROM tokens
+          WHERE token_id = $1
+          `,
+          [tokenId]
+        );
+        return res.rows[0].fetchTime;
+      }
+      const data0 = await dataWithFeatures({ Color: "Red", Number: "7" });
+      const tokenId = await artblocks.addToken({
+        client,
+        artblocksTokenId,
+        rawTokenData: data0,
+      });
+      const t0 = await getFetchTime(tokenId);
+      const traits0 = await getTraits(tokenId);
+      expect(traits0).toEqual([
+        expect.objectContaining({ name: "Color", value: "Red" }),
+        expect.objectContaining({ name: "Number", value: "7" }),
+      ]);
+      const data1 = await dataWithFeatures({ Color: "Red", Number: 7 });
+      await artblocks.updateTokenData({ client, tokenId, rawTokenData: data1 });
+      const t1 = await getFetchTime(tokenId);
+      const traits1 = await getTraits(tokenId);
+      expect(traits1).toEqual([
+        traits0[0], // including same feature and trait IDs
+        {
+          featureId: traits0[1].featureId,
+          name: "Number",
+          traitId: expect.any(String),
+          value: 7, // type changed!
+        },
+      ]);
+      expect(traits1[1].traitId).not.toEqual(traits0[1].traitId);
+      expect(+t1).toBeGreaterThan(+t0);
+    })
+  );
+
+  it(
     "computes unfetched token IDs for a single project",
     withTestDb(async ({ client }) => {
       const artblocksProjectIndex = 12;
@@ -391,7 +451,7 @@ describe("db/artblocks", () => {
   );
 
   it(
-    "doesn't permit updating token data",
+    "doesn't permit adding a token that already exists",
     withTestDb(async ({ client }) => {
       await addTestData(client);
       await expect(() =>

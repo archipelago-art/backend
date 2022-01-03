@@ -292,6 +292,40 @@ async function populateTraitMembers({
   );
 }
 
+async function updateTokenData({ client, tokenId, rawTokenData }) {
+  if (rawTokenData == null) {
+    throw new Error("can't update token data to become missing");
+  }
+  await client.query("BEGIN");
+  const updateRes = await client.query(
+    `
+    UPDATE tokens
+    SET fetch_time = now(), token_data = $2
+    WHERE token_id = $1
+    RETURNING project_id AS "projectId"
+    `,
+    [tokenId, rawTokenData]
+  );
+  if (updateRes.rowCount !== 1) {
+    throw new Error("no token with ID " + tokenId);
+  }
+  const projectId = updateRes.rows[0].projectId;
+  await client.query(
+    `
+    DELETE FROM trait_members
+    WHERE token_id = $1
+    `,
+    [tokenId]
+  );
+  await populateTraitMembers({
+    client,
+    tokenId,
+    projectId,
+    rawTokenData,
+  });
+  await client.query("COMMIT");
+}
+
 /*
  * type Trait = {
  *   traitId: string,
@@ -607,6 +641,7 @@ module.exports = {
   setProjectSlug,
   getProjectIdBySlug,
   addToken,
+  updateTokenData,
   getProjectFeaturesAndTraits,
   getTokenFeaturesAndTraits,
   getUnfetchedTokens,
