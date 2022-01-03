@@ -398,6 +398,10 @@ async function findSuspiciousTraits({ client }) {
       JOIN (
         SELECT feature_id, value->>0 AS value_string
         FROM traits
+        WHERE EXISTS (
+          SELECT 1 FROM trait_members
+          WHERE trait_members.trait_id = traits.trait_id
+        )
         GROUP BY feature_id, value->>0
         HAVING count(1) > 1
       ) AS q
