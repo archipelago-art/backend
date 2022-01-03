@@ -424,6 +424,29 @@ async function getArtblocksTokenIds({ client, tokenIds }) {
   return res.rows;
 }
 
+/**
+ * Deletes traits that have no members and features that have no traits. Traits
+ * and features are populated lazily, so this should only happen if token data
+ * is updated such that traits/features become orphaned.
+ */
+async function pruneEmptyFeaturesAndTraits({ client }) {
+  const res = await client.query(
+    `
+    DELETE FROM traits
+    WHERE NOT EXISTS (
+      SELECT 1 FROM trait_members
+      WHERE trait_members.trait_id = traits.trait_id
+    );
+    DELETE FROM features
+    WHERE NOT EXISTS (
+      SELECT 1 FROM traits
+      WHERE features.feature_id = features.feature_id
+    );
+    `
+  );
+  return { traits: res[0].rowCount, features: res[1].rowCount };
+}
+
 async function getTokenFeaturesAndTraits({
   client,
   tokenId,
@@ -686,6 +709,7 @@ module.exports = {
   getProjectFeaturesAndTraits,
   findSuspiciousTraits,
   getArtblocksTokenIds,
+  pruneEmptyFeaturesAndTraits,
   getTokenFeaturesAndTraits,
   getUnfetchedTokens,
   getTokenImageData,

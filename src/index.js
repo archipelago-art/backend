@@ -233,6 +233,13 @@ async function updateSuspiciousTokens() {
   });
 }
 
+async function pruneEmptyTraits() {
+  const res = await withClient(async (client) => {
+    return artblocks.pruneEmptyFeaturesAndTraits({ client });
+  });
+  log.info`pruned ${res.traits} traits and ${res.features} features`;
+}
+
 async function followLiveMint(args) {
   const [slug] = args;
   await withPool(async (pool) => {
@@ -593,6 +600,7 @@ async function main() {
     ["add-token", addToken],
     ["add-project-tokens", addProjectTokens],
     ["update-suspicious-tokens", updateSuspiciousTokens],
+    ["prune-empty-traits", pruneEmptyTraits],
     ["follow-live-mint", followLiveMint],
     ["ingest-images", ingestImages],
     ["generate-image", generateImage],
