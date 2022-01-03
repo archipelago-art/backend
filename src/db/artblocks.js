@@ -164,6 +164,9 @@ async function getProjectIdBySlug({ client, slug }) {
 }
 
 async function addToken({ client, artblocksTokenId, rawTokenData }) {
+  if (rawTokenData == null) {
+    throw new Error("no token data given");
+  }
   await client.query("BEGIN");
   const tokenId = newId(ObjectType.TOKEN);
   const artblocksProjectIndex = Math.floor(artblocksTokenId / PROJECT_STRIDE);
@@ -231,7 +234,6 @@ async function populateTraitMembers({
   projectId,
   rawTokenData,
 }) {
-  if (rawTokenData == null) return;
   const featureData = JSON.parse(rawTokenData).features;
   if (typeof featureData !== "object" /* arrays are okay */) {
     throw new Error(

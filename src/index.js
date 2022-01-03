@@ -108,13 +108,18 @@ async function addProject(args) {
 async function addToken(args) {
   const [artblocksTokenId] = args;
   const token = await fetchTokenData(artblocksTokenId);
-  await withClient(async (client) => {
-    await artblocks.addToken({
+  if (!token.found) {
+    log.info`token not found; nothing to add`;
+    return;
+  }
+  const tokenId = await withClient(async (client) => {
+    return await artblocks.addToken({
       client,
       artblocksTokenId,
       rawTokenData: token.raw,
     });
   });
+  log.info`added Art Blocks token ${artblocksTokenId} with ID ${tokenId}`;
 }
 
 async function addProjectTokens(args) {

@@ -290,21 +290,18 @@ describe("db/artblocks", () => {
   );
 
   it(
-    "inserts token data for 404s",
+    "rejects token data for 404s",
     withTestDb(async ({ client }) => {
       const [{ id: projectId }] = await addProjects(client, [
         snapshots.ARCHETYPE,
       ]);
-      await artblocks.addToken({
-        client,
-        artblocksTokenId: snapshots.THE_CUBE,
-        rawTokenData: null,
-      });
-      const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
-        client,
-        projectId,
-      });
-      expect(actualFeatures).toEqual([]);
+      await expect(
+        artblocks.addToken({
+          client,
+          artblocksTokenId: snapshots.THE_CUBE,
+          rawTokenData: null,
+        })
+      ).rejects.toThrow("no token data given");
     })
   );
 
@@ -329,11 +326,6 @@ describe("db/artblocks", () => {
         artblocksTokenId: baseTokenId + 2,
         rawTokenData: JSON.stringify({ features: {} }),
       });
-      await artblocks.addToken({
-        client,
-        artblocksTokenId: baseTokenId + 4,
-        rawTokenData: null,
-      });
       expect(await artblocks.getUnfetchedTokens({ client, projectId })).toEqual(
         [0, 1, 3, 4, 5].map((tokenIndex) => ({ projectId, tokenIndex }))
       );
@@ -350,7 +342,6 @@ describe("db/artblocks", () => {
     const tokens = [
       { tokenId: 1000000, rawTokenData: s({ features: { Size: "small" } }) },
       { tokenId: 1000001, rawTokenData: s({ features: { Size: "large" } }) },
-      { tokenId: 1000002, rawTokenData: null },
       {
         tokenId: 2000000,
         rawTokenData: s({ features: { Size: "small", Color: "red" } }),
