@@ -1,5 +1,4 @@
 const artblocks = require("../db/artblocks");
-const opensea = require("../db/opensea/legacySales");
 const emails = require("../db/emails");
 const { bufToAddress } = require("../db/util");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
@@ -173,18 +172,6 @@ async function addEmailSignup({ client, email }) {
   return emails.addEmailSignup({ client, email });
 }
 
-// Aggregates sale data on OpenSea, grouped by project
-// Takes a db client and `afterDate`, as JS date; only sales that occured
-// after `afterDate` are included in the aggregation.
-// Returns an array of {slug, projectId, totalEthSales} objects.
-// Slug is an archipelago slug and projectId is an archipelago project id.
-// totalEthSales is an aggregate of ETH and WETH sales for the
-// collection, represented as a BigInt amount of wei.
-// Non-ETH or WETH sales are ignored.
-async function openseaSalesByProject({ client, afterDate }) {
-  return opensea.aggregateSalesByProject({ client, afterDate });
-}
-
 function artblocksImageUrlTemplate(artblocksProjectIndex) {
   return `${IMAGE_BASE_URL}/artblocks/${PARAM_SIZE}/${artblocksProjectIndex}/${PARAM_INDEX_HIGH}/${PARAM_INDEX_LOW}`;
 }
@@ -214,6 +201,5 @@ module.exports = {
   tokenSummariesByOnChainId,
   sortAsciinumeric,
   addEmailSignup,
-  openseaSalesByProject,
   formatImageUrl,
 };

@@ -8,7 +8,6 @@ const ethers = require("ethers");
 
 const api = require("./api/index");
 const artblocks = require("./db/artblocks");
-const opensea = require("./db/opensea");
 const backfills = require("./db/backfills");
 const migrations = require("./db/migrations");
 const { acqrel, withPool, withClient } = require("./db/util");
@@ -17,7 +16,6 @@ const {
   processOpenseaCollection,
   ingestAllCollections,
 } = require("./opensea/fetcher");
-const { processSales } = require("./opensea/eventProcessing");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 const attach = require("./ws");
@@ -515,33 +513,6 @@ async function ingestOpensea(args) {
   });
 }
 
-async function processOpenseaSales(args) {
-  if (args.length !== 0) {
-    throw new Error("usage: process-opensea-sales");
-  }
-  await withClient(async (client) => {
-    await processSales({ client });
-  });
-}
-
-async function aggregateOpenseaSales(args) {
-  if (args.length !== 0 && args.length !== 1) {
-    throw new Error("usage: aggregate-opensea-sales [after-date]");
-  }
-  const afterDate = new Date(args[0] || "2020-11-26");
-  await withClient(async (client) => {
-    const totalSales = await api.openseaSalesByProject({
-      client,
-      afterDate,
-    });
-    log.info`| slug | totalSales |`;
-    log.info`|------|-----------:|`;
-    for (const { slug, totalEthSales } of totalSales) {
-      log.info`| ${slug} | ${ethers.utils.formatUnits(totalEthSales)} |`;
-    }
-  });
-}
-
 async function generateImage(args) {
   if (args.length !== 3) {
     throw new Error("usage: generate-image <slug> <token-index> <outfile>");
@@ -607,8 +578,6 @@ async function main() {
     ["token-feed-wss", tokenFeedWss],
     ["ingest-opensea-collection", ingestOpenseaCollection],
     ["ingest-opensea", ingestOpensea],
-    ["process-opensea-sales", processOpenseaSales],
-    ["aggregate-opensea-sales", aggregateOpenseaSales],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
