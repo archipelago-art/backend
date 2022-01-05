@@ -74,6 +74,7 @@ const migrationModules = [
   "./0064_drop_trait_members_token_contract_on_chain_id",
   "./0065_drop_legacy_id_sequences",
   "./0066_opensea_cleanup",
+  "./0067_simplify_id_domain_constraints",
   // ...
 ];
 
