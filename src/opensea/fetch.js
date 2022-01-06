@@ -7,7 +7,7 @@ const HACKY_OPENSEA_FETCH_DELAY_MS = 1000;
 async function fetchUrl(baseUrl, urlParams, apiKey) {
   const url = `${baseUrl}?${String(urlParams)}`;
   const headers = { "X-API-KEY": apiKey };
-  log.info`fetching ${url}`;
+  log.debug`fetching ${url}`;
   const res = await nodeFetch(url, { headers });
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText}: ${url}`);
@@ -48,6 +48,10 @@ async function fetchEventPage({
   if (eventType != null) {
     params.event_type = eventType;
   }
+
+  const typeStr = eventType == null ? "" : eventType;
+
+  log.info`events: ${typeStr} +${offset}`;
 
   const json = await fetchUrl(EVENTS_URL, new URLSearchParams(params), apiKey);
   const parsed = eventResponse.parseOrThrow(json);

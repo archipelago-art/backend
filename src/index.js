@@ -13,9 +13,9 @@ const migrations = require("./db/migrations");
 const { acqrel, withPool, withClient } = require("./db/util");
 const images = require("./img");
 const {
-  processOpenseaCollection,
-  ingestAllCollections,
-} = require("./opensea/fetcher");
+  downloadCollection,
+  downloadAllCollections,
+} = require("./opensea/download");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 const attach = require("./ws");
@@ -475,10 +475,10 @@ async function tokenFeedWss(args) {
   });
 }
 
-async function ingestOpenseaCollection(args) {
+async function openseaDownloadCollection(args) {
   if (args.length !== 2) {
     throw new Error(
-      "usage: ingest-opensea-collection <collection-slug> <window-duration-days>"
+      "usage: opensea-download-collection <collection-slug> <window-duration-days>"
     );
   }
   const apiKey = process.env.OPENSEA_API_KEY;
@@ -486,7 +486,7 @@ async function ingestOpenseaCollection(args) {
   const ONE_DAY = 1000 * 60 * 60 * 24;
   const windowDurationMs = ONE_DAY * +args[1];
   await withClient(async (client) => {
-    await processOpenseaCollection({
+    await downloadCollection({
       client,
       slug,
       apiKey,
@@ -495,16 +495,16 @@ async function ingestOpenseaCollection(args) {
   });
 }
 
-async function ingestOpensea(args) {
+async function openseaDownloadAllCollections(args) {
   if (args.length !== 0) {
-    throw new Error("usage: ingest-opensea");
+    throw new Error("usage: opensea-download-all-collections");
   }
   const apiKey = process.env.OPENSEA_API_KEY;
   const slug = args[0];
   const ONE_DAY = 1000 * 60 * 60 * 24;
   const windowDurationMs = ONE_DAY * 30;
   await withClient(async (client) => {
-    await ingestAllCollections({
+    await downloadAllCollections({
       client,
       slug,
       apiKey,
@@ -576,8 +576,8 @@ async function main() {
     ["ingest-images", ingestImages],
     ["generate-image", generateImage],
     ["token-feed-wss", tokenFeedWss],
-    ["ingest-opensea-collection", ingestOpenseaCollection],
-    ["ingest-opensea", ingestOpensea],
+    ["opensea-download-collection", openseaDownloadCollection],
+    ["opensea-download-all-collections", openseaDownloadAllCollections],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {

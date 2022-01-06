@@ -15,7 +15,7 @@ const BEGINNING_OF_HISTORY = new Date("2020-11-27");
  * windowDurationMs is the size of the event scanning window in miliseconds.
  * Returns true if we are up-to-date for this collection, or false otherwise.
  */
-async function processEventsWindow({
+async function downloadWindow({
   client,
   slug,
   windowDurationMs = ONE_MONTH,
@@ -24,7 +24,7 @@ async function processEventsWindow({
   const since =
     (await getLastUpdated({ client, slug })) || BEGINNING_OF_HISTORY;
   const windowEnd = new Date(+since + windowDurationMs);
-  log.debug`${slug}: scanning window starting ${since.toISOString()}`;
+  log.info`window: ${since.toISOString()} to ${windowEnd.toISOString()}`;
   const events = await fetchEventsByTypes({
     source: { slug },
     since,
@@ -56,22 +56,17 @@ async function processEventsWindow({
   }
 }
 
-async function processOpenseaCollection({
-  client,
-  slug,
-  windowDurationMs,
-  apiKey,
-}) {
+async function downloadCollection({ client, slug, windowDurationMs, apiKey }) {
   const args = {
     client,
     slug,
     windowDurationMs,
     apiKey,
   };
-  while (!(await processEventsWindow(args)));
+  while (!(await downloadWindow(args)));
 }
 
-async function ingestAllCollections({ client, apiKey, windowDurationMs }) {
+async function downloadAllCollections({ client, apiKey, windowDurationMs }) {
   const slugs = await getSlugs({ client, apiKey });
   const neverLoadedSlugs = [];
   const slugsToUpdate = [];
@@ -93,11 +88,11 @@ async function ingestAllCollections({ client, apiKey, windowDurationMs }) {
   // It will still get around to every collection eventually.
   for (const slug of neverLoadedSlugs) {
     log.info`=== ingesting opensea events for ${slug} ===`;
-    await processOpenseaCollection({ client, slug, apiKey, windowDurationMs });
+    await downloadCollection({ client, slug, apiKey, windowDurationMs });
   }
   for (const slug of slugsToUpdate) {
     log.info`=== ingesting opensea events for ${slug} ===`;
-    await processOpenseaCollection({ client, slug, apiKey, windowDurationMs });
+    await downloadCollections({ client, slug, apiKey, windowDurationMs });
   }
 }
 
@@ -110,4 +105,4 @@ function stripEvent(ev) {
   return ev;
 }
 
-module.exports = { processOpenseaCollection, ingestAllCollections };
+module.exports = { downloadCollection, downloadAllCollections };
