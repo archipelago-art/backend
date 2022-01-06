@@ -54,7 +54,16 @@ class ArchipelagoClient extends pg.Client {
     this[SYM_CLIENT_ID] = crypto.randomBytes(6).toString("base64");
   }
 
-  async query(query, values) {
+  query(config, values, callback) {
+    const promise = this._queryAsync(config, values);
+    if (callback != null) {
+      promise.then((res) => callback(null, res)).catch((err) => callback(err));
+    } else {
+      return promise;
+    }
+  }
+
+  async _queryAsync(query, values) {
     const logging = log.trace.isEnabled();
     let ok = false;
     let start;
