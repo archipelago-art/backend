@@ -21,6 +21,7 @@ const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 const attach = require("./ws");
 const adHocPromise = require("./util/adHocPromise");
 const log = require("./util/log")(__filename);
+const { ingestEvents } = require("./db/opensea/ingestEvents");
 
 const NETWORK_CONCURRENCY = 64;
 const IMAGEMAGICK_CONCURRENCY = 16;
@@ -513,6 +514,15 @@ async function openseaDownloadAllCollections(args) {
   });
 }
 
+async function openseaIngestEvents(args) {
+  if (args.length !== 0) {
+    throw new Error("usage: opensea-ingest-events");
+  }
+  await withClient(async (client) => {
+    await ingestEvents({ client });
+  });
+}
+
 async function generateImage(args) {
   if (args.length !== 3) {
     throw new Error("usage: generate-image <slug> <token-index> <outfile>");
@@ -578,6 +588,7 @@ async function main() {
     ["token-feed-wss", tokenFeedWss],
     ["opensea-download-collection", openseaDownloadCollection],
     ["opensea-download-all-collections", openseaDownloadAllCollections],
+    ["opensea-ingest-events", openseaIngestEvents],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
