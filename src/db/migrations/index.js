@@ -76,6 +76,7 @@ const migrationModules = [
   "./0066_opensea_cleanup",
   "./0067_simplify_id_domain_constraints",
   "./0068_opensea_redone",
+  "./0069_opensea_asks_index",
   // ...
 ];
 
