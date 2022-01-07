@@ -92,7 +92,7 @@ async function downloadAllCollections({ client, apiKey, windowDurationMs }) {
   }
   for (const slug of slugsToUpdate) {
     log.info`=== ingesting opensea events for ${slug} ===`;
-    await downloadCollections({ client, slug, apiKey, windowDurationMs });
+    await downloadCollection({ client, slug, apiKey, windowDurationMs });
   }
 }
 
