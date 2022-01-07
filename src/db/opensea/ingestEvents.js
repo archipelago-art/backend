@@ -201,7 +201,24 @@ async function ingestTransfers(client, transferIds) {
     `,
     [transferIds]
   );
-  return result.rows.map((x) => x.id);
+
+  const insertedTransfers = result.rows.map((x) => x.id);
+  await client.query(
+    `
+    UPDATE opensea_asks
+    SET active = false
+    WHERE event_id IN (
+      SELECT opensea_asks.event_id
+      FROM opensea_asks JOIN opensea_transfers USING (token_id)
+      WHERE active
+        AND opensea_asks.listing_time <= opensea_transfers.transaction_timestamp
+        AND opensea_transfers.event_id = ANY($1::text[])
+    )
+    `,
+    [insertedTransfers]
+  );
+
+  return insertedTransfers;
 }
 
 async function ingestSales(client, saleIds) {
@@ -262,8 +279,10 @@ async function ingestSales(client, saleIds) {
     SET active = false
     WHERE event_id IN (
       SELECT opensea_asks.event_id
-      FROM opensea_asks JOIN opensea_sales USING (token_id, listing_time)
-      WHERE opensea_sales.event_id = ANY($1::text[])
+      FROM opensea_asks JOIN opensea_sales USING (token_id)
+      WHERE active
+        AND opensea_asks.listing_time <= opensea_sales.transaction_timestamp
+        AND opensea_sales.event_id = ANY($1::text[])
     )
     `,
     [insertedSales]
@@ -352,7 +371,14 @@ async function ingestAsks(client, askIds) {
           SELECT 1
           FROM opensea_sales
           WHERE opensea_sales.token_id = tokens.token_id AND
-          listing_time = (json->>'listing_time')::timestamp AT TIME ZONE 'UTC'
+          transaction_timestamp >= (json->>'listing_time')::timestamp AT TIME ZONE 'UTC'
+          )
+        ) AND
+        (SELECT NOT EXISTS (
+          SELECT 1
+          FROM opensea_transfers
+          WHERE opensea_transfers.token_id = tokens.token_id AND
+          transaction_timestamp >= (json->>'listing_time')::timestamp AT TIME ZONE 'UTC'
           )
         )
       )

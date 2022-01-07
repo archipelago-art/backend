@@ -652,6 +652,69 @@ describe("db/opensea/ingestEvents", () => {
         expect((await getAsk(client, "4")).active).toBe(false);
       })
     );
+    it(
+      "a sale cancels all older asks (asks ingested first)",
+      withTestDb(async ({ client }) => {
+        const a1 = ask({ id: "1", listingTime: "2020-01-01" });
+        const a2 = ask({ id: "2", listingTime: "2020-01-02" });
+        const a3 = ask({ id: "3", listingTime: "2020-01-03" });
+        const s = sale({ id: "4", transactionTimestamp: "2020-01-02" });
+        const { projectId } = await exampleProjectAndToken({ client });
+        await addAndIngest(client, [a1, a2, a3]);
+        await addAndIngest(client, [s]);
+        expect((await getAsk(client, "1")).active).toBe(false);
+        expect((await getAsk(client, "2")).active).toBe(false);
+        expect((await getAsk(client, "3")).active).toBe(true);
+      })
+    );
+    it(
+      "a sale cancels all older asks (sale ingested first)",
+      withTestDb(async ({ client }) => {
+        const a1 = ask({ id: "1", listingTime: "2020-01-01" });
+        const a2 = ask({ id: "2", listingTime: "2020-01-02" });
+        const a3 = ask({ id: "3", listingTime: "2020-01-03" });
+        const s = sale({ id: "4", transactionTimestamp: "2020-01-02" });
+        const { projectId } = await exampleProjectAndToken({ client });
+        await addAndIngest(client, [s]);
+        await addAndIngest(client, [a1, a2, a3]);
+        expect((await getAsk(client, "1")).active).toBe(false);
+        expect((await getAsk(client, "2")).active).toBe(false);
+        expect((await getAsk(client, "3")).active).toBe(true);
+      })
+    );
+  });
+
+  describe("ask<->transfer interactions", () => {
+    it(
+      "a transfer cancels all older asks (asks ingested first)",
+      withTestDb(async ({ client }) => {
+        const a1 = ask({ id: "1", listingTime: "2020-01-01" });
+        const a2 = ask({ id: "2", listingTime: "2020-01-02" });
+        const a3 = ask({ id: "3", listingTime: "2020-01-03" });
+        const s = transfer({ id: "4", transactionTimestamp: "2020-01-02" });
+        const { projectId } = await exampleProjectAndToken({ client });
+        await addAndIngest(client, [a1, a2, a3]);
+        await addAndIngest(client, [s]);
+        expect((await getAsk(client, "1")).active).toBe(false);
+        expect((await getAsk(client, "2")).active).toBe(false);
+        expect((await getAsk(client, "3")).active).toBe(true);
+      })
+    );
+    it(
+      "a transfer cancels all older asks (transfer ingested first)",
+      withTestDb(async ({ client }) => {
+        const a1 = ask({ id: "1", listingTime: "2020-01-01" });
+        const a2 = ask({ id: "2", listingTime: "2020-01-02" });
+        const a3 = ask({ id: "3", listingTime: "2020-01-03" });
+        const s = transfer({ id: "4", transactionTimestamp: "2020-01-02" });
+        const { projectId } = await exampleProjectAndToken({ client });
+        await addAndIngest(client, [s]);
+        await addAndIngest(client, [a1, a2, a3]);
+        expect((await getAsk(client, "1")).active).toBe(false);
+        expect((await getAsk(client, "2")).active).toBe(false);
+        expect((await getAsk(client, "3")).active).toBe(true);
+      })
+    );
   });
 
   describe("currency discovery", () => {
