@@ -8,6 +8,7 @@ const {
   askForToken,
   floorAskByProject,
   aggregateSalesByProject,
+  asksForProject,
 } = require("./api");
 const artblocks = require("../artblocks");
 const { testDbProvider } = require("../testUtil");
@@ -310,6 +311,107 @@ describe("db/opensea/api", () => {
         });
         expect(result).toEqual({
           [archetypeId]: null,
+        });
+      })
+    );
+  });
+
+  describe("asksForProject", () => {
+    it(
+      "returns empty object if there are no tokens for sale",
+      withTestDb(async ({ client }) => {
+        const { archetypeId } = await exampleProjectAndToken({
+          client,
+        });
+        const result = await asksForProject({
+          client,
+          projectId: archetypeId,
+        });
+        expect(result).toEqual({});
+      })
+    );
+    it(
+      "ignores inactive asks",
+      withTestDb(async ({ client }) => {
+        const { archetypeId } = await exampleProjectAndToken({
+          client,
+        });
+        const a = ask({ id: "1", price: "1000" });
+        const s = sale({ id: "2" });
+        await addAndIngest(client, [a, s]);
+        const result = await asksForProject({
+          client,
+          projectId: archetypeId,
+        });
+        expect(result).toEqual({});
+      })
+    );
+    it(
+      "ignores expired asks, even if still marked active in db",
+      withTestDb(async ({ client }) => {
+        const { archetypeId } = await exampleProjectAndToken({
+          client,
+        });
+        const a = ask({ id: "1", price: "1000", duration: 100 });
+        await addAndIngest(client, [a]);
+
+        // not active because it's expired
+        expect(await getActive(client, "1")).toBe(false);
+        // manually set it as active, simulating the case where it's just recently
+        // expired but we didn't update the db field yet
+        await client.query(`UPDATE opensea_asks SET active=true`);
+        expect(await getActive(client, "1")).toBe(true);
+        const result = await asksForProject({
+          client,
+          projectId: archetypeId,
+        });
+        expect(result).toEqual({});
+      })
+    );
+    it(
+      "works in a case with some open asks",
+      withTestDb(async ({ client }) => {
+        const { archetypeId, archetypeTokenId1, archetypeTokenId2 } =
+          await exampleProjectAndToken({
+            client,
+          });
+        const a1 = ask({ id: "1", price: "500", tokenId: snapshots.THE_CUBE });
+        const a2 = ask({
+          id: "2",
+          price: "1000",
+          tokenId: snapshots.ARCH_TRIPTYCH_1,
+        });
+        await addAndIngest(client, [a1, a2]);
+
+        const result = await asksForProject({
+          client,
+          projectId: archetypeId,
+        });
+        expect(result).toEqual({
+          [archetypeTokenId1]: 500n,
+          [archetypeTokenId2]: 1000n,
+        });
+      })
+    );
+    it(
+      "shows lowest ask for a token if there are several",
+      withTestDb(async ({ client }) => {
+        const { archetypeId, archetypeTokenId1 } = await exampleProjectAndToken(
+          {
+            client,
+          }
+        );
+        const a1 = ask({ id: "1", price: "5000" });
+        const a2 = ask({ id: "2", price: "100" });
+        const a3 = ask({ id: "3", price: "1000" });
+        await addAndIngest(client, [a1, a2, a3]);
+
+        const result = await asksForProject({
+          client,
+          projectId: archetypeId,
+        });
+        expect(result).toEqual({
+          [archetypeTokenId1]: 100n,
         });
       })
     );

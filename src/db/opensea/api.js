@@ -64,6 +64,29 @@ async function floorAskByProject({ client, projectIds = null }) {
 }
 
 /**
+ * Get the lowest open ask for each token in a project.
+ * Returns an object with tokenIds as keys and BigInt eth prices as values.
+ * Only tokenIds that have at least one active ETH-priced ask will be included.
+ * If there are multiple open asks for a token, the lowest price is provided.
+ */
+async function asksForProject({ client, projectId }) {
+  const res = await client.query(
+    `
+    SELECT token_id AS id, min(price) AS price FROM opensea_asks
+    WHERE active AND currency_id = $2 AND (project_id = $1)
+      AND (expiration_time IS NULL OR expiration_time > now())
+    GROUP BY token_id
+    `,
+    [projectId, wellKnownCurrencies.eth.currencyId]
+  );
+  const result = {};
+  for (const { id, price } of res.rows) {
+    result[id] = BigInt(price);
+  }
+  return result;
+}
+
+/**
  * Computes aggregate opensea ETH and WETH sales for every project that has had any sales.
  */
 async function aggregateSalesByProject({ client, afterDate }) {
@@ -97,4 +120,5 @@ module.exports = {
   askForToken,
   floorAskByProject,
   aggregateSalesByProject,
+  asksForProject,
 };
