@@ -248,14 +248,11 @@ async function ingestSales(client, saleIds) {
     `
     UPDATE opensea_transfers
     SET redundant = true
-    FROM (
+    WHERE event_id IN (
       SELECT opensea_transfers.event_id
-      FROM opensea_transfers JOIN opensea_sales ON (
-        opensea_transfers.token_id = opensea_sales.token_id AND
-        opensea_transfers.transaction_hash = opensea_sales.transaction_hash
-      )
+      FROM opensea_transfers JOIN opensea_sales USING (token_id, transaction_hash)
       WHERE opensea_sales.event_id = ANY($1::text[])
-    ) as q
+    )
     `,
     [insertedSales]
   );
@@ -263,14 +260,11 @@ async function ingestSales(client, saleIds) {
     `
     UPDATE opensea_asks
     SET active = false
-    FROM (
+    WHERE event_id IN (
       SELECT opensea_asks.event_id
-      FROM opensea_asks JOIN opensea_sales ON (
-        opensea_asks.token_id = opensea_sales.token_id AND
-        opensea_asks.listing_time = opensea_sales.listing_time
-      )
+      FROM opensea_asks JOIN opensea_sales USING (token_id, listing_time)
       WHERE opensea_sales.event_id = ANY($1::text[])
-    ) as q
+    )
     `,
     [insertedSales]
   );
@@ -412,14 +406,11 @@ async function ingestCancellations(client, cancellationIds) {
     `
     UPDATE opensea_asks
     SET active = false
-    FROM (
+    WHERE event_id IN (
       SELECT opensea_asks.event_id
-      FROM opensea_asks JOIN opensea_ask_cancellations ON (
-        opensea_asks.token_id = opensea_ask_cancellations.token_id AND
-        opensea_asks.listing_time = opensea_ask_cancellations.listing_time
-      )
+      FROM opensea_asks JOIN opensea_ask_cancellations USING (token_id, listing_time)
       WHERE opensea_ask_cancellations.event_id = ANY($1::text[])
-    ) as q
+    )
     `,
     [insertedCancellations]
   );
