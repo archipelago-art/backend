@@ -4,6 +4,7 @@ const { bufToAddress } = require("../db/util");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const slugify = require("../util/slugify");
 const sortAsciinumeric = require("../util/sortAsciinumeric");
+const openseaApi = require("../db/opensea/api");
 
 const PROJECT_STRIDE = 1e6;
 
@@ -202,4 +203,5 @@ module.exports = {
   sortAsciinumeric,
   addEmailSignup,
   formatImageUrl,
+  opensea: openseaApi,
 };
