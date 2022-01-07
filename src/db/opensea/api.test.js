@@ -226,10 +226,10 @@ describe("db/opensea/api", () => {
         const result = await floorAskByProject({
           client,
         });
-        expect(result).toEqual([
-          { projectId: archetypeId, price: null },
-          { projectId: squigglesId, price: null },
-        ]);
+        expect(result).toEqual({
+          [archetypeId]: null,
+          [squigglesId]: null,
+        });
       })
     );
     it(
@@ -248,24 +248,28 @@ describe("db/opensea/api", () => {
         const result = await floorAskByProject({
           client,
         });
-        expect(result).toEqual([
-          { projectId: archetypeId, price: 950n },
-          { projectId: squigglesId, price: null },
-        ]);
+        expect(result).toEqual({
+          [archetypeId]: 950n,
+          [squigglesId]: null,
+        });
       })
     );
     it(
       "ignores non-active asks",
       withTestDb(async ({ client }) => {
-        const { projectId } = await exampleProjectAndToken({ client });
+        const { archetypeId, squigglesId } = await exampleProjectAndToken({
+          client,
+        });
         const a = ask({ id: "1", price: "1000" });
         const s = sale({ id: "2" });
         await addAndIngest(client, [a, s]);
-        const result = await askForToken({
+        const result = await floorAskByProject({
           client,
-          projectId,
         });
-        expect(result).toEqual(null);
+        expect(result).toEqual({
+          [archetypeId]: null,
+          [squigglesId]: null,
+        });
       })
     );
     it(
@@ -288,10 +292,10 @@ describe("db/opensea/api", () => {
           client,
         });
         // It's still expired :)
-        expect(result).toEqual([
-          { projectId: archetypeId, price: null },
-          { projectId: squigglesId, price: null },
-        ]);
+        expect(result).toEqual({
+          [archetypeId]: null,
+          [squigglesId]: null,
+        });
       })
     );
     it(
@@ -304,7 +308,9 @@ describe("db/opensea/api", () => {
           client,
           projectIds: [archetypeId],
         });
-        expect(result).toEqual([{ projectId: archetypeId, price: null }]);
+        expect(result).toEqual({
+          [archetypeId]: null,
+        });
       })
     );
   });

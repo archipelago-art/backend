@@ -36,8 +36,8 @@ async function askForToken({ client, tokenId }) {
 }
 
 /**
- * Return the floor price for every project as a BigInt in wei (or null if there are no asks).
- * Returns null if there is no ask.
+ * Get the floor price for every project as a BigInt in Wei (or null if there are no asks)
+ * Returns an object with projectIds as keys and floors as values.
  * Only considers asks priced in ETH.
  */
 async function floorAskByProject({ client, projectIds = null }) {
@@ -56,10 +56,11 @@ async function floorAskByProject({ client, projectIds = null }) {
     `,
     [projectIds, wellKnownCurrencies.eth.currencyId]
   );
-  return res.rows.map((x) => ({
-    projectId: x.projectId,
-    price: x.price == null ? null : BigInt(x.price),
-  }));
+  const result = {};
+  for (const { projectId, price } of res.rows) {
+    result[projectId] = price == null ? null : BigInt(price);
+  }
+  return result;
 }
 
 /**
