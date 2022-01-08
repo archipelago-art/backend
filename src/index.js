@@ -595,7 +595,12 @@ async function main() {
       return await fn(args);
     }
   }
-  throw "Unknown command: " + arg0;
+  console.error("Unknown command: " + arg0);
+  console.error("Available commands:");
+  for (const [name] of commands) {
+    console.error(" ".repeat(4) + name);
+  }
+  process.exitCode = 1;
 }
 
 main().catch((e) => {
