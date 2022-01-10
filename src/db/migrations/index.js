@@ -77,6 +77,7 @@ const migrationModules = [
   "./0067_simplify_id_domain_constraints",
   "./0068_opensea_redone",
   "./0069_opensea_asks_index",
+  "./0070_erc_721_transfers",
   // ...
 ];
 
