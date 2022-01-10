@@ -140,7 +140,7 @@ async function fetchEventsByTypes({
 
 const ASSETS_URL = "https://api.opensea.io/api/v1/assets";
 const assetsResponse = C.object({ assets: C.array(C.raw) });
-const MAX_TOKEN_IDS_PER_QUERY = 30;
+const MAX_TOKEN_IDS_PER_QUERY = 20;
 async function fetchAssetsPage({ contractAddress, tokenIds, apiKey }) {
   if (tokenIds.length > MAX_TOKEN_IDS_PER_QUERY) {
     throw new Error("too many tokenIds");
@@ -153,7 +153,18 @@ async function fetchAssetsPage({ contractAddress, tokenIds, apiKey }) {
   }
   const json = await fetchUrl(ASSETS_URL, params, apiKey);
   const parsed = assetsResponse.parseOrThrow(json);
-  return parsed.assets;
+  const assets = parsed.assets;
+  if (assets.length !== tokenIds.length) {
+    const assetIds = assets.map((x) => x.token_id);
+    const missingIds = new Set(tokenIds.map((x) => String(x)));
+    for (const a of assetIds) {
+      missingIds.delete(a);
+    }
+    for (const m of missingIds) {
+      log.warn`Could not find OpenSea asset for artblocks tokens with id: ${m}`;
+    }
+  }
+  return assets;
 }
 
 async function fetchAssets({ contractAddress, tokenIds, apiKey }) {
