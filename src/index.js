@@ -11,6 +11,7 @@ const artblocks = require("./db/artblocks");
 const backfills = require("./db/backfills");
 const migrations = require("./db/migrations");
 const { acqrel, withPool, withClient } = require("./db/util");
+const { ingestTransfers } = require("./eth/tokenTransfers");
 const images = require("./img");
 const {
   downloadCollection,
@@ -523,6 +524,17 @@ async function openseaIngestEvents(args) {
   });
 }
 
+async function alchemyIngestTransfers(args) {
+  if (args.length !== 2) {
+    throw new Error("usage: alchemy-ingest-transfers <contract> <start-block>");
+  }
+  const [contractAddress, rawInitialStartBlock] = args;
+  const initialStartBlock = Number(rawInitialStartBlock);
+  await withPool(async (pool) => {
+    await ingestTransfers({ pool, contractAddress, initialStartBlock });
+  });
+}
+
 async function generateImage(args) {
   if (args.length !== 3) {
     throw new Error("usage: generate-image <slug> <token-index> <outfile>");
@@ -589,6 +601,7 @@ async function main() {
     ["opensea-download-collection", openseaDownloadCollection],
     ["opensea-download-all-collections", openseaDownloadAllCollections],
     ["opensea-ingest-events", openseaIngestEvents],
+    ["alchemy-ingest-transfers", alchemyIngestTransfers],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {

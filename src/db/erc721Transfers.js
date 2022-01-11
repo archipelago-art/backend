@@ -100,8 +100,22 @@ async function addTransfers({ client, transfers }) {
     ]
   );
   await client.query("COMMIT");
+  return { inserted: insertsRes.rowCount, deferred: missingTransfers.length };
+}
+
+async function getLastBlockNumber({ client, contractAddress }) {
+  const res = await client.query(
+    `
+    SELECT max(block_number) AS "max" FROM erc_721_transfer_scan_progress
+    WHERE contract_address = $1::address
+    `,
+    [hexToBuf(contractAddress)]
+  );
+  if (res.rows.length === 0) return null;
+  return res.rows[0].max;
 }
 
 module.exports = {
   addTransfers,
+  getLastBlockNumber,
 };
