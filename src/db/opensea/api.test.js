@@ -1,3 +1,5 @@
+const ethers = require("ethers");
+
 const { bufToHex, hexToBuf } = require("../util");
 const {
   addRawEvents,
@@ -11,6 +13,7 @@ const {
   asksForProject,
 } = require("./api");
 const artblocks = require("../artblocks");
+const { addTransfers } = require("../erc721Transfers");
 const { testDbProvider } = require("../testUtil");
 const snapshots = require("../../scrape/snapshots");
 const { parseProjectData } = require("../../scrape/fetchArtblocksProject");
@@ -31,6 +34,7 @@ describe("db/opensea/api", () => {
 
   const dandelion = "0xe03a5189dac8182085e4adf66281f679fff2291d";
   const wchargin = "0xefa7bdd92b5e9cd9de9b54ac0e3dc60623f1c989";
+  const ijd = "0xbaaf7c84deb0184ffbf7fc1655cb38264a29296f";
   const listed = utcDateFromString("2021-03-01T00:00:00.123456");
 
   function sale({
@@ -81,6 +85,43 @@ describe("db/opensea/api", () => {
       auction_type: "dutch",
       payment_token: paymentTokenForCurrency(currency),
       event_type: "created",
+    };
+  }
+
+  function transfer({
+    contractAddress = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+    tokenId = snapshots.THE_CUBE,
+    fromAddress = ethers.constants.AddressZero,
+    toAddress = wchargin,
+    blockNumber = 12164300,
+    blockHash = "0x" + "ba".repeat(32),
+    logIndex = 123,
+    transactionHash = "0x" + "fe".repeat(32),
+    transactionIndex = 77,
+  } = {}) {
+    const eventSignature = "Transfer(address,address,uint256)";
+    const transferTopic = ethers.utils.id(eventSignature);
+    function pad(value, type) {
+      return ethers.utils.defaultAbiCoder.encode([type], [value]);
+    }
+    return {
+      args: [fromAddress, toAddress, ethers.BigNumber.from(tokenId)],
+      data: "0x",
+      event: "Transfer",
+      topics: [
+        transferTopic,
+        pad(fromAddress, "address"),
+        pad(toAddress, "address"),
+        pad(tokenId, "uint256"),
+      ],
+      address: contractAddress,
+      removed: false,
+      logIndex,
+      blockHash,
+      blockNumber,
+      eventSignature,
+      transactionHash,
+      transactionIndex,
     };
   }
 
@@ -166,6 +207,8 @@ describe("db/opensea/api", () => {
         const { archetypeTokenId1 } = await exampleProjectAndToken({ client });
         const a1 = ask({ id: "1", price: "1000" });
         const a2 = ask({ id: "2", price: "950" });
+        const a3 = ask({ id: "3", price: "950" });
+
         await addAndIngest(client, [a1, a2]);
         const result = await askForToken({
           client,
@@ -239,13 +282,38 @@ describe("db/opensea/api", () => {
         const { archetypeId, squigglesId } = await exampleProjectAndToken({
           client,
         });
-        const a1 = ask({ id: "1", price: "1000", tokenId: snapshots.THE_CUBE });
+        const a1 = ask({
+          id: "1",
+          price: "1000",
+          tokenId: snapshots.THE_CUBE,
+          sellerAddress: dandelion,
+        });
         const a2 = ask({
           id: "2",
           price: "950",
           tokenId: snapshots.ARCH_TRIPTYCH_1,
+          sellerAddress: dandelion,
         });
-        await addAndIngest(client, [a1, a2]);
+        const a3 = ask({
+          id: "3",
+          price: "55",
+          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          sellerAddress: ijd,
+        });
+        const t1 = transfer({
+          tokenId: snapshots.THE_CUBE,
+          toAddress: dandelion,
+          logIndex: 123,
+          transactionIndex: 77,
+        });
+        const t2 = transfer({
+          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          toAddress: dandelion,
+          logIndex: 124,
+          transactionIndex: 78,
+        });
+        await addTransfers({ client, transfers: [t1, t2] });
+        await addAndIngest(client, [a1, a2, a3]);
         const result = await floorAskByProject({
           client,
         });
@@ -261,8 +329,13 @@ describe("db/opensea/api", () => {
         const { archetypeId, squigglesId } = await exampleProjectAndToken({
           client,
         });
+        // Suppose that a token is sold from A to B, then transferred
+        // back to A. The ask will be marked inactive, and so shouldn't
+        // factor in even though the token is owned by the asker.
         const a = ask({ id: "1", price: "1000" });
         const s = sale({ id: "2" });
+        const t = transfer();
+        await addTransfers({ client, transfers: [t] });
         await addAndIngest(client, [a, s]);
         const result = await floorAskByProject({
           client,
@@ -280,6 +353,8 @@ describe("db/opensea/api", () => {
           client,
         });
         const a = ask({ id: "1", price: "1000", duration: 100 });
+        const t = transfer();
+        await addTransfers({ client, transfers: [t] });
         await addAndIngest(client, [a]);
 
         // not active because it's expired

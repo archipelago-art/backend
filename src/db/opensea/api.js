@@ -43,16 +43,47 @@ async function askForToken({ client, tokenId }) {
 async function floorAskByProject({ client, projectIds = null }) {
   const res = await client.query(
     `
-    SELECT project_id AS "projectId", (
-      SELECT price FROM opensea_asks
-      WHERE active AND (opensea_asks.project_id = projects.project_id)
-      AND (expiration_time IS NULL OR expiration_time > now())
-      AND currency_id = $2
-      ORDER BY price ASC
-      LIMIT 1
-    ) AS price
-    FROM projects
-    WHERE project_id = ANY($1::projectid[]) OR $1 IS NULL
+    WITH current_owners AS (
+      SELECT
+        token_id,
+        to_address AS current_owner
+      FROM (
+        SELECT
+          token_id,
+          row_number() OVER (
+            PARTITION BY token_id
+            ORDER BY block_number DESC, log_index DESC
+          ) AS rank,
+          to_address
+        FROM erc_721_transfers
+        WHERE token_id IN (
+          SELECT token_id FROM tokens
+          WHERE project_id = ANY($1::projectid[]) OR $1 IS NULL
+        )
+      ) AS ranked_transfers
+      WHERE rank = 1
+    )
+    SELECT project_id AS "projectId", price
+    FROM (
+      SELECT project_id FROM projects
+      WHERE project_id = ANY($1::projectid[]) OR $1 IS NULL
+    ) AS these_projects
+    LEFT OUTER JOIN
+    (
+      SELECT project_id, min(price) AS price
+      FROM
+        opensea_asks
+        JOIN current_owners USING (token_id)
+      WHERE
+        active
+        AND (expiration_time IS NULL OR expiration_time > now())
+        AND currency_id = $2
+        AND (project_id = ANY($1::projectid[]) OR $1 IS NULL)
+        AND current_owner = seller_address
+      GROUP BY project_id
+      ORDER BY project_id
+    ) AS floors
+    USING (project_id)
     `,
     [projectIds, wellKnownCurrencies.eth.currencyId]
   );
