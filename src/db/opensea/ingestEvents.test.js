@@ -141,6 +141,7 @@ describe("db/opensea/ingestEvents", () => {
     sellerAddress = wchargin,
     startingPrice = "1000000000000000000",
     auctionType = "dutch",
+    isPrivate = false,
     currency = wellKnownCurrencies.eth,
   } = {}) {
     return {
@@ -153,6 +154,7 @@ describe("db/opensea/ingestEvents", () => {
       auction_type: auctionType,
       payment_token: paymentTokenForCurrency(currency),
       event_type: "created",
+      is_private: isPrivate,
     };
   }
   async function getAsk(client, id) {
@@ -344,6 +346,17 @@ describe("db/opensea/ingestEvents", () => {
         expect(await getAsk(client, "1")).not.toEqual(null);
         expect(await getAsk(client, "2")).toEqual(null);
         expect(await getAsk(client, "3")).toEqual(null);
+        expect(await unconsumedIds(client)).toEqual([]);
+      })
+    );
+    it(
+      "filters out private asks, and removes from queue",
+      withTestDb(async ({ client }) => {
+        const { projectId, tokenId } = await exampleProjectAndToken({ client });
+        const events = [ask({ id: "1" }), ask({ id: "2", isPrivate: true })];
+        await addAndIngest(client, events);
+        expect(await getAsk(client, "1")).not.toEqual(null);
+        expect(await getAsk(client, "2")).toEqual(null);
         expect(await unconsumedIds(client)).toEqual([]);
       })
     );

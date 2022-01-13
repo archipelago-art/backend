@@ -328,7 +328,10 @@ async function asksToSkip(client, events) {
     `
     SELECT event_id AS id FROM opensea_events_raw
     WHERE event_id = ANY($1::text[])
-    AND json->>'auction_type' != 'dutch'
+    AND (
+      json->>'auction_type' != 'dutch'
+      OR json->>'is_private' = 'true'
+    )
     `,
     [ids]
   );

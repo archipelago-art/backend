@@ -3,6 +3,7 @@ const backfillModules = [
   "./openseaEventTypes",
   "./populateOpenseaIngestionQueue",
   "./openseaInvalidateAsksWithSubsequentSale",
+  "./openseaSkipPrivateAsks",
   // ...
 ];
 
