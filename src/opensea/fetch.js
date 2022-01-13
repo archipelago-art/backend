@@ -55,7 +55,7 @@ async function fetchEventPage({
 
   const typeStr = eventType == null ? "" : eventType;
 
-  log.info`events: ${typeStr} +${offset}`;
+  log.debug`events: ${typeStr} +${offset}`;
 
   const json = await fetchUrl(EVENTS_URL, new URLSearchParams(params), apiKey);
   const parsed = eventResponse.parseOrThrow(json);
