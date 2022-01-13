@@ -56,6 +56,22 @@ async function downloadWindow({
   }
 }
 
+async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
+  for (const { contract, onChainId } of tokenSpecs) {
+    const events = await fetchEventsByTypes({
+      source: { contract },
+      eventTypes: ["successful", "created", "transfer", "cancelled"],
+      apiKey,
+      tokenId: onChainId,
+    });
+    const strippedEvents = events
+      .filter((x) => x.asset != null)
+      .map(stripEvent);
+    const added = await addRawEvents({ client, events: strippedEvents });
+    log.info`Added ${added}/${strippedEvents.length} for ${onChainId}`;
+  }
+}
+
 async function downloadCollection({ client, slug, windowDurationMs, apiKey }) {
   const args = {
     client,
@@ -105,4 +121,8 @@ function stripEvent(ev) {
   return ev;
 }
 
-module.exports = { downloadCollection, downloadAllCollections };
+module.exports = {
+  downloadCollection,
+  downloadAllCollections,
+  downloadEventsForTokens,
+};

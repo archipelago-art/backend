@@ -16,6 +16,7 @@ const images = require("./img");
 const {
   downloadCollection,
   downloadAllCollections,
+  downloadEventsForTokens,
 } = require("./opensea/download");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
@@ -515,6 +516,43 @@ async function openseaDownloadAllCollections(args) {
   });
 }
 
+async function openseaDownloadAllCollections(args) {
+  if (args.length !== 0) {
+    throw new Error("usage: opensea-download-all-collections");
+  }
+  const apiKey = process.env.OPENSEA_API_KEY;
+  const slug = args[0];
+  const ONE_DAY = 1000 * 60 * 60 * 24;
+  const windowDurationMs = ONE_DAY * 30;
+  await withClient(async (client) => {
+    await downloadAllCollections({
+      client,
+      slug,
+      apiKey,
+      windowDurationMs,
+    });
+  });
+}
+
+async function openseaDownloadTokens(args) {
+  if (args.length !== 3) {
+    throw new Error(
+      "usage: opensea-download-tokens token-contract start-id end-id"
+    );
+  }
+  const apiKey = process.env.OPENSEA_API_KEY;
+  const contract = args[0];
+  const start = +args[1];
+  const end = +args[2];
+  const specs = [];
+  for (let id = start; id < end; id++) {
+    specs.push({ onChainId: String(id), contract });
+  }
+  await withClient(async (client) => {
+    await downloadEventsForTokens({ tokenSpecs: specs, apiKey, client });
+  });
+}
+
 async function openseaIngestEvents(args) {
   if (args.length !== 0) {
     throw new Error("usage: opensea-ingest-events");
@@ -602,6 +640,7 @@ async function main() {
     ["opensea-download-all-collections", openseaDownloadAllCollections],
     ["opensea-ingest-events", openseaIngestEvents],
     ["alchemy-ingest-transfers", alchemyIngestTransfers],
+    ["opensea-download-tokens", openseaDownloadTokens],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {

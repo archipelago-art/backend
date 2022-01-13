@@ -27,6 +27,7 @@ async function fetchEventPage({
   offset,
   apiKey,
   eventType,
+  tokenId,
 }) {
   const params = {
     only_opensea: false,
@@ -47,6 +48,9 @@ async function fetchEventPage({
   }
   if (eventType != null) {
     params.event_type = eventType;
+  }
+  if (tokenId != null) {
+    params.token_id = tokenId;
   }
 
   const typeStr = eventType == null ? "" : eventType;
@@ -79,6 +83,7 @@ async function fetchEvents({
   pageSize = 300,
   apiKey,
   eventType,
+  tokenId,
 }) {
   const results = [];
   let offset = 0;
@@ -91,6 +96,7 @@ async function fetchEvents({
       offset,
       apiKey,
       eventType,
+      tokenId,
     });
     results.push(...events);
     if (events.length < pageSize) {
@@ -116,6 +122,7 @@ async function fetchEventsByTypes({
   pageSize = 300,
   apiKey,
   eventTypes,
+  tokenId,
 }) {
   const results = [];
   for (const eventType of eventTypes) {
@@ -126,6 +133,7 @@ async function fetchEventsByTypes({
       pageSize,
       apiKey,
       eventType,
+      tokenId,
     });
     results.push(...subResults);
   }
