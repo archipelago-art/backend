@@ -555,12 +555,18 @@ async function openseaDownloadTokens(args) {
 }
 
 async function openseaFixFloors(args) {
-  if (args.length !== 0) {
-    throw new Error("usage: opensea-fix-floors");
+  if (args.length > 2) {
+    throw new Error("usage: opensea-fix-floors [limit] [projectId]");
   }
+  const limitEach = args[0];
+  const projectIds = args[1] == null ? null : [args[1]];
   const apiKey = process.env.OPENSEA_API_KEY;
   await withClient(async (client) => {
-    const floorTokens = await floorAsksByProject({ client });
+    const floorTokens = await floorAsksByProject({
+      client,
+      projectIds,
+      limitEach,
+    });
     const tokenSpecs = floorTokens.map((x) => ({
       onChainId: x.onChainTokenId,
       contract: x.tokenContract,

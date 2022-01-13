@@ -68,7 +68,7 @@ async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
       .filter((x) => x.asset != null)
       .map(stripEvent);
     const added = await addRawEvents({ client, events: strippedEvents });
-    log.info`Added ${added}/${strippedEvents.length} for ${onChainId}`;
+    log.info`Added ${added}/${strippedEvents.length} for ${contract}/${onChainId}`;
   }
 }
 
