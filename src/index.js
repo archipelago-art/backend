@@ -18,6 +18,7 @@ const {
   downloadAllCollections,
   downloadEventsForTokens,
 } = require("./opensea/download");
+const { floorAsksByProject } = require("./db/opensea/hacks");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 const attach = require("./ws");
@@ -553,6 +554,21 @@ async function openseaDownloadTokens(args) {
   });
 }
 
+async function openseaFixFloors(args) {
+  if (args.length !== 0) {
+    throw new Error("usage: opensea-fix-floors");
+  }
+  const apiKey = process.env.OPENSEA_API_KEY;
+  await withClient(async (client) => {
+    const floorTokens = await floorAsksByProject({ client });
+    const tokenSpecs = floorTokens.map((x) => ({
+      onChainId: x.onChainTokenId,
+      contract: x.tokenContract,
+    }));
+    await downloadEventsForTokens({ tokenSpecs, apiKey, client });
+  });
+}
+
 async function openseaIngestEvents(args) {
   if (args.length !== 0) {
     throw new Error("usage: opensea-ingest-events");
@@ -641,6 +657,7 @@ async function main() {
     ["opensea-ingest-events", openseaIngestEvents],
     ["alchemy-ingest-transfers", alchemyIngestTransfers],
     ["opensea-download-tokens", openseaDownloadTokens],
+    ["opensea-fix-floors", openseaFixFloors],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
