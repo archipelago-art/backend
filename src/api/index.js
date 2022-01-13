@@ -107,6 +107,23 @@ async function collection({ client, slug }) {
   return res[0] ?? null;
 }
 
+async function collectionTokens({ client, slug }) {
+  const projectId = await resolveProjectId({ client, slug });
+  if (projectId == null) throw new Error("no such collection: " + slug);
+  const res = await client.query(
+    `
+    SELECT
+      token_id AS "tokenId",
+      token_index AS "tokenIndex"
+    FROM tokens
+    WHERE project_id = $1
+    ORDER BY token_index
+    `,
+    [projectId]
+  );
+  return res.rows;
+}
+
 async function projectFeaturesAndTraits({ client, slug }) {
   const projectId = await resolveProjectId({ client, slug });
   if (projectId == null) return null;
@@ -197,6 +214,7 @@ module.exports = {
   resolveProjectId,
   collections,
   collection,
+  collectionTokens,
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
   tokenSummariesByOnChainId,

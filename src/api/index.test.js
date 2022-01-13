@@ -130,6 +130,41 @@ describe("api", () => {
   );
 
   it(
+    "provides project tokens",
+    withTestDb(async ({ client }) => {
+      const project = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      const projectId = await artblocks.addProject({ client, project });
+      const [a1, a2, a3] = [
+        snapshots.ARCH_TRIPTYCH_1,
+        snapshots.ARCH_TRIPTYCH_2,
+        snapshots.ARCH_TRIPTYCH_3,
+      ];
+      const ids = new Map();
+      // Add them out of order; make sure that the output is still sorted by
+      // token index.
+      for (const tokenId of [a3, a2, a1]) {
+        const rawTokenData = await sc.token(tokenId);
+        const id = await artblocks.addToken({
+          client,
+          artblocksTokenId: tokenId,
+          rawTokenData,
+        });
+        ids.set(tokenId, id);
+      }
+      const res = await api.collectionTokens({ client, slug: "archetype" });
+      expect(res).toEqual(
+        [a1, a2, a3].map((abid) => ({
+          tokenId: ids.get(abid),
+          tokenIndex: abid % 1e6,
+        }))
+      );
+    })
+  );
+
+  it(
     "provides project features and traits",
     withTestDb(async ({ client }) => {
       const archetype = parseProjectData(
