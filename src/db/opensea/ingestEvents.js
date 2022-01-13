@@ -22,6 +22,7 @@ async function addRawEvents({ client, events }) {
     `,
     [newEvents.map((x) => x.id), newEvents.map((x) => x.event_type)]
   );
+  return newEvents.length;
 }
 
 async function removeIdsFromIngestionQueue(client, ids) {

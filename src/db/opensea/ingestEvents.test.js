@@ -270,7 +270,8 @@ describe("db/opensea/ingestEvents", () => {
       "raw events may be added",
       withTestDb(async ({ client }) => {
         const ev = transfer();
-        await addRawEvents({ client, events: [ev] });
+        const numAdded = await addRawEvents({ client, events: [ev] });
+        expect(numAdded).toEqual(1);
         const res = await client.query(`
         SELECT * FROM opensea_events_raw
         `);
@@ -283,8 +284,10 @@ describe("db/opensea/ingestEvents", () => {
       "if event is added while already in queue, it will not be duplicated in queue",
       withTestDb(async ({ client }) => {
         const ev = transfer();
-        await addRawEvents({ client, events: [ev] });
-        await addRawEvents({ client, events: [ev] });
+        let numAdded = await addRawEvents({ client, events: [ev] });
+        expect(numAdded).toEqual(1);
+        numAdded = await addRawEvents({ client, events: [ev] });
+        expect(numAdded).toEqual(0);
         expect(await unconsumedIds(client)).toEqual([ev.id]);
       })
     );
@@ -294,9 +297,12 @@ describe("db/opensea/ingestEvents", () => {
       withTestDb(async ({ client }) => {
         const { projectId, tokenId } = await exampleProjectAndToken({ client });
         const ev = transfer();
-        await addAndIngest(client, [ev]);
+        let numAdded = await addRawEvents({ client, events: [ev] });
+        expect(numAdded).toEqual(1);
+        await ingestEvents({ client });
         expect(await unconsumedIds(client)).toEqual([]);
-        await addRawEvents({ client, events: [ev] });
+        numAdded = await addRawEvents({ client, events: [ev] });
+        expect(numAdded).toEqual(0);
         expect(await unconsumedIds(client)).toEqual([]);
       })
     );
