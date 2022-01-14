@@ -1,5 +1,6 @@
 const artblocks = require("../db/artblocks");
 const emails = require("../db/emails");
+const erc721Transfers = require("../db/erc721Transfers");
 const { bufToAddress } = require("../db/util");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const slugify = require("../util/slugify");
@@ -184,6 +185,10 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
   return res;
 }
 
+function tokenTransfers({ client, tokenId }) {
+  return erc721Transfers.getTransfersForToken({ client, tokenId });
+}
+
 // Adds a new email address to the signups list. Returns `true` if this made a
 // change or `false` if the email already existed in the database. Idempotent.
 async function addEmailSignup({ client, email }) {
@@ -218,6 +223,7 @@ module.exports = {
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
   tokenSummariesByOnChainId,
+  tokenTransfers,
   sortAsciinumeric,
   addEmailSignup,
   formatImageUrl,

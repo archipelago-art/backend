@@ -1,5 +1,5 @@
 const { ObjectType, newIds } = require("./id");
-const { hexToBuf } = require("./util");
+const { hexToBuf, bufToAddress } = require("./util");
 const ethers = require("ethers");
 const log = require("../util/log")(__filename);
 
@@ -115,7 +115,28 @@ async function getLastBlockNumber({ client, contractAddress }) {
   return res.rows[0].max;
 }
 
+async function getTransfersForToken({ client, tokenId }) {
+  const res = await client.query(
+    `
+    SELECT
+      transaction_hash AS "transactionHash",
+      from_address AS "from",
+      to_address AS "to"
+    FROM erc_721_transfers
+    WHERE token_id = $1
+    ORDER BY block_number ASC, log_index ASC
+    `,
+    [tokenId]
+  );
+  return res.rows.map((r) => ({
+    transactionHash: r.transactionHash,
+    from: bufToAddress(r.from),
+    to: bufToAddress(r.to),
+  }));
+}
+
 module.exports = {
   addTransfers,
   getLastBlockNumber,
+  getTransfersForToken,
 };

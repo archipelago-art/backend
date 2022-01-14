@@ -1,7 +1,10 @@
+const ethers = require("ethers");
+
 const { testDbProvider } = require("../db/testUtil");
 
 const api = require(".");
 const artblocks = require("../db/artblocks");
+const erc721Transfers = require("../db/erc721Transfers");
 const emails = require("../db/emails");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
@@ -310,6 +313,102 @@ describe("api", () => {
           artistName: "Kjetil Golid",
           aspectRatio: 1,
         },
+      ]);
+    })
+  );
+
+  it(
+    "provides transfer events for tokens",
+    withTestDb(async ({ client }) => {
+      for (const id of [snapshots.ARCHETYPE, snapshots.SQUIGGLES]) {
+        const project = parseProjectData(id, await sc.project(id));
+        await artblocks.addProject({ client, project });
+      }
+      const ids = new Map();
+      for (const artblocksTokenId of [
+        snapshots.THE_CUBE, // unrelated
+        snapshots.PERFECT_CHROMATIC,
+      ]) {
+        const rawTokenData = await sc.token(artblocksTokenId);
+        const tokenId = await artblocks.addToken({
+          client,
+          artblocksTokenId,
+          rawTokenData,
+        });
+        ids.set(artblocksTokenId, tokenId);
+      }
+      let nextBlockNumber = 12345678;
+      let nextLogIndex = 77;
+
+      function transfer({ contractAddress, tokenId, to, from, tx } = {}) {
+        const eventSignature = "Transfer(address,address,uint256)";
+        const transferTopic = ethers.utils.id(eventSignature);
+        function pad(value, type) {
+          return ethers.utils.defaultAbiCoder.encode([type], [value]);
+        }
+        return {
+          args: [from, to, ethers.BigNumber.from(tokenId)],
+          data: "0x",
+          event: "Transfer",
+          topics: [
+            transferTopic,
+            pad(from, "address"),
+            pad(to, "address"),
+            pad(tokenId, "uint256"),
+          ],
+          address: contractAddress,
+          removed: false,
+          logIndex: nextLogIndex++,
+          blockHash: ethers.utils.id(String(nextBlockNumber)),
+          blockNumber: nextBlockNumber++,
+          eventSignature,
+          transactionHash: tx,
+          transactionIndex: 0,
+        };
+      }
+
+      function dummyAddress(id) {
+        const hash = ethers.utils.id(id);
+        return ethers.utils.getAddress(ethers.utils.hexDataSlice(hash, 12));
+      }
+      const alice = dummyAddress("alice");
+      const bob = dummyAddress("bob");
+
+      const tx1 = ethers.utils.id("one");
+      const tx2 = ethers.utils.id("two");
+      const tx3 = ethers.utils.id("three");
+      const transfers = [
+        transfer({
+          contractAddress: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
+          tokenId: snapshots.PERFECT_CHROMATIC,
+          from: ethers.constants.AddressZero,
+          to: alice,
+          tx: tx1,
+        }),
+        transfer({
+          contractAddress: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+          tokenId: snapshots.THE_CUBE,
+          from: ethers.constants.AddressZero,
+          to: alice,
+          tx: tx2,
+        }),
+        transfer({
+          contractAddress: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
+          tokenId: snapshots.PERFECT_CHROMATIC,
+          from: alice,
+          to: bob,
+          tx: tx3,
+        }),
+      ];
+      await erc721Transfers.addTransfers({ client, transfers });
+
+      const res = await api.tokenTransfers({
+        client,
+        tokenId: ids.get(snapshots.PERFECT_CHROMATIC),
+      });
+      expect(res).toEqual([
+        { from: ethers.constants.AddressZero, to: alice, transactionHash: tx1 },
+        { from: alice, to: bob, transactionHash: tx3 },
       ]);
     })
   );
