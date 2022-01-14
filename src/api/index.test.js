@@ -337,15 +337,20 @@ describe("api", () => {
         });
         ids.set(artblocksTokenId, tokenId);
       }
-      let nextBlockNumber = 12345678;
-      let nextLogIndex = 77;
 
+      let nextBlockNumber = 12345001;
+      let nextLogIndex = 101;
+      function dummyBlockHash(blockNumber) {
+        return ethers.utils.id("block:" + blockNumber);
+      }
       function transfer({ contractAddress, tokenId, to, from, tx } = {}) {
         const eventSignature = "Transfer(address,address,uint256)";
         const transferTopic = ethers.utils.id(eventSignature);
         function pad(value, type) {
           return ethers.utils.defaultAbiCoder.encode([type], [value]);
         }
+        const blockNumber = nextBlockNumber++;
+        const blockHash = dummyBlockHash(blockNumber);
         return {
           args: [from, to, ethers.BigNumber.from(tokenId)],
           data: "0x",
@@ -359,8 +364,8 @@ describe("api", () => {
           address: contractAddress,
           removed: false,
           logIndex: nextLogIndex++,
-          blockHash: ethers.utils.id(String(nextBlockNumber)),
-          blockNumber: nextBlockNumber++,
+          blockHash,
+          blockNumber,
           eventSignature,
           transactionHash: tx,
           transactionIndex: 0,
@@ -407,8 +412,22 @@ describe("api", () => {
         tokenId: ids.get(snapshots.PERFECT_CHROMATIC),
       });
       expect(res).toEqual([
-        { from: ethers.constants.AddressZero, to: alice, transactionHash: tx1 },
-        { from: alice, to: bob, transactionHash: tx3 },
+        {
+          blockNumber: 12345001,
+          logIndex: 101,
+          transactionHash: tx1,
+          blockHash: dummyBlockHash(12345001),
+          from: ethers.constants.AddressZero,
+          to: alice,
+        },
+        {
+          blockNumber: 12345003,
+          logIndex: 103,
+          transactionHash: tx3,
+          blockHash: dummyBlockHash(12345003),
+          from: alice,
+          to: bob,
+        },
       ]);
     })
   );

@@ -119,7 +119,10 @@ async function getTransfersForToken({ client, tokenId }) {
   const res = await client.query(
     `
     SELECT
+      block_number AS "blockNumber",
+      log_index AS "logIndex",
       transaction_hash AS "transactionHash",
+      block_hash AS "blockHash",
       from_address AS "from",
       to_address AS "to"
     FROM erc_721_transfers
@@ -129,7 +132,10 @@ async function getTransfersForToken({ client, tokenId }) {
     [tokenId]
   );
   return res.rows.map((r) => ({
+    blockNumber: r.blockNumber,
+    logIndex: r.logIndex,
     transactionHash: r.transactionHash,
+    blockHash: r.blockHash,
     from: bufToAddress(r.from),
     to: bufToAddress(r.to),
   }));
