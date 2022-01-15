@@ -35,7 +35,7 @@ describe("db/opensea/api", () => {
   const dandelion = "0xe03a5189dac8182085e4adf66281f679fff2291d";
   const wchargin = "0xefa7bdd92b5e9cd9de9b54ac0e3dc60623f1c989";
   const ijd = "0xbaaf7c84deb0184ffbf7fc1655cb38264a29296f";
-  const listed = utcDateFromString("2021-03-01T00:00:00.123456");
+  const listed = "2021-03-01T00:00:00.123456";
   const sold = "2021-03-03T12:34:56.123456";
 
   function sale({
@@ -220,7 +220,7 @@ describe("db/opensea/api", () => {
         });
         expect(result).toEqual({
           expirationTime: null,
-          listingTime: listed,
+          listingTime: utcDateFromString(listed),
           price: 950n,
           sellerAddress: wchargin,
           tokenId: archetypeTokenId1,
