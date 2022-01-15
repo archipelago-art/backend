@@ -1,6 +1,40 @@
 const { bufToHex } = require("../util");
 const wellKnownCurrencies = require("../wellKnownCurrencies");
 
+async function _findOwners({ client, projectIds, tokenIds }) {
+  await client.query(`
+    CREATE TEMPORARY TABLE token_owners(
+      token_id tokenid PRIMARY KEY,
+      owner address NOT NULL
+    ) ON COMMIT DROP;
+  `);
+  await client.query(
+    `
+    INSERT INTO token_owners(token_id, owner)
+    SELECT token_id, to_address
+    FROM (
+      SELECT
+        token_id,
+        row_number() OVER (
+          PARTITION BY token_id
+          ORDER BY block_number DESC, log_index DESC
+        ) AS rank,
+        to_address
+      FROM erc_721_transfers
+      WHERE token_id IN (
+        SELECT token_id FROM tokens
+        WHERE
+          true
+          AND (project_id = ANY($1::projectid[]) OR $1 IS NULL)
+          AND (token_id = ANY($2::tokenid[]) OR $2 IS NULL)
+      )
+    ) AS ranked_transfers
+    WHERE rank = 1
+    `,
+    [projectIds, tokenIds]
+  );
+}
+
 /**
  * Gets the lowest-priced active ask for the specified token.
  * Returns null if there is no ask.
@@ -49,28 +83,10 @@ async function askForToken({ client, tokenId }) {
  * Only considers asks priced in ETH.
  */
 async function floorAskByProject({ client, projectIds = null }) {
+  await client.query("BEGIN");
+  await _findOwners({ client, projectIds });
   const res = await client.query(
     `
-    WITH current_owners AS (
-      SELECT
-        token_id,
-        to_address AS current_owner
-      FROM (
-        SELECT
-          token_id,
-          row_number() OVER (
-            PARTITION BY token_id
-            ORDER BY block_number DESC, log_index DESC
-          ) AS rank,
-          to_address
-        FROM erc_721_transfers
-        WHERE token_id IN (
-          SELECT token_id FROM tokens
-          WHERE project_id = ANY($1::projectid[]) OR $1 IS NULL
-        )
-      ) AS ranked_transfers
-      WHERE rank = 1
-    )
     SELECT project_id AS "projectId", price
     FROM (
       SELECT project_id FROM projects
@@ -81,13 +97,13 @@ async function floorAskByProject({ client, projectIds = null }) {
       SELECT project_id, min(price) AS price
       FROM
         opensea_asks
-        JOIN current_owners USING (token_id)
+        JOIN token_owners USING (token_id)
       WHERE
         active
         AND (expiration_time IS NULL OR expiration_time > now())
         AND currency_id = $2
         AND (project_id = ANY($1::projectid[]) OR $1 IS NULL)
-        AND seller_address = current_owner
+        AND seller_address = owner
       GROUP BY project_id
       ORDER BY project_id
     ) AS floors
@@ -95,6 +111,7 @@ async function floorAskByProject({ client, projectIds = null }) {
     `,
     [projectIds, wellKnownCurrencies.eth.currencyId]
   );
+  await client.query("ROLLBACK");
   const result = {};
   for (const { projectId, price } of res.rows) {
     result[projectId] = price == null ? null : BigInt(price);
@@ -109,42 +126,25 @@ async function floorAskByProject({ client, projectIds = null }) {
  * If there are multiple open asks for a token, the lowest price is provided.
  */
 async function asksForProject({ client, projectId }) {
+  await client.query("BEGIN");
+  await _findOwners({ client, projectIds: [projectId] });
   const res = await client.query(
     `
-    WITH current_owners AS (
-      SELECT
-        token_id,
-        to_address AS current_owner
-      FROM (
-        SELECT
-          token_id,
-          row_number() OVER (
-            PARTITION BY token_id
-            ORDER BY block_number DESC, log_index DESC
-          ) AS rank,
-          to_address
-        FROM erc_721_transfers
-        WHERE token_id IN (
-          SELECT token_id FROM tokens
-          WHERE project_id = $1
-        )
-      ) AS ranked_transfers
-      WHERE rank = 1
-    )
     SELECT
       token_id AS id,
       min(price) AS price
-    FROM opensea_asks JOIN current_owners USING (token_id)
+    FROM opensea_asks JOIN token_owners USING (token_id)
     WHERE
       active
       AND currency_id = $2
       AND project_id = $1
       AND (expiration_time IS NULL OR expiration_time > now())
-      AND seller_address = current_owner
+      AND seller_address = owner
     GROUP BY token_id
     `,
     [projectId, wellKnownCurrencies.eth.currencyId]
   );
+  await client.query("ROLLBACK");
   const result = {};
   for (const { id, price } of res.rows) {
     result[id] = BigInt(price);
@@ -183,6 +183,7 @@ async function aggregateSalesByProject({ client, afterDate }) {
 }
 
 module.exports = {
+  _findOwners,
   askForToken,
   floorAskByProject,
   aggregateSalesByProject,

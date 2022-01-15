@@ -1,33 +1,16 @@
 const { bufToHex } = require("../util");
 const wellKnownCurrencies = require("../wellKnownCurrencies");
+const { _findOwners } = require("./api");
 
 async function floorAsksByProject({
   client,
   projectIds = null,
   limitEach = 5,
 }) {
+  await client.query("BEGIN");
+  await _findOwners({ client, projectIds });
   const res = await client.query(
     `
-    WITH current_owners AS (
-      SELECT
-        token_id,
-        to_address AS current_owner
-      FROM (
-        SELECT
-          token_id,
-          row_number() OVER (
-            PARTITION BY token_id
-            ORDER BY block_number DESC, log_index DESC
-          ) AS rank,
-          to_address
-        FROM erc_721_transfers
-        WHERE token_id IN (
-          SELECT token_id FROM tokens
-          WHERE project_id = ANY($1::projectid[]) OR $1 IS NULL
-        )
-      ) AS ranked_transfers
-      WHERE rank = 1
-    )
     SELECT
       tokens.project_id AS "projectId",
       token_rank AS "tokenRank",
@@ -52,13 +35,13 @@ async function floorAsksByProject({
               PARTITION BY project_id
               ORDER BY price ASC, token_id
             ) AS order_rank
-          FROM opensea_asks JOIN current_owners USING (token_id)
+          FROM opensea_asks JOIN token_owners USING (token_id)
           WHERE
             active
             AND (expiration_time IS NULL OR expiration_time > now())
             AND currency_id = $2
             AND project_id = ANY($1::projectid[]) OR $1 IS NULL
-            AND current_owner = seller_address
+            AND seller_address = owner
         ) q
         GROUP BY project_id, token_id
       ) q
@@ -69,6 +52,7 @@ async function floorAsksByProject({
     `,
     [projectIds, wellKnownCurrencies.eth.currencyId, limitEach]
   );
+  await client.query("ROLLBACK");
   return res.rows.map((r) => ({
     ...r,
     tokenContract: bufToHex(r.tokenContract),
