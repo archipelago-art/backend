@@ -193,10 +193,10 @@ describe("db/opensea/api", () => {
     it(
       "returns null if there are no asks",
       withTestDb(async ({ client }) => {
-        const { tokenId1 } = await exampleProjectAndToken({ client });
+        const { archetypeTokenId1 } = await exampleProjectAndToken({ client });
         const result = await askForToken({
           client,
-          tokenId: tokenId1,
+          tokenId: archetypeTokenId1,
         });
         expect(result).toBe(null);
       })
@@ -226,13 +226,13 @@ describe("db/opensea/api", () => {
     it(
       "ignores non-active asks",
       withTestDb(async ({ client }) => {
-        const { tokenId1 } = await exampleProjectAndToken({ client });
+        const { archetypeTokenId1 } = await exampleProjectAndToken({ client });
         const a = ask({ id: "1", price: "1000" });
         const s = sale({ id: "2" });
         await addAndIngest(client, [a, s]);
         const result = await askForToken({
           client,
-          tokenId: tokenId1,
+          tokenId: archetypeTokenId1,
         });
         expect(result).toEqual(null);
       })
@@ -240,7 +240,7 @@ describe("db/opensea/api", () => {
     it(
       "ignores expired asks, even if still marked active in db",
       withTestDb(async ({ client }) => {
-        const { tokenId1 } = await exampleProjectAndToken({ client });
+        const { archetypeTokenId1 } = await exampleProjectAndToken({ client });
         const a = ask({ id: "1", price: "1000", duration: 100 });
         await addAndIngest(client, [a]);
 
@@ -253,7 +253,7 @@ describe("db/opensea/api", () => {
 
         const result = await askForToken({
           client,
-          tokenId: tokenId1,
+          tokenId: archetypeTokenId1,
         });
         expect(result).toEqual(null);
       })
