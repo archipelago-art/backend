@@ -16,9 +16,17 @@ async function askForToken({ client, tokenId }) {
       price,
       token_id AS "tokenId"
     FROM opensea_asks
-    WHERE active AND token_id = $1
-    AND (expiration_time IS NULL OR expiration_time > now())
-    AND currency_id = $2
+    WHERE
+      active
+      AND token_id = $1
+      AND (expiration_time IS NULL OR expiration_time > now())
+      AND currency_id = $2
+      AND seller_address = (
+        SELECT to_address FROM erc_721_transfers
+        WHERE token_id = $1
+        ORDER BY block_number DESC, log_index DESC
+        LIMIT 1
+      )
     ORDER BY price ASC
     LIMIT 1
     `,

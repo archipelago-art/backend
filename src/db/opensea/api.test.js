@@ -36,6 +36,7 @@ describe("db/opensea/api", () => {
   const wchargin = "0xefa7bdd92b5e9cd9de9b54ac0e3dc60623f1c989";
   const ijd = "0xbaaf7c84deb0184ffbf7fc1655cb38264a29296f";
   const listed = utcDateFromString("2021-03-01T00:00:00.123456");
+  const sold = "2021-03-03T12:34:56.123456";
 
   function sale({
     id = "2",
@@ -45,7 +46,7 @@ describe("db/opensea/api", () => {
     toAddress = dandelion,
     fromAddress = wchargin,
     price = "1000000000000000000",
-    transactionTimestamp = "2021-03-03T12:34:56.123456",
+    transactionTimestamp = sold,
     transactionHash = "0xef7e95ce1c085611cb5186a55cec026cd3f2f266c1f581bb6a9e9258cf3019f4",
     currency = wellKnownCurrencies.eth,
   } = {}) {
@@ -208,8 +209,11 @@ describe("db/opensea/api", () => {
         const a1 = ask({ id: "1", price: "1000" });
         const a2 = ask({ id: "2", price: "950" });
         const a3 = ask({ id: "3", price: "950" });
-
         await addAndIngest(client, [a1, a2]);
+
+        const t = transfer();
+        await addTransfers({ client, transfers: [t] });
+
         const result = await askForToken({
           client,
           tokenId: archetypeTokenId1,
@@ -230,6 +234,8 @@ describe("db/opensea/api", () => {
         const a = ask({ id: "1", price: "1000" });
         const s = sale({ id: "2" });
         await addAndIngest(client, [a, s]);
+        const t = transfer();
+        await addTransfers({ client, transfers: [t] });
         const result = await askForToken({
           client,
           tokenId: archetypeTokenId1,
@@ -251,6 +257,37 @@ describe("db/opensea/api", () => {
         await client.query(`UPDATE opensea_asks SET active=true`);
         expect(await getActive(client, "1")).toBe(true);
 
+        const t = transfer();
+        await addTransfers({ client, transfers: [t] });
+
+        const result = await askForToken({
+          client,
+          tokenId: archetypeTokenId1,
+        });
+        expect(result).toEqual(null);
+      })
+    );
+    it(
+      "ignores asks not from the current holder",
+      withTestDb(async ({ client }) => {
+        const { archetypeTokenId1 } = await exampleProjectAndToken({ client });
+        const a1 = ask({ id: "1", price: "1000", sellerAddress: wchargin });
+        const s = sale({
+          id: "2",
+          fromAddress: wchargin,
+          toAddress: dandelion,
+        });
+        const a2 = ask({
+          id: "3",
+          price: "800",
+          listingTime: new Date(
+            Date.parse(utcDateFromString(sold)) + 2000
+          ).toISOString(),
+          sellerAddress: wchargin, // not the current holder
+        });
+        await addAndIngest(client, [a1, s, a2]);
+        const t = transfer({ fromAddress: wchargin, toAddress: dandelion });
+        await addTransfers({ client, transfers: [t] });
         const result = await askForToken({
           client,
           tokenId: archetypeTokenId1,
