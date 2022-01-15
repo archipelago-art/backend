@@ -95,7 +95,7 @@ describe("db/opensea/api", () => {
     fromAddress = ethers.constants.AddressZero,
     toAddress = wchargin,
     blockNumber = 12164300,
-    blockHash = "0x" + "ba".repeat(32),
+    blockHash = ethers.utils.id(`block:${blockNumber}`),
     logIndex = 123,
     transactionHash = "0x" + "fe".repeat(32),
     transactionIndex = 77,
@@ -145,6 +145,11 @@ describe("db/opensea/api", () => {
       artblocksTokenId: snapshots.ARCH_TRIPTYCH_1,
       rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_1),
     });
+    const archetypeTokenId3 = await artblocks.addToken({
+      client,
+      artblocksTokenId: snapshots.ARCH_TRIPTYCH_2,
+      rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_2),
+    });
     const squigglesProject = parseProjectData(
       snapshots.SQUIGGLES,
       await sc.project(snapshots.SQUIGGLES)
@@ -162,6 +167,7 @@ describe("db/opensea/api", () => {
       archetypeId,
       archetypeTokenId1,
       archetypeTokenId2,
+      archetypeTokenId3,
       squigglesId,
       squiggleTokenId,
     };
@@ -451,6 +457,8 @@ describe("db/opensea/api", () => {
         const a = ask({ id: "1", price: "1000" });
         const s = sale({ id: "2" });
         await addAndIngest(client, [a, s]);
+        const t = transfer();
+        await addTransfers({ client, transfers: [t] });
         const result = await asksForProject({
           client,
           projectId: archetypeId,
@@ -466,6 +474,8 @@ describe("db/opensea/api", () => {
         });
         const a = ask({ id: "1", price: "1000", duration: 100 });
         await addAndIngest(client, [a]);
+        const t = transfer();
+        await addTransfers({ client, transfers: [t] });
 
         // not active because it's expired
         expect(await getActive(client, "1")).toBe(false);
@@ -483,7 +493,7 @@ describe("db/opensea/api", () => {
     it(
       "works in a case with some open asks",
       withTestDb(async ({ client }) => {
-        const { archetypeId, archetypeTokenId1, archetypeTokenId2 } =
+        const { archetypeId, archetypeTokenId1, archetypeTokenId3 } =
           await exampleProjectAndToken({
             client,
           });
@@ -492,8 +502,25 @@ describe("db/opensea/api", () => {
           id: "2",
           price: "1000",
           tokenId: snapshots.ARCH_TRIPTYCH_1,
+          sellerAddress: dandelion, // wrong owner
         });
-        await addAndIngest(client, [a1, a2]);
+        const a3 = ask({
+          id: "3",
+          price: "900",
+          tokenId: snapshots.ARCH_TRIPTYCH_2,
+        });
+        await addAndIngest(client, [a1, a2, a3]);
+        const t1 = transfer({ tokenId: snapshots.THE_CUBE, blockNumber: 7 });
+        const t2 = transfer({
+          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          blockNumber: 8,
+          toAddress: wchargin, // not asker
+        });
+        const t3 = transfer({
+          tokenId: snapshots.ARCH_TRIPTYCH_2,
+          blockNumber: 9,
+        });
+        await addTransfers({ client, transfers: [t1, t2, t3] });
 
         const result = await asksForProject({
           client,
@@ -501,7 +528,7 @@ describe("db/opensea/api", () => {
         });
         expect(result).toEqual({
           [archetypeTokenId1]: 500n,
-          [archetypeTokenId2]: 1000n,
+          [archetypeTokenId3]: 900n,
         });
       })
     );
@@ -517,6 +544,8 @@ describe("db/opensea/api", () => {
         const a2 = ask({ id: "2", price: "100" });
         const a3 = ask({ id: "3", price: "1000" });
         await addAndIngest(client, [a1, a2, a3]);
+        const t = transfer();
+        await addTransfers({ client, transfers: [t] });
 
         const result = await asksForProject({
           client,

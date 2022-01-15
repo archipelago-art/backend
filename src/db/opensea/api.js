@@ -111,9 +111,36 @@ async function floorAskByProject({ client, projectIds = null }) {
 async function asksForProject({ client, projectId }) {
   const res = await client.query(
     `
-    SELECT token_id AS id, min(price) AS price FROM opensea_asks
-    WHERE active AND currency_id = $2 AND (project_id = $1)
+    WITH current_owners AS (
+      SELECT
+        token_id,
+        to_address AS current_owner
+      FROM (
+        SELECT
+          token_id,
+          row_number() OVER (
+            PARTITION BY token_id
+            ORDER BY block_number DESC, log_index DESC
+          ) AS rank,
+          to_address
+        FROM erc_721_transfers
+        WHERE token_id IN (
+          SELECT token_id FROM tokens
+          WHERE project_id = $1
+        )
+      ) AS ranked_transfers
+      WHERE rank = 1
+    )
+    SELECT
+      token_id AS id,
+      min(price) AS price
+    FROM opensea_asks JOIN current_owners USING (token_id)
+    WHERE
+      active
+      AND currency_id = $2
+      AND project_id = $1
       AND (expiration_time IS NULL OR expiration_time > now())
+      AND seller_address = current_owner
     GROUP BY token_id
     `,
     [projectId, wellKnownCurrencies.eth.currencyId]
