@@ -4,8 +4,10 @@ const { testDbProvider } = require("../db/testUtil");
 
 const api = require(".");
 const artblocks = require("../db/artblocks");
-const erc721Transfers = require("../db/erc721Transfers");
 const emails = require("../db/emails");
+const erc721Transfers = require("../db/erc721Transfers");
+const openseaIngest = require("../db/opensea/ingestEvents");
+const wellKnownCurrencies = require("../db/wellKnownCurrencies");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 
@@ -427,6 +429,202 @@ describe("api", () => {
           blockHash: dummyBlockHash(12345003),
           from: alice,
           to: bob,
+        },
+      ]);
+    })
+  );
+
+  it(
+    "provides a unified history of sales and transfers",
+    withTestDb(async ({ client }) => {
+      function dummyBlockHash(blockNumber) {
+        return ethers.utils.id(`block:${blockNumber}`);
+      }
+      function dummyTx(id) {
+        return ethers.utils.id(`tx:${id}`);
+      }
+      function dummyAddress(id) {
+        const hash = ethers.utils.id(`addr:${id}`);
+        return ethers.utils.getAddress(ethers.utils.hexDataSlice(hash, 12));
+      }
+
+      let nextOpenseaSaleId = 1;
+      function openseaSale({
+        id = String(nextOpenseaSaleId++),
+        address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+        tokenId = snapshots.THE_CUBE,
+        listingTime,
+        to,
+        from,
+        price = String(10n ** 18n),
+        transactionTimestamp,
+        transactionHash,
+        currency = wellKnownCurrencies.eth,
+      } = {}) {
+        function openseaDate(d) {
+          return d.toISOString().replace(/Z$/, "000");
+        }
+        function paymentTokenForCurrency(currency) {
+          return {
+            name: currency.name,
+            symbol: currency.symbol,
+            address: currency.address,
+            decimals: currency.decimals,
+          };
+        }
+        return {
+          asset: { address, token_id: String(tokenId) },
+          id,
+          winner_account: { address: to },
+          seller: { address: from },
+          transaction: {
+            timestamp: openseaDate(transactionTimestamp),
+            transaction_hash: transactionHash,
+          },
+          listing_time: openseaDate(listingTime),
+          total_price: price,
+          payment_token: paymentTokenForCurrency(currency),
+          event_type: "successful",
+        };
+      }
+
+      let nextLogIndex = 101;
+      function transfer({
+        contractAddress = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+        tokenId = snapshots.THE_CUBE,
+        to,
+        from = ethers.constants.AddressZero,
+        blockNumber,
+        tx,
+      } = {}) {
+        const eventSignature = "Transfer(address,address,uint256)";
+        const transferTopic = ethers.utils.id(eventSignature);
+        function pad(value, type) {
+          return ethers.utils.defaultAbiCoder.encode([type], [value]);
+        }
+        const blockHash = dummyBlockHash(blockNumber);
+        return {
+          args: [from, to, ethers.BigNumber.from(tokenId)],
+          data: "0x",
+          event: "Transfer",
+          topics: [
+            transferTopic,
+            pad(from, "address"),
+            pad(to, "address"),
+            pad(tokenId, "uint256"),
+          ],
+          address: contractAddress,
+          removed: false,
+          logIndex: nextLogIndex++,
+          blockHash: dummyBlockHash(blockNumber),
+          blockNumber,
+          eventSignature,
+          transactionHash: tx,
+          transactionIndex: 0,
+        };
+      }
+
+      const alice = dummyAddress("alice.eth");
+      const bob = dummyAddress("bob.eth");
+      const cheryl = dummyAddress("cheryl.eth");
+      const cherylsVault = dummyAddress("vault.cheryl.eth");
+
+      const transfers = [
+        transfer({ to: alice, blockNumber: 777, tx: dummyTx(1) }),
+        transfer({ from: alice, to: bob, blockNumber: 888, tx: dummyTx(2) }),
+        transfer({ from: bob, to: cheryl, blockNumber: 999, tx: dummyTx(3) }),
+        transfer({
+          from: cheryl,
+          to: cherylsVault,
+          blockNumber: 999,
+          tx: dummyTx(3), // same tx as previous: manual transfer away
+        }),
+      ];
+
+      const openseaSales = [
+        openseaSale({
+          from: alice,
+          to: bob,
+          listingTime: new Date("2021-01-01T00:00:00Z"),
+          transactionHash: dummyTx(2),
+          transactionTimestamp: new Date("2021-01-02T00:00:00Z"),
+          price: String(10n ** 18n),
+        }),
+        openseaSale({
+          from: bob,
+          to: cheryl,
+          listingTime: new Date("2021-02-07T00:00:00Z"),
+          transactionHash: dummyTx(3),
+          transactionTimestamp: new Date("2021-02-08T00:00:00Z"),
+          price: String(2n * 10n ** 18n),
+        }),
+      ];
+
+      const archetype = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      await artblocks.addProject({ client, project: archetype });
+
+      const theCube = await sc.token(snapshots.THE_CUBE);
+      const tokenId = await artblocks.addToken({
+        client,
+        artblocksTokenId: snapshots.THE_CUBE,
+        rawTokenData: theCube,
+      });
+
+      await erc721Transfers.addTransfers({ client, transfers });
+      await openseaIngest.addRawEvents({ client, events: openseaSales });
+      await openseaIngest.ingestEvents({ client });
+
+      const res = await api.tokenHistory({ client, tokenId });
+      expect(res).toEqual([
+        // Initial mint event
+        {
+          type: "TRANSFER",
+          blockNumber: 777,
+          logIndex: 101,
+          transactionHash: dummyTx(1),
+          blockHash: dummyBlockHash(777),
+          from: ethers.constants.AddressZero,
+          to: alice,
+        },
+        // Usual happy case: transaction with combined transfer and sale
+        {
+          type: "OPENSEA_SALE",
+          from: alice,
+          to: bob,
+          timestamp: new Date("2021-01-02T00:00:00Z"),
+          transactionHash: dummyTx(2),
+          priceWei: String(10n ** 18n),
+        },
+        // Edge case: block with two transfers and a sale, which are
+        // represented individually
+        {
+          type: "TRANSFER",
+          blockNumber: 999,
+          logIndex: 103,
+          transactionHash: dummyTx(3),
+          blockHash: dummyBlockHash(999),
+          from: bob,
+          to: cheryl,
+        },
+        {
+          type: "TRANSFER",
+          blockNumber: 999,
+          logIndex: 104,
+          transactionHash: dummyTx(3),
+          blockHash: dummyBlockHash(999),
+          from: cheryl,
+          to: cherylsVault,
+        },
+        {
+          type: "OPENSEA_SALE",
+          from: bob,
+          to: cheryl,
+          timestamp: new Date("2021-02-08T00:00:00Z"),
+          transactionHash: dummyTx(3),
+          priceWei: String(2n * 10n ** 18n),
         },
       ]);
     })

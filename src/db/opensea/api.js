@@ -182,10 +182,39 @@ async function aggregateSalesByProject({ client, afterDate }) {
   }));
 }
 
+async function salesByToken({ client, tokenId }) {
+  const res = await client.query(
+    `
+    SELECT
+      seller_address AS "from",
+      buyer_address AS "to",
+      transaction_timestamp AS "timestamp",
+      transaction_hash AS "transactionHash",
+      price AS "priceWei"
+    FROM opensea_sales
+    WHERE token_id = $1::tokenid AND currency_id IN ($2, $3)
+    ORDER BY transaction_timestamp, transaction_hash, event_id
+    `,
+    [
+      tokenId,
+      wellKnownCurrencies.eth.currencyId,
+      wellKnownCurrencies.weth9.currencyId,
+    ]
+  );
+  return res.rows.map((r) => ({
+    from: bufToAddress(r.from),
+    to: bufToAddress(r.to),
+    timestamp: r.timestamp,
+    transactionHash: r.transactionHash,
+    priceWei: r.priceWei,
+  }));
+}
+
 module.exports = {
   _findOwners,
   askForToken,
   floorAskByProject,
   aggregateSalesByProject,
   asksForProject,
+  salesByToken,
 };

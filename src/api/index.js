@@ -189,6 +189,58 @@ function tokenTransfers({ client, tokenId }) {
   return erc721Transfers.getTransfersForToken({ client, tokenId });
 }
 
+async function tokenHistory({ client, tokenId }) {
+  const transfers = await erc721Transfers.getTransfersForToken({
+    client,
+    tokenId,
+  });
+  const openseaSales = await openseaApi.salesByToken({ client, tokenId });
+
+  // Map from transaction hash to `{ transfers, openseaSales }` in that
+  // transaction. Map insertion order is semantic, as is order of the lists in
+  // each entry.
+  const txEvents = new Map();
+  function txEventsEntry(tx) {
+    let result = txEvents.get(tx);
+    if (result == null) {
+      result = { transfers: [], openseaSales: [] };
+      txEvents.set(tx, result);
+    }
+    return result;
+  }
+  for (const t of transfers) {
+    txEventsEntry(t.transactionHash).transfers.push(t);
+  }
+  for (const s of openseaSales) {
+    txEventsEntry(s.transactionHash).openseaSales.push(s);
+  }
+
+  const result = [];
+  function addTransfer(transfer) {
+    result.push({ type: "TRANSFER", ...transfer });
+  }
+  function addOpenseaSale(openseaSale) {
+    result.push({ type: "OPENSEA_SALE", ...openseaSale });
+  }
+  for (const events of txEvents.values()) {
+    // When a transaction has exactly one transfer and exactly one sale, and
+    // the two have the same sender and recipient, only add the sale.
+    if (events.transfers.length === 1 && events.openseaSales.length === 1) {
+      const transfer = events.transfers[0];
+      const sale = events.openseaSales[0];
+      if (transfer.from === sale.from && transfer.to === sale.to) {
+        addOpenseaSale(sale);
+        continue;
+      }
+    }
+    // Otherwise, add all the transfers (in `logIndex` order), followed by all
+    // the OpenSea events (in OpenSea event order: arbitrary but stable).
+    events.transfers.forEach(addTransfer);
+    events.openseaSales.forEach(addOpenseaSale);
+  }
+  return result;
+}
+
 // Adds a new email address to the signups list. Returns `true` if this made a
 // change or `false` if the email already existed in the database. Idempotent.
 async function addEmailSignup({ client, email }) {
@@ -224,6 +276,7 @@ module.exports = {
   tokenFeaturesAndTraits,
   tokenSummariesByOnChainId,
   tokenTransfers,
+  tokenHistory,
   sortAsciinumeric,
   addEmailSignup,
   formatImageUrl,
