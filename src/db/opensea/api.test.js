@@ -32,9 +32,9 @@ describe("db/opensea/api", () => {
     return new Date(x + "Z");
   }
 
-  const dandelion = "0xe03a5189dac8182085e4adf66281f679fff2291d";
-  const wchargin = "0xefa7bdd92b5e9cd9de9b54ac0e3dc60623f1c989";
-  const ijd = "0xbaaf7c84deb0184ffbf7fc1655cb38264a29296f";
+  const dandelion = "0xE03a5189dAC8182085e4aDF66281F679fFf2291D";
+  const wchargin = "0xEfa7bDD92B5e9CD9dE9b54AC0e3dc60623F1C989";
+  const ijd = "0xBAaF7C84dEb0184FfBF7Fc1655cb38264a29296f";
   const listed = "2021-03-01T00:00:00.123456";
   const sold = "2021-03-03T12:34:56.123456";
 

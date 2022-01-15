@@ -1,4 +1,4 @@
-const { bufToHex } = require("../util");
+const { bufToAddress } = require("../util");
 const wellKnownCurrencies = require("../wellKnownCurrencies");
 
 async function _findOwners({ client, projectIds, tokenIds }) {
@@ -73,7 +73,7 @@ async function askForToken({ client, tokenId }) {
   return {
     ...x,
     price: BigInt(x.price),
-    sellerAddress: bufToHex(x.sellerAddress),
+    sellerAddress: bufToAddress(x.sellerAddress),
   };
 }
 
