@@ -87,7 +87,7 @@ async function floorAskByProject({ client, projectIds = null }) {
         AND (expiration_time IS NULL OR expiration_time > now())
         AND currency_id = $2
         AND (project_id = ANY($1::projectid[]) OR $1 IS NULL)
-        AND current_owner = seller_address
+        AND seller_address = current_owner
       GROUP BY project_id
       ORDER BY project_id
     ) AS floors

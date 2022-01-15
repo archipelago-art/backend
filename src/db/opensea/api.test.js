@@ -184,10 +184,10 @@ describe("db/opensea/api", () => {
   async function getActive(client, id) {
     const res = await client.query(
       `
-          SELECT active
-          FROM opensea_asks
-          WHERE event_id = $1
-          `,
+      SELECT active
+      FROM opensea_asks
+      WHERE event_id = $1
+      `,
       [id]
     );
     if (res.rows.length == 0) {
@@ -536,9 +536,7 @@ describe("db/opensea/api", () => {
       "shows lowest ask for a token if there are several",
       withTestDb(async ({ client }) => {
         const { archetypeId, archetypeTokenId1 } = await exampleProjectAndToken(
-          {
-            client,
-          }
+          { client }
         );
         const a1 = ask({ id: "1", price: "5000" });
         const a2 = ask({ id: "2", price: "100" });
