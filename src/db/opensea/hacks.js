@@ -50,7 +50,7 @@ async function floorAsksByProject({
             token_id,
             row_number() OVER (
               PARTITION BY project_id
-              ORDER BY price ASC
+              ORDER BY price ASC, token_id
             ) AS order_rank
           FROM opensea_asks JOIN current_owners USING (token_id)
           WHERE
