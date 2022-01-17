@@ -86,7 +86,7 @@ async function makeTarget(ctx, token, target) {
   });
 }
 
-async function process(ctx, token, listing) {
+async function process(ctx, token, listing, options) {
   if (!listing.has(token.tokenId)) listing.set(token.tokenId, []);
   const have = listing.get(token.tokenId);
   const notHave = targets().filter((t) => !have.includes(t.name));
@@ -106,7 +106,7 @@ async function process(ctx, token, listing) {
       log.error`failed to process ${target.name} for token ${token.tokenId}: ${e}`;
     }
   }
-  if (allOkay) {
+  if (allOkay && options.updateProgress) {
     await updateProgress(ctx, token, listing);
   }
 }
@@ -157,10 +157,16 @@ async function updateProgress(ctx, token, listing) {
  *      fields `script: string` and `library: string`; tokens for these
  *      projects will be generated rather than downloaded
  *    - `dryRun`: optional bool; defaults to false
+ *
+ * `options` may have:
+ *    - `concurrency`: number of imagemagick workers
+ *    - `updateProgress`: set to `false` to not update `image_progress` table
+ *      (for re-ingesting projects)
  */
-async function processAll(ctx, tokens, listing, options) {
+async function ingest(ctx, tokens, listing, options) {
   options = {
     concurrency: 16,
+    updateProgress: true,
     ...options,
   };
   const q = [...tokens];
@@ -168,7 +174,7 @@ async function processAll(ctx, tokens, listing, options) {
     while (true) {
       const token = q.shift();
       if (token == null) return;
-      await process(ctx, token, listing);
+      await process(ctx, token, listing, options);
     }
   }
   await Promise.all(
@@ -178,4 +184,4 @@ async function processAll(ctx, tokens, listing, options) {
   );
 }
 
-module.exports = { ingest: processAll };
+module.exports = { ingest };

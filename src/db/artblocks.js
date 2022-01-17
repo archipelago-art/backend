@@ -538,7 +538,7 @@ async function getUnfetchedTokens({
   return res.rows;
 }
 
-async function getTokenImageData({ client }) {
+async function getTokenImageData({ client, projectId }) {
   const res = await client.query(
     `
     SELECT
@@ -547,9 +547,10 @@ async function getTokenImageData({ client }) {
       token_data->'image' AS "imageUrl",
       token_data->'token_hash' AS "tokenHash"
     FROM tokens JOIN artblocks_projects USING (project_id)
+    WHERE project_id = $2 OR $2 IS NULL
     ORDER BY artblocks_project_index, token_index
     `,
-    [PROJECT_STRIDE]
+    [PROJECT_STRIDE, projectId]
   );
   return res.rows;
 }
