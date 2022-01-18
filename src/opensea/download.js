@@ -1,7 +1,7 @@
 const { addRawEvents } = require("../db/opensea/ingestEvents");
 const { getLastUpdated, setLastUpdated } = require("../db/opensea/progress");
 const log = require("../util/log")(__filename);
-const { getSlugs } = require("./collections");
+const { getProjectSlugs } = require("./collections");
 const { fetchEventsByTypes } = require("./fetch");
 
 const ONE_MONTH = 1000 * 60 * 60 * 24 * 30;
@@ -83,7 +83,8 @@ async function downloadCollection({ client, slug, windowDurationMs, apiKey }) {
 }
 
 async function downloadAllCollections({ client, apiKey, windowDurationMs }) {
-  const slugs = await getSlugs({ client, apiKey });
+  const projectSlugs = await getProjectSlugs({ client, apiKey });
+  const slugs = projectSlugs.map((x) => x.slug);
   const neverLoadedSlugs = [];
   const slugsToUpdate = [];
   // This is hacky because we make O(|slugs|) DB calls but we could just

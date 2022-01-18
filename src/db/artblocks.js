@@ -689,12 +689,13 @@ async function updateImageProgress({ client, progress }) {
 async function getProjectIndices({ client }) {
   const res = await client.query(
     `
-    SELECT artblocks_project_index AS "projectIndex"
+    SELECT artblocks_project_index AS "artblocksProjectIndex",
+      project_id AS "projectId"
     FROM artblocks_projects
     ORDER BY artblocks_project_index
     `
   );
-  return res.rows.map((x) => x.projectIndex);
+  return res.rows;
 }
 
 module.exports = {

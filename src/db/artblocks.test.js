@@ -863,9 +863,13 @@ describe("db/artblocks", () => {
   it(
     "supports getProjectIndices",
     withTestDb(async ({ client }) => {
-      await addProjects(client, snapshots.PROJECTS);
+      const projectIds = await addProjects(client, snapshots.PROJECTS);
       const res = await artblocks.getProjectIndices({ client });
-      expect(res).toEqual(snapshots.PROJECTS);
+      const expected = snapshots.PROJECTS.map((x, i) => ({
+        artblocksProjectIndex: x,
+        projectId: projectIds[i].id,
+      }));
+      expect(res).toEqual(expected);
     })
   );
 

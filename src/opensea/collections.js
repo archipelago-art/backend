@@ -9,39 +9,54 @@ const {
 
 /**
  * Enumerate all of the ArtBlocks collections on OpenSea.
- * Result will be an array of string slugs, as in
- * ["chromie-squiggle-by-snowfro", ...]
+ * Result will be an array of objects with the following form:
+ * {projectId, slug}
+ * Where `projectId` is the Archipelago project ID, and `openseaSlug`
+ * is a string like "the-eternal-pump-by-dmitri-cherniak"
  */
-async function getSlugs({ client, apiKey }) {
-  const projectIds = await getProjectIndices({ client });
-  const legacyProjectIds = projectIds.filter(
-    (x) => x < ARTBLOCKS_CONTRACT_THRESHOLD
+async function getProjectSlugs({ client, apiKey }) {
+  const projects = await getProjectIndices({ client });
+
+  const legacyProjects = projects.filter(
+    (x) => x.artblocksProjectIndex < ARTBLOCKS_CONTRACT_THRESHOLD
   );
-  const nonLegacyProjectIds = projectIds.filter(
-    (x) => x >= ARTBLOCKS_CONTRACT_THRESHOLD
+  const nonLegacyProjects = projects.filter(
+    (x) => x.artblocksProjectIndex >= ARTBLOCKS_CONTRACT_THRESHOLD
   );
   const legacySlugs = await _getSlugs({
     contractAddress: CONTRACT_ARTBLOCKS_LEGACY,
-    projectIds: legacyProjectIds,
+    projects: legacyProjects,
     apiKey,
   });
   const nonLegacySlugs = await _getSlugs({
     contractAddress: CONTRACT_ARTBLOCKS_STANDARD,
-    projectIds: nonLegacyProjectIds,
+    projects: nonLegacyProjects,
     apiKey,
   });
   return [...legacySlugs, ...nonLegacySlugs];
 }
 
 const slugParser = C.fmap(
-  C.object({ collection: C.object({ slug: C.string }) }),
-  (x) => x.collection.slug
+  C.object({
+    token_id: C.string,
+    collection: C.object({ slug: C.string }),
+  }),
+  (x) => ({ slug: x.collection.slug, tokenId: x.token_id })
 );
-async function _getSlugs({ contractAddress, projectIds, apiKey }) {
-  const tokenIds = projectIds.map((x) => x * 1e6);
+async function _getSlugs({ contractAddress, projects, apiKey }) {
+  const tokenIds = projects.map((x) => x.artblocksProjectIndex * 1e6);
+  const indexToProjectId = new Map(
+    projects.map((x) => [x.artblocksProjectIndex, x.projectId])
+  );
   const assets = await fetchAssets({ contractAddress, tokenIds, apiKey });
-  const slugs = assets.map((x) => slugParser.parseOrThrow(x));
-  return slugs;
+  const slugsWithTokenIds = assets.map((x) => slugParser.parseOrThrow(x));
+  return slugsWithTokenIds.map((x) => {
+    const projectId = indexToProjectId.get(Math.floor(x.tokenId / 1e6));
+    if (projectId == null) {
+      throw new Error(`no projectId: ${x.tokenId}, ${x.slug}`);
+    }
+    return { slug: x.slug, projectId };
+  });
 }
 
-module.exports = { getSlugs };
+module.exports = { getProjectSlugs };
