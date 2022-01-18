@@ -1,6 +1,9 @@
 // Return the last updated timestamp for a given contract
 // slug is an opensea collection slug
-async function getLastUpdated({ client, slug }) {
+async function getLastUpdated({ client, slug, projectId }) {
+  if (projectId == null) {
+    throw new Error("null projectId");
+  }
   const res = await client.query(
     `
     SELECT until
@@ -18,15 +21,19 @@ async function getLastUpdated({ client, slug }) {
 
 // slug is an opensea collection slug
 // until is a js Date
-async function setLastUpdated({ client, slug, until }) {
+async function setLastUpdated({ client, slug, until, projectId }) {
+  if (projectId == null) {
+    throw new Error("null projectId");
+  }
   await client.query(
     `
-    INSERT INTO opensea_progress (opensea_slug, until)
-    VALUES ($1, $2)
+    INSERT INTO opensea_progress (opensea_slug, until, project_id)
+    VALUES ($1, $2, $3)
     ON CONFLICT (opensea_slug) DO UPDATE SET
-      until = $2
+      until = $2,
+      project_id = $3
     `,
-    [slug, until]
+    [slug, until, projectId]
   );
 }
 
