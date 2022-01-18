@@ -7,6 +7,7 @@ const {
 const { floorAsksByProject } = require("../db/opensea/hacks");
 const log = require("../util/log")(__filename);
 const { ingestEvents } = require("../db/opensea/ingestEvents");
+const { syncLoop } = require("../opensea/sync");
 
 async function cliDownloadCollection(args) {
   if (args.length !== 2) {
@@ -93,6 +94,31 @@ async function cliIngestEvents(args) {
   });
 }
 
+async function cliSync(args) {
+  if (args.length > 1) {
+    throw new Error("usage: sync [sleep-duration-seconds]");
+  }
+  const ONE_DAY = 1000 * 60 * 60 * 24;
+  const apiKey = process.env.OPENSEA_API_KEY;
+  const sleepDurationSeconds = args[0] == null ? 600 : args[0];
+  const sleepDurationMs = sleepDurationSeconds * 1000;
+  // use a giant 1000 day window by default.
+  // This is a good choice both for re-loading "fresh" projects (we'll
+  // ask about events in the future, which is fine) and for quickly
+  // getting the whole history on new projects (we'll pick up the whole
+  // history since AB inception in a single window).
+  // This is a bad choice for first-load of history rich projects; e.g.
+  // if we tried to get all Fidenza history in a single giant window, we'll
+  // overflow OpenSea's page limit. Thus, this parameter is tuned for the specific
+  // case of auto-running sync when we've recently retrieved the whole history.
+  // If you do need to load historical data for a project and the window size is an issue,
+  // use the manual CLI commands to download that project in particular with a custom window
+  windowDurationMs = ONE_DAY * 1000;
+  await withClient(async (client) => {
+    await syncLoop({ apiKey, client, windowDurationMs, sleepDurationMs });
+  });
+}
+
 async function cli(outerArgs) {
   const [arg0, ...args] = outerArgs;
   const commands = [
@@ -101,6 +127,7 @@ async function cli(outerArgs) {
     ["ingest-events", cliIngestEvents],
     ["download-tokens", cliDownloadTokens],
     ["fix-floors", cliFixFloors],
+    ["sync", cliSync],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
