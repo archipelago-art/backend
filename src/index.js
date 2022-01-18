@@ -13,18 +13,12 @@ const migrations = require("./db/migrations");
 const { acqrel, withPool, withClient } = require("./db/util");
 const { ingestTransfers } = require("./eth/tokenTransfers");
 const images = require("./img");
-const {
-  downloadCollection,
-  downloadAllCollections,
-  downloadEventsForTokens,
-} = require("./opensea/download");
-const { floorAsksByProject } = require("./db/opensea/hacks");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
 const attach = require("./ws");
 const adHocPromise = require("./util/adHocPromise");
 const log = require("./util/log")(__filename);
-const { ingestEvents } = require("./db/opensea/ingestEvents");
+const opensea = require("./cli/opensea");
 
 const NETWORK_CONCURRENCY = 64;
 const IMAGEMAGICK_CONCURRENCY = 16;
@@ -546,111 +540,6 @@ async function tokenFeedWss(args) {
   });
 }
 
-async function openseaDownloadCollection(args) {
-  if (args.length !== 2) {
-    throw new Error(
-      "usage: opensea-download-collection <collection-slug> <window-duration-days>"
-    );
-  }
-  const apiKey = process.env.OPENSEA_API_KEY;
-  const slug = args[0];
-  const ONE_DAY = 1000 * 60 * 60 * 24;
-  const windowDurationMs = ONE_DAY * +args[1];
-  await withClient(async (client) => {
-    await downloadCollection({
-      client,
-      slug,
-      apiKey,
-      windowDurationMs,
-    });
-  });
-}
-
-async function openseaDownloadAllCollections(args) {
-  if (args.length !== 0) {
-    throw new Error("usage: opensea-download-all-collections");
-  }
-  const apiKey = process.env.OPENSEA_API_KEY;
-  const slug = args[0];
-  const ONE_DAY = 1000 * 60 * 60 * 24;
-  const windowDurationMs = ONE_DAY * 30;
-  await withClient(async (client) => {
-    await downloadAllCollections({
-      client,
-      slug,
-      apiKey,
-      windowDurationMs,
-    });
-  });
-}
-
-async function openseaDownloadAllCollections(args) {
-  if (args.length !== 0) {
-    throw new Error("usage: opensea-download-all-collections");
-  }
-  const apiKey = process.env.OPENSEA_API_KEY;
-  const slug = args[0];
-  const ONE_DAY = 1000 * 60 * 60 * 24;
-  const windowDurationMs = ONE_DAY * 30;
-  await withClient(async (client) => {
-    await downloadAllCollections({
-      client,
-      slug,
-      apiKey,
-      windowDurationMs,
-    });
-  });
-}
-
-async function openseaDownloadTokens(args) {
-  if (args.length !== 3) {
-    throw new Error(
-      "usage: opensea-download-tokens token-contract start-id end-id"
-    );
-  }
-  const apiKey = process.env.OPENSEA_API_KEY;
-  const contract = args[0];
-  const start = +args[1];
-  const end = +args[2];
-  const specs = [];
-  for (let id = start; id < end; id++) {
-    specs.push({ onChainId: String(id), contract });
-  }
-  await withClient(async (client) => {
-    await downloadEventsForTokens({ tokenSpecs: specs, apiKey, client });
-  });
-}
-
-async function openseaFixFloors(args) {
-  if (args.length > 2) {
-    throw new Error("usage: opensea-fix-floors [limit] [projectId]");
-  }
-  const limitEach = args[0];
-  const projectIds = args[1] == null ? null : [args[1]];
-  const apiKey = process.env.OPENSEA_API_KEY;
-  await withClient(async (client) => {
-    const floorTokens = await floorAsksByProject({
-      client,
-      projectIds,
-      limitEach,
-    });
-    const tokenSpecs = floorTokens.map((x) => ({
-      onChainId: x.onChainTokenId,
-      contract: x.tokenContract,
-    }));
-    await downloadEventsForTokens({ tokenSpecs, apiKey, client });
-  });
-}
-
-async function openseaIngestEvents(args) {
-  if (args.length !== 0) {
-    throw new Error("usage: opensea-ingest-events");
-  }
-  await withClient(async (client) => {
-    await ingestEvents({ client });
-  });
-}
-
 async function alchemyIngestTransfers(args) {
   if (args.length !== 2) {
     throw new Error("usage: alchemy-ingest-transfers <contract> <start-block>");
@@ -725,12 +614,8 @@ async function main() {
     ["ingest-images", ingestImages],
     ["generate-image", generateImage],
     ["token-feed-wss", tokenFeedWss],
-    ["opensea-download-collection", openseaDownloadCollection],
-    ["opensea-download-all-collections", openseaDownloadAllCollections],
-    ["opensea-ingest-events", openseaIngestEvents],
     ["alchemy-ingest-transfers", alchemyIngestTransfers],
-    ["opensea-download-tokens", openseaDownloadTokens],
-    ["opensea-fix-floors", openseaFixFloors],
+    ["opensea", opensea],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
