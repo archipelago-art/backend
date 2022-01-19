@@ -1,8 +1,9 @@
 const ethers = require("ethers");
-const erc721Abi = require("./erc721Abi");
+
 const { addTransfers, getLastBlockNumber } = require("../db/erc721Transfers");
 const { acqrel } = require("../db/util");
 const log = require("../util/log")(__filename);
+const erc721Abi = require("./erc721Abi");
 
 function makeProvider() {
   const apiKey = process.env.ALCHEMY_API_KEY;
