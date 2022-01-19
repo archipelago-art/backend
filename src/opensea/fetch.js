@@ -8,12 +8,14 @@ async function fetchUrl(baseUrl, urlParams, apiKey) {
   const url = `${baseUrl}?${String(urlParams)}`;
   const headers = { "X-API-KEY": apiKey };
   log.debug`fetching ${url}`;
-  const res = await nodeFetch(url, { headers });
+  const [res] = await Promise.all([
+    nodeFetch(url, { headers }),
+    sleepMs(HACKY_OPENSEA_FETCH_DELAY_MS),
+  ]);
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText}: ${url}`);
   }
   const json = await res.json();
-  await sleepMs(HACKY_OPENSEA_FETCH_DELAY_MS);
   return json;
 }
 
