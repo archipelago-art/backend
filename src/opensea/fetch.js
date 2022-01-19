@@ -1,6 +1,7 @@
 const nodeFetch = require("node-fetch");
 const C = require("../util/combo");
 const log = require("../util/log")(__filename);
+const { fetchWithRetries } = require("../scrape/retryFetch");
 
 const HACKY_OPENSEA_FETCH_DELAY_MS = 1000;
 
@@ -8,15 +9,19 @@ async function fetchUrl(baseUrl, urlParams, apiKey) {
   const url = `${baseUrl}?${String(urlParams)}`;
   const headers = { "X-API-KEY": apiKey };
   log.debug`fetching ${url}`;
-  const [res] = await Promise.all([
-    nodeFetch(url, { headers }),
-    sleepMs(HACKY_OPENSEA_FETCH_DELAY_MS),
-  ]);
-  if (!res.ok) {
-    throw new Error(`${res.status} ${res.statusText}: ${url}`);
+  const promisedSleep = sleepMs(HACKY_OPENSEA_FETCH_DELAY_MS);
+
+  try {
+    const { text, res } = await fetchWithRetries(url, { headers });
+    const json = JSON.parse(text);
+    await promisedSleep;
+    return json;
+  } catch (e) {
+    // I would actually rather see an error if we hit 404s.
+    // Keeping this snippet for future reference.
+    // if (e.res && e.res.status === 404) return null;
+    throw e;
   }
-  const json = await res.json();
-  return json;
 }
 
 const EVENTS_URL = "https://api.opensea.io/api/v1/events";
