@@ -114,7 +114,7 @@ async function syncProject({ client, slug, projectId, apiKey }) {
     .filter((x) => x.asset != null)
     .map(stripEvent);
   await addRawEvents({ client, events: strippedEvents });
-  log.info`${slug}: added ${strippedEvents.length} events during fast sync`;
+  log.info`fast sync: ${strippedEvents.length} events for ${slug}`;
   const updated = new Date(Date.now() - LATE_EVENT_SAFETY_MARGIN);
   await setLastUpdated({ client, slug, until, projectId });
 }
