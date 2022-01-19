@@ -11,7 +11,7 @@ const artblocks = require("./db/artblocks");
 const backfills = require("./db/backfills");
 const migrations = require("./db/migrations");
 const { acqrel, withPool, withClient } = require("./db/util");
-const { ingestTransfersHistorical } = require("./eth/tokenTransfers");
+const tokenTransfers = require("./eth/tokenTransfers");
 const images = require("./img");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
@@ -547,10 +547,29 @@ async function alchemyIngestTransfers(args) {
   const [contractAddress, rawInitialStartBlock] = args;
   const initialStartBlock = Number(rawInitialStartBlock);
   await withPool(async (pool) => {
-    await ingestTransfersHistorical({
+    await tokenTransfers.ingestTransfersHistorical({
       pool,
       contractAddress,
       initialStartBlock,
+    });
+  });
+}
+
+async function alchemyPokeTransfers(args) {
+  if (args.length !== 3) {
+    throw new Error(
+      "usage: alchemy-poke-transfers <contract> <start-block> <end-block>"
+    );
+  }
+  const [contractAddress, rawStartBlock, rawEndBlock] = args;
+  const startBlock = Number(rawStartBlock);
+  const endBlock = Number(rawEndBlock);
+  await withPool(async (pool) => {
+    await tokenTransfers.ingestTransfersInRange({
+      pool,
+      contractAddress,
+      startBlock,
+      endBlock,
     });
   });
 }
@@ -619,6 +638,7 @@ async function main() {
     ["generate-image", generateImage],
     ["token-feed-wss", tokenFeedWss],
     ["alchemy-ingest-transfers", alchemyIngestTransfers],
+    ["alchemy-poke-transfers", alchemyPokeTransfers],
     ["opensea", opensea],
   ];
   for (const [name, fn] of commands) {

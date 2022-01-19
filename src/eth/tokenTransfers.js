@@ -48,6 +48,23 @@ async function ingestTransfersHistorical({
   });
 }
 
+async function ingestTransfersInRange({
+  pool,
+  contractAddress,
+  startBlock,
+  endBlock,
+}) {
+  const provider = makeProvider();
+  log.debug`will request blocks ${startBlock}..=${endBlock}`;
+  return await ingestTransfers({
+    provider,
+    pool,
+    contractAddress,
+    startBlock,
+    endBlock,
+  });
+}
+
 async function ingestTransfers({
   provider,
   pool,
@@ -78,4 +95,5 @@ async function ingestTransfers({
 
 module.exports = {
   ingestTransfersHistorical,
+  ingestTransfersInRange,
 };
