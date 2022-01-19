@@ -1,7 +1,11 @@
 const { addRawEvents } = require("../db/opensea/ingestEvents");
-const { getLastUpdated, setLastUpdated } = require("../db/opensea/progress");
+const {
+  getLastUpdated,
+  setLastUpdated,
+  getProgress,
+} = require("../db/opensea/progress");
 const log = require("../util/log")(__filename);
-const { getProjectSlugs } = require("./collections");
+const { initializeArtblocksProgress } = require("./artblocksProgress");
 const { fetchEventsByTypes } = require("./fetch");
 
 const ONE_MONTH = 1000 * 60 * 60 * 24 * 30;
@@ -91,36 +95,9 @@ async function downloadCollection({
 }
 
 async function downloadAllCollections({ client, apiKey, windowDurationMs }) {
-  const projectSlugs = await getProjectSlugs({ client, apiKey });
-  const neverLoaded = [];
-  const toUpdate = [];
-  // This is hacky because we make O(|slugs|) DB calls but we could just
-  // as well have a single query. Unlikely to be a real performance issue
-  // in practice.
-  for (const { slug, projectId } of projectSlugs) {
-    const lastUpdated = await getLastUpdated({ client, slug, projectId });
-    if (lastUpdated == null) {
-      neverLoaded.push({ slug, projectId });
-    } else {
-      toUpdate.push({ slug, projectId });
-    }
-  }
-  // Prioritize collections for which we have no data.
-  // This is helpful if we're restarting the ingestion job, we don't need to
-  // wait for it to load 100 mostly-finished projects before it starts getting
-  // new data.
-  // It will still get around to every collection eventually.
-  for (const { slug, projectId } of neverLoaded) {
-    log.info`=== ingesting opensea events for ${slug} ===`;
-    await downloadCollection({
-      client,
-      slug,
-      projectId,
-      apiKey,
-      windowDurationMs,
-    });
-  }
-  for (const { slug, projectId } of toUpdate) {
+  await initializeArtblocksProgress({ client, apiKey });
+  const progress = await getProgress({ client });
+  for (const { slug, projectId } of progress) {
     log.info`=== ingesting opensea events for ${slug} ===`;
     await downloadCollection({
       client,
