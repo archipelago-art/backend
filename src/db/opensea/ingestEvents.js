@@ -102,20 +102,21 @@ async function ingestEventPage(client, limit) {
   const idsToSkip = new Set([
     ...(await transactionsToSkip(client, events)),
     ...(await asksToSkip(client, events)),
+    // legacy: we used to support transfers, and hypothetically some could still be in the
+    // deferred ingestion queue.
+    ...events.filter((x) => x.type === "transfer"),
   ]);
   const validEvents = events.filter((x) => !idsToSkip.has(x.id));
 
   const idsMatchingType = (target) =>
     validEvents.filter((x) => x.type === target).map((x) => x.id);
 
-  const transferIds = idsMatchingType("transfer");
   const askIds = idsMatchingType("created");
   const saleIds = idsMatchingType("successful");
   const cancellationIds = idsMatchingType("cancelled");
 
   await addNewCurrencies(client, [...askIds, ...saleIds]);
 
-  const insertedTransferIds = await ingestTransfers(client, transferIds);
   const insertedSaleIds = await ingestSales(client, saleIds);
   const insertedAskIds = await ingestAsks(client, askIds);
   const insertedCancellationIds = await ingestCancellations(
@@ -125,7 +126,6 @@ async function ingestEventPage(client, limit) {
 
   const idsToDefer = new Set(validEvents.map((x) => x.id));
   const insertedIds = [
-    ...insertedTransferIds,
     ...insertedSaleIds,
     ...insertedAskIds,
     ...insertedCancellationIds,
@@ -162,64 +162,6 @@ async function ingestEventPage(client, limit) {
 
   await client.query("COMMIT");
   return events.length;
-}
-
-async function ingestTransfers(client, transferIds) {
-  const result = await client.query(
-    `
-      INSERT INTO opensea_transfers (
-        event_id,
-        project_id,
-        token_id,
-        to_address,
-        from_address,
-        transaction_timestamp,
-        transaction_hash,
-        redundant
-      )
-      SELECT
-        opensea_events_raw.event_id,
-        tokens.project_id,
-        tokens.token_id,
-        hexaddr(json->'to_account'->>'address') AS to_address,
-        hexaddr(json->'from_account'->>'address') AS from_address,
-        (json->'transaction'->>'timestamp')::timestamp AT TIME ZONE 'UTC' AS transaction_timestamp,
-        json->'transaction'->>'transaction_hash' AS transaction_hash,
-        (SELECT EXISTS (
-          SELECT 1
-          FROM opensea_sales
-          WHERE opensea_sales.token_id = tokens.token_id AND
-          transaction_hash = json->'transaction'->>'transaction_hash'
-          )
-        )
-      FROM opensea_events_raw
-      JOIN tokens ON (
-        hexaddr(json->'asset'->>'address') = token_contract
-        AND (json->'asset'->>'token_id')::uint256 = on_chain_token_id
-      )
-      WHERE opensea_events_raw.event_id = ANY($1::text[])
-      RETURNING event_id AS id
-    `,
-    [transferIds]
-  );
-
-  const insertedTransfers = result.rows.map((x) => x.id);
-  await client.query(
-    `
-    UPDATE opensea_asks
-    SET active = false
-    WHERE event_id IN (
-      SELECT opensea_asks.event_id
-      FROM opensea_asks JOIN opensea_transfers USING (token_id)
-      WHERE active
-        AND opensea_asks.listing_time <= opensea_transfers.transaction_timestamp
-        AND opensea_transfers.event_id = ANY($1::text[])
-    )
-    `,
-    [insertedTransfers]
-  );
-
-  return insertedTransfers;
 }
 
 async function ingestSales(client, saleIds) {
@@ -264,18 +206,6 @@ async function ingestSales(client, saleIds) {
   const insertedSales = result.rows.map((x) => x.id);
   await client.query(
     `
-    UPDATE opensea_transfers
-    SET redundant = true
-    WHERE event_id IN (
-      SELECT opensea_transfers.event_id
-      FROM opensea_transfers JOIN opensea_sales USING (token_id, transaction_hash)
-      WHERE opensea_sales.event_id = ANY($1::text[])
-    )
-    `,
-    [insertedSales]
-  );
-  await client.query(
-    `
     UPDATE opensea_asks
     SET active = false
     WHERE event_id IN (
@@ -292,10 +222,11 @@ async function ingestSales(client, saleIds) {
 }
 
 /**
- * The "created", "cancelled" and "transfer" event types all correspond to
- * Ethereum transactions. Sometimes, those transactions are orphaned. OpenSea still provides
- * them, but they have null hash and timestamp. There's no upside for tracking these, so
- * we remove them from the ingestion queue without actually ingesting them.
+ * The "successful" and "cancelled" event types correspond to Ethereum
+ * transactions. Sometimes, those transactions are orphaned. OpenSea still
+ * provides them, but they have null hash and timestamp. There's no upside for
+ * tracking these, so we remove them from the ingestion queue without actually
+ * ingesting them.
  */
 async function transactionsToSkip(client, events) {
   const transactionIds = events
@@ -375,13 +306,6 @@ async function ingestAsks(client, askIds) {
           SELECT 1
           FROM opensea_sales
           WHERE opensea_sales.token_id = tokens.token_id AND
-          transaction_timestamp >= (json->>'listing_time')::timestamp AT TIME ZONE 'UTC'
-          )
-        ) AND
-        (SELECT NOT EXISTS (
-          SELECT 1
-          FROM opensea_transfers
-          WHERE opensea_transfers.token_id = tokens.token_id AND
           transaction_timestamp >= (json->>'listing_time')::timestamp AT TIME ZONE 'UTC'
           )
         )

@@ -26,55 +26,6 @@ describe("db/opensea/ingestEvents", () => {
   const dandelion = "0xe03a5189dac8182085e4adf66281f679fff2291d";
   const wchargin = "0xefa7bdd92b5e9cd9de9b54ac0e3dc60623f1c989";
 
-  function transfer({
-    id = "1",
-    address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-    tokenId = snapshots.THE_CUBE,
-    toAddress = dandelion,
-    fromAddress = wchargin,
-    transactionTimestamp = "2021-03-03T12:34:56.123456",
-    transactionHash = "0xef7e95ce1c085611cb5186a55cec026cd3f2f266c1f581bb6a9e9258cf3019f4",
-  } = {}) {
-    return {
-      asset: { address, token_id: String(tokenId) },
-      id,
-      to_account: { address: toAddress },
-      from_account: { address: fromAddress },
-      transaction: {
-        timestamp: transactionTimestamp,
-        transaction_hash: transactionHash,
-      },
-      event_type: "transfer",
-    };
-  }
-  async function getTransfer(client, id) {
-    const res = await client.query(
-      `
-          SELECT
-            event_id AS "id",
-            project_id AS "projectId",
-            token_id AS "tokenId",
-            to_address AS "toAddress",
-            from_address AS "fromAddress",
-            transaction_timestamp AS "transactionTimestamp",
-            transaction_hash AS "transactionHash",
-            redundant
-          FROM opensea_transfers
-          WHERE event_id = $1
-          `,
-      [id]
-    );
-    if (res.rows.length == 0) {
-      return null;
-    }
-    const x = res.rows[0];
-    return {
-      ...x,
-      toAddress: bufToHex(x.toAddress),
-      fromAddress: bufToHex(x.fromAddress),
-    };
-  }
-
   function sale({
     id = "2",
     address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
@@ -271,7 +222,7 @@ describe("db/opensea/ingestEvents", () => {
     it(
       "raw events may be added",
       withTestDb(async ({ client }) => {
-        const ev = transfer();
+        const ev = ask();
         const numAdded = await addRawEvents({ client, events: [ev] });
         expect(numAdded).toEqual(1);
         const res = await client.query(`
@@ -285,7 +236,7 @@ describe("db/opensea/ingestEvents", () => {
     it(
       "if event is added while already in queue, it will not be duplicated in queue",
       withTestDb(async ({ client }) => {
-        const ev = transfer();
+        const ev = ask();
         let numAdded = await addRawEvents({ client, events: [ev] });
         expect(numAdded).toEqual(1);
         numAdded = await addRawEvents({ client, events: [ev] });
@@ -298,7 +249,7 @@ describe("db/opensea/ingestEvents", () => {
       "if event is added that was already processed from queue, it will not be added back to queue",
       withTestDb(async ({ client }) => {
         const { projectId, tokenId } = await exampleProjectAndToken({ client });
-        const ev = transfer();
+        const ev = ask();
         let numAdded = await addRawEvents({ client, events: [ev] });
         expect(numAdded).toEqual(1);
         await ingestEvents({ client });
@@ -315,16 +266,12 @@ describe("db/opensea/ingestEvents", () => {
       "filters out invalid transactions, and removes from queue",
       withTestDb(async ({ client }) => {
         const events = [
-          transfer({ id: "1", transactionTimestamp: null }),
-          transfer({ id: "2", transactionHash: null }),
           sale({ id: "3", transactionTimestamp: null }),
           sale({ id: "4", transactionHash: null }),
           cancellation({ id: "5", transactionTimestamp: null }),
           cancellation({ id: "6", transactionHash: null }),
         ];
         await addAndIngest(client, events);
-        expect(await getTransfer(client, "1")).toEqual(null);
-        expect(await getTransfer(client, "2")).toEqual(null);
         expect(await getSale(client, "3")).toEqual(null);
         expect(await getSale(client, "4")).toEqual(null);
         expect(await getCancellation(client, "5")).toEqual(null);
@@ -366,70 +313,45 @@ describe("db/opensea/ingestEvents", () => {
     it(
       "will add events without a project id to the deferred ingestion queue",
       withTestDb(async ({ client }) => {
-        const ev1 = transfer({ id: "1" });
-        const ev2 = ask({ id: "2" });
-        const ev3 = cancellation({ id: "3" });
-        const ev4 = sale({ id: "4" });
-        await addAndIngest(client, [ev1, ev2, ev3, ev4]);
-        expect(await getTransfer(client, "1")).toEqual(null);
-        expect(await getAsk(client, "2")).toEqual(null);
-        expect(await getCancellation(client, "3")).toEqual(null);
-        expect(await getSale(client, "4")).toEqual(null);
+        const ev1 = ask({ id: "1" });
+        const ev2 = cancellation({ id: "2" });
+        const ev3 = sale({ id: "3" });
+        await addAndIngest(client, [ev1, ev2, ev3]);
+        expect(await getAsk(client, "1")).toEqual(null);
+        expect(await getCancellation(client, "2")).toEqual(null);
+        expect(await getSale(client, "3")).toEqual(null);
         // Events were moved from ingestion queue, and moved to ingestion deferred
-        expect(await deferredIds(client)).toEqual(["1", "2", "3", "4"]);
+        expect(await deferredIds(client)).toEqual(["1", "2", "3"]);
         expect(await unconsumedIds(client)).toEqual([]);
       })
     );
     it(
       "will ingest deferred events when possible",
       withTestDb(async ({ client }) => {
-        const ev1 = transfer({ id: "1" });
-        const ev2 = ask({ id: "2" });
-        const ev3 = cancellation({ id: "3" });
-        const ev4 = sale({ id: "4" });
-        await addAndIngest(client, [ev1, ev2, ev3, ev4]);
-        expect(await getTransfer(client, "1")).toEqual(null);
-        expect(await getAsk(client, "2")).toEqual(null);
-        expect(await getCancellation(client, "3")).toEqual(null);
-        expect(await getSale(client, "4")).toEqual(null);
+        const ev1 = ask({ id: "1" });
+        const ev2 = cancellation({ id: "2" });
+        const ev3 = sale({ id: "3" });
+        await addAndIngest(client, [ev1, ev2, ev3]);
+        expect(await getAsk(client, "1")).toEqual(null);
+        expect(await getCancellation(client, "2")).toEqual(null);
+        expect(await getSale(client, "3")).toEqual(null);
         // Events were moved from ingestion queue, and moved to ingestion deferred
-        expect(await deferredIds(client)).toEqual(["1", "2", "3", "4"]);
+        expect(await deferredIds(client)).toEqual(["1", "2", "3"]);
         expect(await unconsumedIds(client)).toEqual([]);
 
         // now we add the tokens, enabling deferred ingestion
         await exampleProjectAndToken({ client });
-        await addAndIngest(client, [ev1, ev2, ev3, ev4]);
+        await addAndIngest(client, [ev1, ev2, ev3]);
         expect(await deferredIds(client)).toEqual([]);
         expect(await unconsumedIds(client)).toEqual([]);
-        expect(await getTransfer(client, "1")).not.toEqual(null);
-        expect(await getAsk(client, "2")).not.toEqual(null);
-        expect(await getCancellation(client, "3")).not.toEqual(null);
-        expect(await getSale(client, "4")).not.toEqual(null);
+        expect(await getAsk(client, "1")).not.toEqual(null);
+        expect(await getCancellation(client, "2")).not.toEqual(null);
+        expect(await getSale(client, "3")).not.toEqual(null);
       })
     );
   });
 
   describe("regular event ingestion", () => {
-    it(
-      "will ingest a transfer",
-      withTestDb(async ({ client }) => {
-        const { projectId, tokenId } = await exampleProjectAndToken({ client });
-        const ev = transfer();
-        await addAndIngest(client, [ev]);
-        expect(await getTransfer(client, ev.id)).toEqual({
-          id: ev.id,
-          projectId,
-          tokenId,
-          toAddress: ev.to_account.address,
-          fromAddress: ev.from_account.address,
-          transactionTimestamp: utcDateFromString(ev.transaction.timestamp),
-          transactionHash: ev.transaction.transaction_hash,
-          redundant: false,
-        });
-        expect(await unconsumedIds(client)).toEqual([]);
-      })
-    );
-
     it(
       "will ingest a sale",
       withTestDb(async ({ client }) => {
@@ -522,61 +444,6 @@ describe("db/opensea/ingestEvents", () => {
         const theAsk = await getAsk(client, ev.id);
         const expectedExpiration = new Date(+theAsk.listingTime + 77 * 1000);
         expect(theAsk.expirationTime).toEqual(expectedExpiration);
-      })
-    );
-  });
-
-  describe("transfer<->sale interactions", () => {
-    it(
-      "marks transfers as redundant (transfer first)",
-      withTestDb(async ({ client }) => {
-        const { projectId } = await exampleProjectAndToken({ client });
-        const s = sale({ id: "1" });
-        const t = transfer({
-          id: "2",
-          transactionTimestamp: s.transactionTimestamp,
-          transactionHash: s.transactionHash,
-        });
-        await addAndIngest(client, [t]);
-        await addAndIngest(client, [s]);
-        const res = await getTransfer(client, "2");
-        expect(res.redundant).toBe(true);
-      })
-    );
-    it(
-      "marks transfers as redundant (sale first)",
-      withTestDb(async ({ client }) => {
-        const { projectId } = await exampleProjectAndToken({ client });
-        const s = sale({ id: "1" });
-        const t = transfer({
-          id: "2",
-          transactionTimestamp: s.transactionTimestamp,
-          transactionHash: s.transactionHash,
-        });
-        await addAndIngest(client, [s]);
-        await addAndIngest(client, [t]);
-        const res = await getTransfer(client, "2");
-        expect(res.redundant).toBe(true);
-      })
-    );
-    it(
-      "can mark multiple transfers as redundant from one sale",
-      withTestDb(async ({ client }) => {
-        const { projectId } = await exampleProjectAndToken({ client });
-        const s = sale({ id: "0" });
-        const tx = (x) =>
-          transfer({
-            id: x,
-            transactionTimestamp: s.transactionTimestamp,
-            transactionHash: s.transactionHash,
-          });
-        await addAndIngest(client, [tx("1"), tx("2")]);
-        await addAndIngest(client, [s]);
-        await addAndIngest(client, [tx("3"), tx("4")]);
-        expect((await getTransfer(client, "1")).redundant).toBe(true);
-        expect((await getTransfer(client, "2")).redundant).toBe(true);
-        expect((await getTransfer(client, "3")).redundant).toBe(true);
-        expect((await getTransfer(client, "4")).redundant).toBe(true);
       })
     );
   });
@@ -703,39 +570,6 @@ describe("db/opensea/ingestEvents", () => {
     );
   });
 
-  describe("ask<->transfer interactions", () => {
-    it(
-      "a transfer cancels all older asks (asks ingested first)",
-      withTestDb(async ({ client }) => {
-        const a1 = ask({ id: "1", listingTime: "2020-01-01" });
-        const a2 = ask({ id: "2", listingTime: "2020-01-02" });
-        const a3 = ask({ id: "3", listingTime: "2020-01-03" });
-        const s = transfer({ id: "4", transactionTimestamp: "2020-01-02" });
-        const { projectId } = await exampleProjectAndToken({ client });
-        await addAndIngest(client, [a1, a2, a3]);
-        await addAndIngest(client, [s]);
-        expect((await getAsk(client, "1")).active).toBe(false);
-        expect((await getAsk(client, "2")).active).toBe(false);
-        expect((await getAsk(client, "3")).active).toBe(true);
-      })
-    );
-    it(
-      "a transfer cancels all older asks (transfer ingested first)",
-      withTestDb(async ({ client }) => {
-        const a1 = ask({ id: "1", listingTime: "2020-01-01" });
-        const a2 = ask({ id: "2", listingTime: "2020-01-02" });
-        const a3 = ask({ id: "3", listingTime: "2020-01-03" });
-        const s = transfer({ id: "4", transactionTimestamp: "2020-01-02" });
-        const { projectId } = await exampleProjectAndToken({ client });
-        await addAndIngest(client, [s]);
-        await addAndIngest(client, [a1, a2, a3]);
-        expect((await getAsk(client, "1")).active).toBe(false);
-        expect((await getAsk(client, "2")).active).toBe(false);
-        expect((await getAsk(client, "3")).active).toBe(true);
-      })
-    );
-  });
-
   describe("currency discovery", () => {
     const c1 = {
       address: "0x2222222222222222222222222222222222222222",
@@ -837,7 +671,7 @@ describe("db/opensea/ingestEvents", () => {
   it(
     "paginates as needed",
     withTestDb(async ({ client }) => {
-      const ev1 = transfer({ id: "1" });
+      const ev1 = ask({ id: "1" });
       const ev2 = ask({ id: "2" });
       const ev3 = cancellation({ id: "3" });
       const ev4 = sale({ id: "4" });
