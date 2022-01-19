@@ -100,7 +100,7 @@ async function cliSync(args) {
   }
   const ONE_DAY = 1000 * 60 * 60 * 24;
   const apiKey = process.env.OPENSEA_API_KEY;
-  const sleepDurationSeconds = args[0] == null ? 600 : args[0];
+  const sleepDurationSeconds = args[0] == null ? 1 : args[0];
   const sleepDurationMs = sleepDurationSeconds * 1000;
   // use a giant 1000 day window by default.
   // This is a good choice both for re-loading "fresh" projects (we'll
