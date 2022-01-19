@@ -1,9 +1,15 @@
 const ethers = require("ethers");
 
+const artblocks = require("../db/artblocks");
 const { addTransfers, getLastBlockNumber } = require("../db/erc721Transfers");
 const { acqrel } = require("../db/util");
 const log = require("../util/log")(__filename);
 const erc721Abi = require("./erc721Abi");
+
+const CONTRACTS = [
+  { address: artblocks.CONTRACT_ARTBLOCKS_LEGACY, startBlock: 11341469 },
+  { address: artblocks.CONTRACT_ARTBLOCKS_STANDARD, startBlock: 11438389 },
+];
 
 function makeProvider() {
   const apiKey = process.env.ALCHEMY_API_KEY;
@@ -25,18 +31,27 @@ async function erc721Transfers({
   );
 }
 
-async function ingestTransfersHistorical({
-  pool,
-  contractAddress,
-  initialStartBlock,
-}) {
+async function ingestTransfersHistorical({ pool }) {
   const provider = makeProvider();
+  await Promise.all(
+    CONTRACTS.map((contract) =>
+      ingestTransfersHistoricalForContract({ pool, provider, contract })
+    )
+  );
+}
+
+async function ingestTransfersHistoricalForContract({
+  pool,
+  provider,
+  contract,
+}) {
+  const contractAddress = contract.address;
   const lastFetchedBlock = await acqrel(pool, (client) =>
     getLastBlockNumber({ client, contractAddress })
   );
   log.debug`got last block number ${lastFetchedBlock} for ${contractAddress}`;
   const startBlock =
-    lastFetchedBlock == null ? initialStartBlock : lastFetchedBlock + 1;
+    lastFetchedBlock == null ? contract.startBlock : lastFetchedBlock + 1;
 
   const head = (await provider.getBlock("latest")).number;
   log.debug`will request blocks ${startBlock}..=${head}`;
@@ -92,6 +107,7 @@ async function ingestTransfers({
     );
     log.debug`inserted ${res.inserted}; deferred ${res.deferred}`;
   }
+  log.debug`done with transfers for ${contractAddress} through ${endBlock}`;
 }
 
 module.exports = {

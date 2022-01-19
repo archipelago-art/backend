@@ -541,17 +541,11 @@ async function tokenFeedWss(args) {
 }
 
 async function alchemyIngestTransfers(args) {
-  if (args.length !== 2) {
-    throw new Error("usage: alchemy-ingest-transfers <contract> <start-block>");
+  if (args.length !== 0) {
+    throw new Error("usage: alchemy-ingest-transfers");
   }
-  const [contractAddress, rawInitialStartBlock] = args;
-  const initialStartBlock = Number(rawInitialStartBlock);
   await withPool(async (pool) => {
-    await tokenTransfers.ingestTransfersHistorical({
-      pool,
-      contractAddress,
-      initialStartBlock,
-    });
+    await tokenTransfers.ingestTransfersHistorical({ pool });
   });
 }
 
