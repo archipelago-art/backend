@@ -82,7 +82,7 @@ async function ingestTransfers({
   const STRIDE = 2000;
   for (
     let fromBlock = startBlock, toBlock = startBlock + STRIDE - 1;
-    fromBlock < endBlock;
+    fromBlock <= endBlock;
     fromBlock += STRIDE, toBlock += STRIDE
   ) {
     log.debug`requesting transfers for ${contractAddress} in blocks ${fromBlock}..=${toBlock}`;
