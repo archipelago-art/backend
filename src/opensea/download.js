@@ -35,7 +35,7 @@ async function downloadWindow({
     since,
     until: windowEnd,
     apiKey,
-    eventTypes: ["successful", "created", "transfer", "cancelled"],
+    eventTypes: ["successful", "created", "cancelled"],
   });
   // Filter for asset != null to skip all the asset bundles, which we don't
   // care about (rare + very difficult to correctly attribute the price to the pieces)
@@ -65,7 +65,7 @@ async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
   for (const { contract, onChainId } of tokenSpecs) {
     const events = await fetchEventsByTypes({
       source: { contract },
-      eventTypes: ["successful", "created", "transfer", "cancelled"],
+      eventTypes: ["successful", "created", "cancelled"],
       apiKey,
       tokenId: onChainId,
     });
