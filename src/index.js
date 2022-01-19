@@ -11,7 +11,7 @@ const artblocks = require("./db/artblocks");
 const backfills = require("./db/backfills");
 const migrations = require("./db/migrations");
 const { acqrel, withPool, withClient } = require("./db/util");
-const { ingestTransfers } = require("./eth/tokenTransfers");
+const { ingestTransfersHistorical } = require("./eth/tokenTransfers");
 const images = require("./img");
 const { fetchProjectData } = require("./scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("./scrape/fetchArtblocksToken");
@@ -547,7 +547,11 @@ async function alchemyIngestTransfers(args) {
   const [contractAddress, rawInitialStartBlock] = args;
   const initialStartBlock = Number(rawInitialStartBlock);
   await withPool(async (pool) => {
-    await ingestTransfers({ pool, contractAddress, initialStartBlock });
+    await ingestTransfersHistorical({
+      pool,
+      contractAddress,
+      initialStartBlock,
+    });
   });
 }
 
