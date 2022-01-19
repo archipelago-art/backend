@@ -125,7 +125,6 @@ async function downloadAllCollections({ client, apiKey, windowDurationMs }) {
   for (const { slug, projectId, lastUpdated } of progress) {
     const timeSinceLastUpdateMs = Date.now() - +lastUpdated;
     if (timeSinceLastUpdateMs < FAST_SYNC_THRESHOLD) {
-      log.info`=== fast sync for ${slug} ===`;
       await syncProject({ client, slug, projectId, apiKey });
     } else {
       log.info`=== downloading events for ${slug} ===`;
