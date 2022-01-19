@@ -540,12 +540,23 @@ async function tokenFeedWss(args) {
   });
 }
 
-async function alchemyIngestTransfers(args) {
+async function alchemyBackfillTransfers(args) {
   if (args.length !== 0) {
-    throw new Error("usage: alchemy-ingest-transfers");
+    throw new Error("usage: alchemy-backfill-transfers");
   }
   await withPool(async (pool) => {
     await tokenTransfers.ingestTransfersHistorical({ pool });
+  });
+}
+
+async function alchemyFollowTransfers(args) {
+  if (args.length !== 0) {
+    throw new Error("usage: alchemy-follow-transfers");
+  }
+  await withPool(async (pool) => {
+    await tokenTransfers.ingestTransfersLive({ pool });
+    // Keep the pool open forever.
+    await new Promise(() => {});
   });
 }
 
@@ -631,7 +642,8 @@ async function main() {
     ["ingest-images", ingestImages],
     ["generate-image", generateImage],
     ["token-feed-wss", tokenFeedWss],
-    ["alchemy-ingest-transfers", alchemyIngestTransfers],
+    ["alchemy-backfill-transfers", alchemyBackfillTransfers],
+    ["alchemy-follow-transfers", alchemyFollowTransfers],
     ["alchemy-poke-transfers", alchemyPokeTransfers],
     ["opensea", opensea],
   ];

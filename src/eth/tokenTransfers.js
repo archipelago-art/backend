@@ -17,6 +17,52 @@ function makeProvider() {
   return new ethers.providers.AlchemyProvider(null, apiKey);
 }
 
+/**
+ * Starts listening for transfers. Once listening has started up, returns a
+ * callback to shut it down. The pool must stay open until that callback is
+ * called.
+ */
+async function ingestTransfersLive({ pool }) {
+  const provider = makeProvider();
+  const unlistens = await Promise.all(
+    CONTRACTS.map((contract) =>
+      ingestTransfersLiveForContract({ pool, provider, contract })
+    )
+  );
+  return () => unlistens.forEach((cb) => cb());
+}
+
+async function ingestTransfersLiveForContract({ pool, provider, contract }) {
+  // Ethers gives us events one at a time, but we need to process whole blocks
+  // at once to accurately track progress---so just wait until we see an event
+  // for a block and then re-fetch that whole block.
+  const processedBlocks = new Set();
+  async function ingestBlock(blockNumber) {
+    if (processedBlocks.has(blockNumber)) return;
+    processedBlocks.add(blockNumber);
+    log.debug`contract ${contract.address}: found transfers for block ${blockNumber}`;
+    await ingestTransfers({
+      pool,
+      provider,
+      contractAddress: contract.address,
+      startBlock: blockNumber,
+      endBlock: blockNumber,
+    });
+  }
+  async function processEvent(ev) {
+    await ingestBlock(ev.blockNumber);
+  }
+
+  const TRANSFER = "Transfer(address,address,uint256)";
+  const filter = {
+    address: contract.address,
+    topics: [ethers.utils.id(TRANSFER)],
+  };
+  log.debug`contract ${contract.address}: listening for ${TRANSFER} events`;
+  provider.on(filter, processEvent);
+  return () => provider.off(filter, processEvent);
+}
+
 async function ingestTransfersHistorical({ pool }) {
   const provider = makeProvider();
   await Promise.all(
@@ -103,4 +149,5 @@ async function ingestTransfers({
 module.exports = {
   ingestTransfersHistorical,
   ingestTransfersInRange,
+  ingestTransfersLive,
 };
