@@ -17,20 +17,6 @@ function makeProvider() {
   return new ethers.providers.AlchemyProvider(null, apiKey);
 }
 
-async function erc721Transfers({
-  provider,
-  contractAddress,
-  fromBlock,
-  toBlock,
-}) {
-  const contract = new ethers.Contract(contractAddress, erc721Abi, provider);
-  return await contract.queryFilter(
-    contract.filters.Transfer(),
-    fromBlock,
-    toBlock
-  );
-}
-
 async function ingestTransfersHistorical({ pool }) {
   const provider = makeProvider();
   await Promise.all(
@@ -88,6 +74,11 @@ async function ingestTransfers({
   startBlock,
   endBlock,
 }) {
+  const ethersContract = new ethers.Contract(
+    contractAddress,
+    erc721Abi,
+    provider
+  );
   const STRIDE = 2000;
   for (
     let fromBlock = startBlock, toBlock = startBlock + STRIDE - 1;
@@ -95,12 +86,11 @@ async function ingestTransfers({
     fromBlock += STRIDE, toBlock += STRIDE
   ) {
     log.debug`requesting transfers for ${contractAddress} in blocks ${fromBlock}..=${toBlock}`;
-    const transfers = await erc721Transfers({
-      provider,
-      contractAddress,
+    const transfers = await ethersContract.queryFilter(
+      ethersContract.filters.Transfer(),
       fromBlock,
-      toBlock: Math.min(toBlock, endBlock),
-    });
+      Math.min(toBlock, endBlock)
+    );
     log.debug`got ${transfers.length} transfers; sending to DB`;
     const res = await acqrel(pool, (client) =>
       addTransfers({ client, transfers })
