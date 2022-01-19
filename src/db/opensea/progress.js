@@ -37,7 +37,21 @@ async function setLastUpdated({ client, slug, until, projectId }) {
   );
 }
 
+async function getProgress({ client }) {
+  const res = await client.query(
+    `
+    SELECT
+      until AS "lastUpdated",
+      project_id AS "projectId",
+      opensea_slug AS slug
+    FROM opensea_progress
+    `
+  );
+  return res.rows;
+}
+
 module.exports = {
   getLastUpdated,
   setLastUpdated,
+  getProgress,
 };

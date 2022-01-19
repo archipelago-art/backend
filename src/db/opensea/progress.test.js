@@ -1,4 +1,4 @@
-const { setLastUpdated, getLastUpdated } = require("./progress");
+const { setLastUpdated, getLastUpdated, getProgress } = require("./progress");
 const { testDbProvider } = require("../testUtil");
 const { parseProjectData } = require("../../scrape/fetchArtblocksProject");
 const artblocks = require("../artblocks");
@@ -44,16 +44,15 @@ describe("db/opensea/progress", () => {
     })
   );
   it(
-    "project ids are set",
+    "getProgress works",
     withTestDb(async ({ client }) => {
       const { projectId } = await exampleProject(client);
       const slug = "awesome-drop-by-archipelago";
       const until = new Date("2021-01-01");
       await setLastUpdated({ client, slug, until, projectId });
-      const res = await client.query(
-        `SELECT project_id AS "projectId" FROM opensea_progress LIMIT 1`
-      );
-      expect(res.rows[0]).toEqual({ projectId });
+      const progress = await getProgress({ client });
+      const expected = [{ lastUpdated: until, slug, projectId }];
+      expect(progress).toEqual(expected);
     })
   );
 });
