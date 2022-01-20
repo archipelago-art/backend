@@ -540,15 +540,6 @@ async function tokenFeedWss(args) {
   });
 }
 
-async function alchemyBackfillTransfers(args) {
-  if (args.length !== 0) {
-    throw new Error("usage: alchemy-backfill-transfers");
-  }
-  await withPool(async (pool) => {
-    await tokenTransfers.ingestTransfersHistorical({ pool });
-  });
-}
-
 async function alchemyFollowTransfers(args) {
   if (args.length !== 0) {
     throw new Error("usage: alchemy-follow-transfers");
@@ -642,7 +633,6 @@ async function main() {
     ["ingest-images", ingestImages],
     ["generate-image", generateImage],
     ["token-feed-wss", tokenFeedWss],
-    ["alchemy-backfill-transfers", alchemyBackfillTransfers],
     ["alchemy-follow-transfers", alchemyFollowTransfers],
     ["alchemy-poke-transfers", alchemyPokeTransfers],
     ["opensea", opensea],
