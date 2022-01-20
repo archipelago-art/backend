@@ -31,7 +31,7 @@ async function ingestTransfersLiveForContract({ pool, provider, contract }) {
   let lastFetchedBlock = await acqrel(pool, (client) =>
     getLastBlockNumber({ client, contractAddress: contract.address })
   );
-  log.debug`contract ${contract.address}: got last block number ${lastFetchedBlock}}`;
+  log.debug`contract ${contract.address}: got last block number ${lastFetchedBlock}`;
 
   let head = (await provider.getBlock("latest")).number;
   let newBlocks = adHocPromise();
