@@ -10,6 +10,7 @@ const {
   askForToken,
   floorAskByProject,
   aggregateSalesByProject,
+  lastSalesByProject,
   asksForProject,
 } = require("./api");
 const artblocks = require("../artblocks");
@@ -28,6 +29,10 @@ describe("db/opensea/api", () => {
     await ingestEvents({ client });
   }
 
+  function dateToOpenseaString(d) {
+    // 2001-02-03T04:05:06.789Z -> 2001-02-03T04:05:06.789000
+    return d.toISOString().replace("Z", "000");
+  }
   function utcDateFromString(x) {
     return new Date(x + "Z");
   }
@@ -671,6 +676,91 @@ describe("db/opensea/api", () => {
         expect(await aggregateSalesByProject({ client })).toEqual([
           { projectId: archetypeId, totalEthSales: 1500n },
           { projectId: squigglesId, totalEthSales: 99n },
+        ]);
+      })
+    );
+  });
+
+  describe("lastSalesByProject", () => {
+    it(
+      "returns empty array if there are no sales for the project",
+      withTestDb(async ({ client }) => {
+        const { archetypeId } = await exampleProjectAndToken({ client });
+        expect(
+          await lastSalesByProject({
+            client,
+            projectId: archetypeId,
+          })
+        ).toEqual([]);
+      })
+    );
+    it(
+      "finds latest ETH/WETH sale for each token",
+      withTestDb(async ({ client }) => {
+        const { archetypeId, archetypeTokenId1, archetypeTokenId2 } =
+          await exampleProjectAndToken({ client });
+        const s1 = sale({
+          id: "1",
+          tokenId: snapshots.THE_CUBE,
+          price: "1000",
+          transactionTimestamp: dateToOpenseaString(new Date("2021-01-01")),
+          currency: wellKnownCurrencies.eth,
+        });
+        const s2 = sale({
+          id: "2",
+          tokenId: snapshots.THE_CUBE,
+          price: "1200",
+          transactionTimestamp: dateToOpenseaString(new Date("2021-01-02")),
+          currency: wellKnownCurrencies.weth9,
+        });
+        const s3 = sale({
+          id: "3",
+          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          price: "800",
+          transactionTimestamp: dateToOpenseaString(new Date("2021-01-03")),
+          currency: wellKnownCurrencies.eth,
+        });
+        // Irrelevant sale (wrong currency).
+        const s4 = sale({
+          id: "4",
+          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          price: "11111",
+          transactionTimestamp: dateToOpenseaString(new Date("2021-01-04")),
+          currency: wellKnownCurrencies.usdc, // sale will be ignored
+        });
+        // Irrelevant sale (wrong currency). This token has no relevant sales.
+        const s5 = sale({
+          id: "5",
+          tokenId: snapshots.ARCH_TRIPTYCH_2,
+          price: "22222",
+          transactionTimestamp: dateToOpenseaString(new Date("2021-01-05")),
+          currency: wellKnownCurrencies.usdc,
+        });
+        // Irrelevant sale (wrong project).
+        const s6 = sale({
+          id: "6",
+          tokenId: snapshots.PERFECT_CHROMATIC,
+          price: "75837583",
+          transactionTimestamp: dateToOpenseaString(new Date("2021-01-06")),
+          currency: wellKnownCurrencies.eth,
+        });
+        await addAndIngest(client, [s1, s2, s3, s4, s5]);
+        expect(
+          await lastSalesByProject({
+            client,
+            projectId: archetypeId,
+          })
+        ).toEqual([
+          {
+            tokenId: archetypeTokenId1,
+            saleTime: new Date("2021-01-02"),
+            priceWei: "1200",
+          },
+          {
+            tokenId: archetypeTokenId2,
+            saleTime: new Date("2021-01-03"),
+            priceWei: "800",
+          },
         ]);
       })
     );

@@ -120,6 +120,44 @@ async function floorAskByProject({ client, projectIds = null }) {
 }
 
 /**
+ * Get the most recent sale (timestamp and price) for each token in the
+ * project. Sales not in ETH/WETH are ignored. Tokens with no ETH/WETH sales
+ * are omitted from the output.
+ */
+async function lastSalesByProject({ client, projectId }) {
+  const res = await client.query(
+    `
+    SELECT
+      token_id AS "tokenId",
+      sale_time AS "saleTime",
+      price_wei AS "priceWei"
+    FROM (
+      SELECT
+        token_id,
+        transaction_timestamp AS sale_time,
+        price AS price_wei,
+        row_number() OVER (
+          PARTITION BY token_id
+          ORDER BY transaction_timestamp DESC
+        ) AS recency
+      FROM opensea_sales
+      WHERE
+        project_id = $1::projectid
+        AND currency_id IN ($2::currencyid, $3::currencyid)
+    ) AS q
+    WHERE recency = 1
+    ORDER BY token_id
+    `,
+    [
+      projectId,
+      wellKnownCurrencies.eth.currencyId,
+      wellKnownCurrencies.weth9.currencyId,
+    ]
+  );
+  return res.rows;
+}
+
+/**
  * Get the lowest open ask for each token in a project.
  * Returns an object with tokenIds as keys and BigInt eth prices as values.
  * Only tokenIds that have at least one active ETH-priced ask will be included.
@@ -215,6 +253,7 @@ module.exports = {
   askForToken,
   floorAskByProject,
   aggregateSalesByProject,
+  lastSalesByProject,
   asksForProject,
   salesByToken,
 };
