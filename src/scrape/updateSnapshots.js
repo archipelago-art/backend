@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { promisify } = require("util");
 
-const { fetchProjectHtml } = require("./fetchArtblocksProject");
+const { fetchProjectText } = require("./fetchArtblocksProject");
 const { fetchTokenJsonText } = require("./fetchArtblocksToken");
 const {
   PROJECTS_AND_PHANTOM_PROJECTS,
@@ -10,9 +10,9 @@ const {
 } = require("./snapshots");
 
 async function downloadProject(projectId) {
-  const html = await fetchProjectHtml(projectId);
+  const text = await fetchProjectText(projectId);
   const dest = locations.projectPath(projectId);
-  await promisify(fs.writeFile)(dest, html);
+  await promisify(fs.writeFile)(dest, text);
 }
 
 async function downloadToken(tokenId) {

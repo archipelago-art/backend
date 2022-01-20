@@ -20,7 +20,7 @@ describe("scrape/fetchArtblocksProject", () => {
       maxInvocations: 600,
       script: expect.stringMatching(
         // Make sure that HTML entities like "&amp;" and "&lt;" get decoded.
-        /^(?:let seed =).*(?:is_bright && rng\(\) < \.25).*(?:})$/s
+        /^(?:let seed=).*(?:is_bright&&rng\(\)<\.25).*(?:})$/s
       ),
     });
   });
@@ -44,7 +44,9 @@ describe("scrape/fetchArtblocksProject", () => {
   });
 
   it("parses a no-such-project response", () => {
-    expect(parseProjectData(9999, "project does not exist")).toBe(null);
+    expect(
+      parseProjectData(9999, JSON.stringify({ data: { projects: [] } }))
+    ).toBe(null);
   });
 
   it("parses a phantom project response", async () => {

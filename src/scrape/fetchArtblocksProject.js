@@ -1,12 +1,26 @@
-const htmlParser = require("node-html-parser");
-
 const { fetchWithRetries } = require("./retryFetch");
 
-const PROJECT_URL_BASE = "https://api.artblocks.io/project";
+const THEGRAPH_API =
+  "https://api.thegraph.com/subgraphs/name/artblocks/art-blocks";
 
-// Response body from Art Blocks API when a project doesn't exist. (Yes, the
-// status is 200 OK.)
-const ENOENT = "project does not exist";
+const GQL_PROJECT_QUERY = `
+query GetProject($projectId: Int!, $contracts: [String!]) {
+  projects(where: { projectId: $projectId, contract_in: $contracts }) {
+    projectId
+    name
+    description
+    artistName
+    scriptJson: scriptJSON
+    maxInvocations
+    script
+  }
+}
+`;
+
+// These must be all lowercase.
+const CONTRACT_ARTBLOCKS_LEGACY = "0x059edd72cd353df5106d2b9cc5ab83a52287ac3a";
+const CONTRACT_ARTBLOCKS_STANDARD =
+  "0xa7d8d9ef8d8ce8992df33d8b8cf4aebabd5bd270";
 
 function normalizeProjectId(projectId) {
   const result = Number.parseInt(projectId, 10);
@@ -14,32 +28,63 @@ function normalizeProjectId(projectId) {
   return result;
 }
 
-async function fetchProjectHtml(projectId) {
-  const url = `${PROJECT_URL_BASE}/${normalizeProjectId(projectId)}`;
-  return (await fetchWithRetries(url, { timeout: 5000 })).text;
+async function fetchProjectText(projectId) {
+  const payload = {
+    query: GQL_PROJECT_QUERY,
+    variables: {
+      projectId: normalizeProjectId(projectId),
+      contracts: [CONTRACT_ARTBLOCKS_LEGACY, CONTRACT_ARTBLOCKS_STANDARD],
+    },
+  };
+  const res = await fetchWithRetries(THEGRAPH_API, {
+    timeout: 5000,
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.text;
 }
 
-function parseProjectData(projectId, html) {
-  const body = htmlParser.parse(html);
-  if (html === ENOENT) return null;
-  const artistName = findByInnerText(body, "h3", /^Artist: (.*)$/s)[1];
-  const description = findByInnerText(body, "h3", /^Description: (.*)$/s)[1];
-  if (artistName.length === 0 && description.length === 0) {
+function parseProjectData(projectId, text) {
+  const json = JSON.parse(text);
+  if (
+    typeof json !== "object" ||
+    typeof json.data !== "object" ||
+    !Array.isArray(json.data.projects)
+  ) {
+    throw new Error("unexpected JSON response: " + JSON.stringify(json));
+  }
+  const projects = json.data.projects;
+
+  if (projects.length === 0) return null;
+  if (projects.length > 1) {
+    throw new Error("multiple matches: " + JSON.stringify(json));
+  }
+  const project = projects[0];
+
+  projectId = normalizeProjectId(projectId);
+  const returnedProjectId = normalizeProjectId(project.projectId);
+  if (projectId !== returnedProjectId) {
+    throw new Error(
+      `wrong project: ` +
+        `${JSON.stringify(returnedProjectId)} !== ${JSON.stringify(projectId)}`
+    );
+  }
+
+  const { description, artistName } = project;
+  if ((artistName || "").length === 0 && (description || "").length === 0) {
     // Projects like 128 and 155 appear to be abandoned drafts or something.
     // They have obscenely high invocation counts but no actual data or tokens.
     return null;
   }
+
   return {
-    projectId: normalizeProjectId(projectId),
+    projectId: returnedProjectId,
     artistName,
     description,
-    scriptJson: findByInnerText(body, "p", /^Script JSON: (.*)$/s)[1],
-    name: findByInnerText(body, "h1", /^Name: (.*)$/s)[1],
-    maxInvocations: Number.parseInt(
-      findByInnerText(body, "p", /^Maximum Invocations: ([0-9]+)$/s)[1],
-      10
-    ),
-    script: findByInnerText(body, "pre", /.*/s)[0],
+    scriptJson: project.scriptJson,
+    name: project.name,
+    maxInvocations: Number.parseInt(project.maxInvocations, 10),
+    script: project.script,
   };
 }
 
@@ -56,11 +101,11 @@ function findByInnerText(root, selector, re) {
 }
 
 async function fetchProjectData(projectId) {
-  return parseProjectData(projectId, await fetchProjectHtml(projectId));
+  return parseProjectData(projectId, await fetchProjectText(projectId));
 }
 
 module.exports = {
-  fetchProjectHtml,
+  fetchProjectText,
   parseProjectData,
   fetchProjectData,
 };
