@@ -1,7 +1,11 @@
 const ethers = require("ethers");
 
 const artblocks = require("../db/artblocks");
-const { addTransfers, getLastBlockNumber } = require("../db/erc721Transfers");
+const {
+  addTransfers,
+  getLastBlockNumber,
+  undeferTransfers: _undeferTransfers,
+} = require("../db/erc721Transfers");
 const { acqrel } = require("../db/util");
 const adHocPromise = require("../util/adHocPromise");
 const log = require("../util/log")(__filename);
@@ -117,7 +121,13 @@ async function ingestTransfers({
   return totalTransfers;
 }
 
+async function undeferTransfers({ pool }) {
+  const n = await acqrel(pool, (client) => _undeferTransfers({ client }));
+  log.info`undeferred ${n} events`;
+}
+
 module.exports = {
   ingestTransfersLive,
   ingestTransfersInRange,
+  undeferTransfers,
 };

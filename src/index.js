@@ -570,6 +570,15 @@ async function alchemyPokeTransfers(args) {
   });
 }
 
+async function alchemyUndeferTransfers(args) {
+  if (args.length !== 0) {
+    throw new Error("usage: alchemy-undefer-transfers");
+  }
+  await withPool(async (pool) => {
+    await tokenTransfers.undeferTransfers({ pool });
+  });
+}
+
 async function generateImage(args) {
   if (args.length !== 3) {
     throw new Error("usage: generate-image <slug> <token-index> <outfile>");
@@ -635,6 +644,7 @@ async function main() {
     ["token-feed-wss", tokenFeedWss],
     ["alchemy-follow-transfers", alchemyFollowTransfers],
     ["alchemy-poke-transfers", alchemyPokeTransfers],
+    ["alchemy-undefer-transfers", alchemyUndeferTransfers],
     ["opensea", opensea],
   ];
   for (const [name, fn] of commands) {

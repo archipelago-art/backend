@@ -19,6 +19,12 @@ function logAddressToBuf(hexString) {
  */
 async function addTransfers({ client, transfers }) {
   await client.query("BEGIN");
+  const res = await addTransfersNontransactionally({ client, transfers });
+  await client.query("COMMIT");
+  return res;
+}
+
+async function addTransfersNontransactionally({ client, transfers }) {
   const insertsRes = await client.query(
     `
     INSERT INTO erc_721_transfers (
@@ -99,8 +105,45 @@ async function addTransfers({ client, transfers }) {
       transfers.map((x) => x.blockHash),
     ]
   );
-  await client.query("COMMIT");
   return { inserted: insertsRes.rowCount, deferred: missingTransfers.length };
+}
+
+async function undeferTransfers({ client }) {
+  await client.query("BEGIN");
+  const readyRes = await client.query(
+    `
+    SELECT log_object AS transfer
+    FROM erc_721_transfers_deferred JOIN tokens USING (token_contract, on_chain_token_id)
+    `
+  );
+  const transfers = readyRes.rows.map((row) => row.transfer);
+  await addTransfersNontransactionally({ client, transfers });
+  const deleteRes = await client.query(
+    `
+    DELETE FROM erc_721_transfers_deferred AS t
+    USING unnest($1::address[], $2::uint256[], $3::text[], $4::text[])
+      AS d(token_contract, on_chain_token_id, block_hash, log_index)
+    WHERE
+      t.token_contract = d.token_contract
+      AND t.on_chain_token_id = d.on_chain_token_id
+      AND t.log_object->>'blockHash' = d.block_hash
+      AND t.log_object->>'logIndex' = d.log_index
+    `,
+    [
+      transfers.map((x) => hexToBuf(x.address)),
+      transfers.map((x) => String(ethers.BigNumber.from(x.topics[3]))),
+      transfers.map((x) => x.blockHash),
+      transfers.map((x) => String(x.logIndex)),
+    ]
+  );
+  if (deleteRes.rowCount !== transfers.length) {
+    throw new Error(
+      `expected to delete ${transfers.length} deferral records, ` +
+        `but deleted ${deleteRes.rowCount}`
+    );
+  }
+  await client.query("COMMIT");
+  return transfers.length;
 }
 
 async function getLastBlockNumber({ client, contractAddress }) {
@@ -145,4 +188,5 @@ module.exports = {
   addTransfers,
   getLastBlockNumber,
   getTransfersForToken,
+  undeferTransfers,
 };
