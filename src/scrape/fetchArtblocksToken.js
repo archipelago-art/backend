@@ -1,5 +1,3 @@
-const htmlParser = require("node-html-parser");
-
 const { fetchWithRetries } = require("./retryFetch");
 
 const TOKEN_URL_BASE = "https://api.artblocks.io/token";
