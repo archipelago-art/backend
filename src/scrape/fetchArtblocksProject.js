@@ -88,18 +88,6 @@ function parseProjectData(projectId, text) {
   };
 }
 
-function findByInnerText(root, selector, re) {
-  const matches = [];
-  for (const el of root.querySelectorAll(selector)) {
-    const match = el.text.match(re);
-    if (match) matches.push(match);
-  }
-  if (matches.length === 0) throw new Error(`no matches for ${re}`);
-  if (matches.length > 1)
-    throw new Error(`multiple matches for ${re}: ${matches.join("; ")}`);
-  return matches[0];
-}
-
 async function fetchProjectData(projectId) {
   return parseProjectData(projectId, await fetchProjectText(projectId));
 }
