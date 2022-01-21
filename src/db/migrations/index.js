@@ -81,6 +81,7 @@ const migrationModules = [
   "./0071_opensea_progress_project_id",
   "./0072_opensea_progress_primary_key",
   "./0073_drop_opensea_transfers",
+  "./0074_index_opensea_sales_by_project",
   // ...
 ];
 
