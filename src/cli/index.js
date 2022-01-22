@@ -1,0 +1,20 @@
+const commands = [
+  ["init", require("./init")],
+  ["migrate", require("./migrate")],
+  ["backfill", require("./backfill")],
+  ["add-project", require("./addProject")],
+  ["add-token", require("./addToken")],
+  ["add-project-tokens", require("./addProjectTokens")],
+  ["update-suspicious-tokens", require("./updateSuspiciousTokens")],
+  ["prune-empty-traits", require("./pruneEmptyTraits")],
+  ["follow-live-mint", require("./followLiveMint")],
+  ["ingest-images", require("./ingestImages")],
+  ["generate-image", require("./generateImage")],
+  ["token-feed-wss", require("./tokenFeedWss")],
+  ["alchemy-follow-transfers", require("./alchemyFollowTransfers")],
+  ["alchemy-poke-transfers", require("./alchemyPokeTransfers")],
+  ["alchemy-undefer-transfers", require("./alchemyUndeferTransfers")],
+  ["opensea", require("./opensea")],
+];
+
+module.exports = commands;

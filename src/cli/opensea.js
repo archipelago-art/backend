@@ -131,7 +131,7 @@ async function cli(outerArgs, self) {
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
-      return await fn(args);
+      return await fn(args, name);
     }
   }
   console.error(`Unknown command: ${self} ${arg0}`);
