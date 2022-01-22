@@ -46,7 +46,7 @@ function parseTokenData(text, { checkFeaturesPresent = true } = {}) {
       Object.keys(parsed.features).length === 0 &&
       !PROJECTS_THAT_MAY_OMIT_FEATURES.has(projectId)
     )
-      throw new Error(`empty "features": ${text}`);
+      throw new Error(`empty "features": ${JSON.stringify(parsed.features)}`);
     return { found: true, raw: text, parsed };
   } catch (e) {
     throw new Error(`invalid JSON: ${e.message}`);
