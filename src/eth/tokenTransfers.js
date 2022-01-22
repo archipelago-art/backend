@@ -9,6 +9,7 @@ const {
 const { acqrel } = require("../db/util");
 const adHocPromise = require("../util/adHocPromise");
 const log = require("../util/log")(__filename);
+const retry = require("../util/retry");
 const erc721Abi = require("./erc721Abi");
 
 const CONTRACTS = [
@@ -20,6 +21,33 @@ function makeProvider() {
   const apiKey = process.env.ALCHEMY_API_KEY;
   if (apiKey == null) throw new Error("missing ALCHEMY_API_KEY");
   return new ethers.providers.AlchemyProvider(null, apiKey);
+}
+
+const retryableCodes = [
+  ethers.errors.SERVER_ERROR,
+  ethers.errors.NETWORK_ERROR,
+  ethers.errors.TIMEOUT,
+];
+
+async function retryEthers(cb) {
+  async function attempt() {
+    try {
+      const value = await cb();
+      return { type: "DONE", value };
+    } catch (e) {
+      if (e.code != null && retryableCodes.includes(e.code)) {
+        log.debug`retrying Ethers operation due to ${e.code}: ${e}`;
+        return { type: "RETRY", err: e };
+      }
+      return { type: "FATAL", err: e };
+    }
+  }
+  const res = await retry(attempt);
+  if (res.type === "DONE") {
+    return res.value;
+  } else {
+    throw res.err;
+  }
 }
 
 async function ingestTransfersLive({ pool }) {
@@ -37,7 +65,7 @@ async function ingestTransfersLiveForContract({ pool, provider, contract }) {
   );
   log.debug`contract ${contract.address}: got last block number ${lastFetchedBlock}`;
 
-  let head = (await provider.getBlock("latest")).number;
+  let head = (await retryEthers(() => provider.getBlock("latest"))).number;
   let newBlocks = adHocPromise();
   provider.on("block", (blockNumber) => {
     head = blockNumber;
@@ -105,10 +133,12 @@ async function ingestTransfers({
     fromBlock += STRIDE, toBlock += STRIDE
   ) {
     log.debug`requesting transfers for ${contractAddress} in blocks ${fromBlock}..=${toBlock}`;
-    const transfers = await ethersContract.queryFilter(
-      ethersContract.filters.Transfer(),
-      fromBlock,
-      Math.min(toBlock, endBlock)
+    const transfers = await retryEthers(() =>
+      ethersContract.queryFilter(
+        ethersContract.filters.Transfer(),
+        fromBlock,
+        Math.min(toBlock, endBlock)
+      )
     );
     totalTransfers += transfers.length;
     log.debug`got ${transfers.length} transfers; sending to DB`;
