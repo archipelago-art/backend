@@ -5,6 +5,7 @@ const commands = [
   ["add-project", require("./addProject")],
   ["add-token", require("./addToken")],
   ["add-project-tokens", require("./addProjectTokens")],
+  ["follow-chain-tokens", require("./followChainTokens")],
   ["update-suspicious-tokens", require("./updateSuspiciousTokens")],
   ["prune-empty-traits", require("./pruneEmptyTraits")],
   ["follow-live-mint", require("./followLiveMint")],

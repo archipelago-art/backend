@@ -184,9 +184,34 @@ async function getTransfersForToken({ client, tokenId }) {
   }));
 }
 
+/**
+ * Gets all on-chain token IDs on the given contracts that have deferred
+ * transfer events and do not yet exist in `tokens`.
+ */
+async function getPendingDeferrals({ client, tokenContracts }) {
+  const res = await client.query(
+    `
+    SELECT DISTINCT
+      token_contract AS "tokenContract",
+      on_chain_token_id AS "onChainTokenId"
+    FROM
+      erc_721_transfers_deferred
+      LEFT OUTER JOIN tokens USING (token_contract, on_chain_token_id)
+    WHERE tokens.token_id IS NULL AND token_contract = ANY($1::address[])
+    ORDER BY token_contract, on_chain_token_id
+    `,
+    [tokenContracts.map(hexToBuf)]
+  );
+  return res.rows.map((row) => ({
+    tokenContract: bufToAddress(row.tokenContract),
+    onChainTokenId: row.onChainTokenId,
+  }));
+}
+
 module.exports = {
   addTransfers,
   getLastBlockNumber,
   getTransfersForToken,
   undeferTransfers,
+  getPendingDeferrals,
 };
