@@ -119,7 +119,7 @@ async function cliSync(args) {
   });
 }
 
-async function cli(outerArgs) {
+async function cli(outerArgs, self) {
   const [arg0, ...args] = outerArgs;
   const commands = [
     ["download-collection", cliDownloadCollection],
@@ -134,10 +134,10 @@ async function cli(outerArgs) {
       return await fn(args);
     }
   }
-  console.error("Unknown command: " + arg0);
+  console.error(`Unknown command: ${self} ${arg0}`);
   console.error("Available commands:");
   for (const [name] of commands) {
-    console.error(" ".repeat(4) + name);
+    console.error(" ".repeat(4) + `${self} ${name}`);
   }
   process.exitCode = 1;
 }
