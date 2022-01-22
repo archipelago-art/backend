@@ -25,7 +25,7 @@ async function fetchTokenJsonText(tokenId) {
   }
 }
 
-function parseTokenData(text, { checkFeaturesPresent = false } = {}) {
+function parseTokenData(text, { checkFeaturesPresent = true } = {}) {
   if (text == null) {
     return { found: false };
   }
