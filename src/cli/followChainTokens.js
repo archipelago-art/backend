@@ -4,21 +4,47 @@ const { acqrel, withPool } = require("../db/util");
 const tokenTransfers = require("../eth/tokenTransfers");
 const { fetchProjectData } = require("../scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("../scrape/fetchArtblocksToken");
+const adHocPromise = require("../util/adHocPromise");
 const log = require("../util/log")(__filename);
 
 const NETWORK_CONCURRENCY = 32;
-const SLEEP_DELAY_MS = 1000 * 10;
+// After each loop, wait until a new deferral event or for this many seconds,
+// whichever comes first.
+const MAX_DELAY_SECONDS = 60;
 
 async function sleepMs(ms) {
   await new Promise((res) => void setTimeout(res, ms));
 }
 
+function makeWakePromise() {
+  const p = adHocPromise();
+  p.promise.then(
+    (payload) => log.info`scheduling wake for new deferral: ${payload}`
+  );
+  return p;
+}
+
 async function followChainTokens(args) {
   await withPool(async (pool) => {
-    while (true) {
-      await followChainTokensOnce(pool);
-      await sleepMs(SLEEP_DELAY_MS);
-    }
+    let newDeferrals = makeWakePromise();
+    await acqrel(pool, async (listenClient) => {
+      listenClient.on("notification", (n) => {
+        if (n.channel !== erc721Transfers.deferralsChannel.name) return;
+        newDeferrals.resolve(n.payload);
+      });
+      await erc721Transfers.deferralsChannel.listen(listenClient);
+
+      while (true) {
+        await followChainTokensOnce(pool);
+        log.info`sleeping for up to ${MAX_DELAY_SECONDS} seconds`;
+        const wakeReason = await Promise.race([
+          sleepMs(MAX_DELAY_SECONDS * 1000).then(() => "sleep"),
+          newDeferrals.promise.then(() => "new deferrals notification"),
+        ]);
+        log.info`woke from ${wakeReason}`;
+        newDeferrals = makeWakePromise();
+      }
+    });
   });
 }
 

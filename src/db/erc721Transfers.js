@@ -1,7 +1,12 @@
+const ethers = require("ethers");
+
+const log = require("../util/log")(__filename);
+const events = require("./events");
 const { ObjectType, newIds } = require("./id");
 const { hexToBuf, bufToAddress } = require("./util");
-const ethers = require("ethers");
-const log = require("../util/log")(__filename);
+
+// Event payloads are JSON `{ tokenContract: address, onChainTokenId: string }`.
+const deferralsChannel = events.channel("erc721_transfers_deferred");
 
 function logAddressToBuf(hexString) {
   const address = ethers.utils.hexDataSlice(hexString, 12);
@@ -84,6 +89,14 @@ async function addTransfersNontransactionally({ client, transfers }) {
       missingTransfers.map((x) => JSON.stringify(x)),
     ]
   );
+  const messages = new Set();
+  for (const x of missingTransfers) {
+    const tokenContract = ethers.utils.getAddress(x.address);
+    const onChainTokenId = String(ethers.BigNumber.from(x.topics[3]));
+    const msg = JSON.stringify({ tokenContract, onChainTokenId });
+    messages.add(msg);
+  }
+  await deferralsChannel.sendMany(client, Array.from(messages).map(JSON.parse));
 
   await client.query(
     `
@@ -209,6 +222,7 @@ async function getPendingDeferrals({ client, tokenContracts }) {
 }
 
 module.exports = {
+  deferralsChannel,
   addTransfers,
   getLastBlockNumber,
   getTransfersForToken,
