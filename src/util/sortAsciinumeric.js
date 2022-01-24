@@ -8,7 +8,40 @@ function sortAsciinumeric(xs, key = (s) => s) {
   return schwartz.sort((a, b) => cmp(a.key, b.key)).map((x) => x.value);
 }
 
-const GROUP_RE = /^(?:[^0-9.+-]+|[0-9.+-]+)/;
+const GROUP_RE = /^(?:\s+|[0-9.+-]+|[^\s0-9.+-]+)/;
+
+const NUMBERS = (() => {
+  const raw = [
+    ["none", "zero"],
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+    "twenty",
+  ];
+  const result = new Map();
+  for (let i = 0; i < raw.length; i++) {
+    for (const key of [raw[i]].flat()) {
+      result.set(key, i);
+    }
+  }
+  return result;
+})();
 
 function canonicalize(s) {
   const result = [];
@@ -20,9 +53,10 @@ function canonicalize(s) {
       break;
     }
     const group = match[0];
-    const num = Number(group);
-    result.push(Number.isFinite(num) ? num : group);
     s = s.slice(group.length);
+    if (group.match(/^\s*$/)) continue;
+    const num = Number(NUMBERS.get(group.toLowerCase()) ?? group);
+    result.push(Number.isFinite(num) ? num : group);
   }
   return result;
 }

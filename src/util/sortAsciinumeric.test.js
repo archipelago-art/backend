@@ -25,6 +25,45 @@ describe("util/sortAsciinumeric", () => {
     expect(output).toEqual(["Left", "Left-tilt", "Right", "Right-tilt"]);
   });
 
+  it("handles numeric English strings", () => {
+    const input = [
+      "Eight flowers",
+      "Five flowers",
+      "Four flowers",
+      "Nine flowers",
+      "None",
+      "One flower",
+      "Seven flowers",
+      "Six flowers",
+      "Ten flowers",
+      "Three flowers",
+      "Two flowers",
+    ];
+    const output = sortAsciinumeric(input);
+    const expected = [
+      "None",
+      "One flower",
+      "Two flowers",
+      "Three flowers",
+      "Four flowers",
+      "Five flowers",
+      "Six flowers",
+      "Seven flowers",
+      "Eight flowers",
+      "Nine flowers",
+      "Ten flowers",
+    ];
+    expect(output).toEqual(expected);
+  });
+
+  it('sorts "None" before categorical values', () => {
+    // This is really a side-effect of treating "None" as a number, but it's
+    // kind of nice, so let's at least document it.
+    const input = ["Contracting", "Expanding", "None"];
+    const output = sortAsciinumeric(input);
+    expect(output).toEqual(["None", "Contracting", "Expanding"]);
+  });
+
   it("allows projecting keys", () => {
     const input = [
       { value: "1 in 23", id: "a" },
