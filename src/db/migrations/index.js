@@ -1,4 +1,5 @@
 const child_process = require("child_process");
+const crypto = require("crypto");
 const fs = require("fs");
 const { join } = require("path");
 const util = require("util");
@@ -83,6 +84,7 @@ const migrationModules = [
   "./0073_drop_opensea_transfers",
   "./0074_index_opensea_sales_by_project",
   "./0075_bidid_askid",
+  // "./0076_migration_log",
   // ...
 ];
 
@@ -104,8 +106,46 @@ const [migrationsInRollup, migrationsSinceRollup] = (() => {
 async function apply({ client, migrations, verbose }) {
   for (const { name, migration } of migrations) {
     if (verbose) log.info`applying: ${name}`;
+    // Best-effort attempt to apply migration plus log entry in the same
+    // transaction, but if the migration script commits, there's nothing we can
+    // do about it. That's okay.
+    await client.query("BEGIN");
     await migration.up({ client, verbose });
+    await client.query("BEGIN"); // in case client committed
+    await client.query("SAVEPOINT migration_applied");
+    try {
+      const migrationId = crypto.randomBytes(8).readBigUint64LE() >> 1n;
+      const blobHash = await migrationBlobHash(name);
+      await client.query(
+        `
+        INSERT INTO migration_log (migration_id, name, timestamp, blob_hash)
+        VALUES ($1, $2, now(), $3)
+        `,
+        [migrationId, name, blobHash]
+      );
+    } catch (e) {
+      // 42P01 "undefined_table" fires when running a migration earlier than
+      // the migration that creates the `migration_log` table. Nothing to do.
+      if (e.code === "42P01") {
+        await client.query("ROLLBACK TO migration_applied");
+      } else {
+        throw e;
+      }
+    }
+    await client.query("COMMIT");
   }
+}
+
+// Returns a buffer with the SHA-1 hash of `"blob %d\0%s" % (buf.length, buf)`,
+// where `buf` is the file contents of the migration with the given name. This
+// coincides with `git hash-object -t blob MIGRATION_FILE`.
+async function migrationBlobHash(name) {
+  const filename = join(__dirname, `${name}.js`);
+  const contents = await util.promisify(fs.readFile)(filename);
+  const hasher = crypto.createHash("sha1"); // per Git
+  hasher.update(`blob ${contents.length}\0`, "utf-8");
+  hasher.update(contents);
+  return hasher.digest();
 }
 
 /*
