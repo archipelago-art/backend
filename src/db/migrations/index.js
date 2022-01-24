@@ -185,6 +185,12 @@ async function applyAll({ pool, verbose, fromScratch = false }) {
 async function generateRollupSql() {
   const withDb = testDbProvider({ migrate: false });
   return await withDb(async ({ database, client }) => {
+    if (typeof database !== "string" || !database.match(/^[a-z_][a-z0-9_]*$/)) {
+      throw new Error(
+        `database name may not be a SQL-safe identifier: ${database}`
+      );
+    }
+    await client.query(`ALTER DATABASE ${database} SET timezone TO 'UTC'`);
     await apply({ client, migrations: migrationsInRollup, verbose: true });
     const res = await util.promisify(child_process.execFile)("pg_dump", [
       // Omit `ALTER my_table OWNER TO my_role` on every object; this dump
