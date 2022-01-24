@@ -8,6 +8,7 @@ const commands = [
   ["follow-chain-tokens", require("./followChainTokens")],
   ["update-suspicious-tokens", require("./updateSuspiciousTokens")],
   ["prune-empty-traits", require("./pruneEmptyTraits")],
+  ["dump-trait-ordering", require("./dumpTraitOrdering")],
   ["follow-live-mint", require("./followLiveMint")],
   ["ingest-images", require("./ingestImages")],
   ["generate-image", require("./generateImage")],

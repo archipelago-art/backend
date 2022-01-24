@@ -383,6 +383,24 @@ async function getProjectFeaturesAndTraits({ client, projectId }) {
   return result;
 }
 
+async function getAllFeaturesAndTraitsOnly({ client }) {
+  const res = await client.query(
+    `
+    SELECT
+      projects.slug AS "projectSlug",
+      features.name AS "featureName",
+      jsonb_agg(traits.value ORDER BY traits.value->>0) AS "traitValues"
+    FROM
+      projects
+      JOIN features USING (project_id)
+      JOIN traits USING (feature_id)
+    GROUP BY projects.project_id, features.feature_id
+    ORDER BY projects.project_id, features.feature_id
+    `
+  );
+  return res.rows;
+}
+
 /**
  * Finds distinct traits for the same feature that have the same value after
  * JSON stringification: e.g., `"0"` vs `0`, or `"null"` vs `null`. Returns all
@@ -753,6 +771,7 @@ module.exports = {
   addToken,
   updateTokenData,
   getProjectFeaturesAndTraits,
+  getAllFeaturesAndTraitsOnly,
   findSuspiciousTraits,
   findSuspiciousTraitlessTokens,
   getArtblocksTokenIds,
