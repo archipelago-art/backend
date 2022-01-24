@@ -94,7 +94,7 @@ const migrations = migrationModules.map((path) => ({
 }));
 
 const ROLLUP_SQL_PATH = join(__dirname, "rollup.sql");
-const lastMigrationInRollupName = "0065_drop_legacy_id_sequences";
+const lastMigrationInRollupName = "0076_migration_log";
 const [migrationsInRollup, migrationsSinceRollup] = (() => {
   const lastIncluded = migrations.findIndex(
     (m) => m.name === lastMigrationInRollupName

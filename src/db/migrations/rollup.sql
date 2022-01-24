@@ -1,6 +1,6 @@
 --- Archipelago SQL schema rollup
---- Generated: 2022-01-02T01:16:59.626Z
---- Scope: 65 migrations, through 0065_drop_legacy_id_sequences
+--- Generated: 2022-01-24T20:34:13.307Z
+--- Scope: 76 migrations, through 0076_migration_log
 
 --
 -- PostgreSQL database dump
@@ -29,11 +29,27 @@ CREATE DOMAIN public.address AS bytea
 
 
 --
+-- Name: askid; Type: DOMAIN; Schema: public; Owner: -
+--
+
+CREATE DOMAIN public.askid AS bigint
+	CONSTRAINT askid_type CHECK ((((VALUE >> 58) & (63)::bigint) = 7));
+
+
+--
+-- Name: bidid; Type: DOMAIN; Schema: public; Owner: -
+--
+
+CREATE DOMAIN public.bidid AS bigint
+	CONSTRAINT bidid_type CHECK ((((VALUE >> 58) & (63)::bigint) = 6));
+
+
+--
 -- Name: currencyid; Type: DOMAIN; Schema: public; Owner: -
 --
 
 CREATE DOMAIN public.currencyid AS bigint
-	CONSTRAINT tokenid_range CHECK (((VALUE >= '1441151880758558720'::bigint) AND (VALUE <= '1729382256910270463'::bigint)));
+	CONSTRAINT currencyid_type CHECK ((((VALUE >> 58) & (63)::bigint) = 5));
 
 
 --
@@ -41,7 +57,7 @@ CREATE DOMAIN public.currencyid AS bigint
 --
 
 CREATE DOMAIN public.featureid AS bigint
-	CONSTRAINT featureid_range CHECK (((VALUE >= '864691128455135232'::bigint) AND (VALUE <= '1152921504606846975'::bigint)));
+	CONSTRAINT featureid_type CHECK ((((VALUE >> 58) & (63)::bigint) = 3));
 
 
 --
@@ -64,7 +80,7 @@ CREATE TYPE public.opensea_event_type AS ENUM (
 --
 
 CREATE DOMAIN public.projectid AS bigint
-	CONSTRAINT projectid_range CHECK (((VALUE >= '576460752303423488'::bigint) AND (VALUE <= '864691128455135231'::bigint)));
+	CONSTRAINT projectid_type CHECK ((((VALUE >> 58) & (63)::bigint) = 2));
 
 
 --
@@ -72,7 +88,7 @@ CREATE DOMAIN public.projectid AS bigint
 --
 
 CREATE DOMAIN public.tokenid AS bigint
-	CONSTRAINT tokenid_range CHECK (((VALUE >= '288230376151711744'::bigint) AND (VALUE <= '576460752303423487'::bigint)));
+	CONSTRAINT tokenid_type CHECK ((((VALUE >> 58) & (63)::bigint) = 1));
 
 
 --
@@ -80,7 +96,7 @@ CREATE DOMAIN public.tokenid AS bigint
 --
 
 CREATE DOMAIN public.traitid AS bigint
-	CONSTRAINT traitid_range CHECK (((VALUE >= '1152921504606846976'::bigint) AND (VALUE <= '1441151880758558719'::bigint)));
+	CONSTRAINT traitid_type CHECK ((((VALUE >> 58) & (63)::bigint) = 4));
 
 
 --
@@ -141,6 +157,44 @@ CREATE TABLE public.email_signups (
 
 
 --
+-- Name: erc_721_transfer_scan_progress; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.erc_721_transfer_scan_progress (
+    contract_address public.address NOT NULL,
+    fetch_time timestamp with time zone NOT NULL,
+    block_number integer NOT NULL,
+    block_hash text NOT NULL
+);
+
+
+--
+-- Name: erc_721_transfers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.erc_721_transfers (
+    token_id public.tokenid NOT NULL,
+    transaction_hash text NOT NULL,
+    from_address public.address NOT NULL,
+    to_address public.address NOT NULL,
+    block_number integer NOT NULL,
+    block_hash text NOT NULL,
+    log_index integer NOT NULL
+);
+
+
+--
+-- Name: erc_721_transfers_deferred; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.erc_721_transfers_deferred (
+    token_contract public.address NOT NULL,
+    on_chain_token_id public.uint256 NOT NULL,
+    log_object jsonb NOT NULL
+);
+
+
+--
 -- Name: features; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -162,14 +216,78 @@ CREATE TABLE public.image_progress (
 
 
 --
+-- Name: migration_log; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.migration_log (
+    migration_id bigint NOT NULL,
+    name text NOT NULL,
+    "timestamp" timestamp with time zone NOT NULL,
+    blob_hash bytea NOT NULL,
+    CONSTRAINT migration_log_blob_hash_check CHECK ((octet_length(blob_hash) = 20))
+);
+
+
+--
+-- Name: opensea_ask_cancellations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.opensea_ask_cancellations (
+    event_id text NOT NULL,
+    project_id public.projectid NOT NULL,
+    token_id public.tokenid NOT NULL,
+    transaction_timestamp timestamp with time zone NOT NULL,
+    transaction_hash text NOT NULL,
+    listing_time timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: opensea_asks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.opensea_asks (
+    event_id text NOT NULL,
+    project_id public.projectid NOT NULL,
+    token_id public.tokenid NOT NULL,
+    seller_address public.address NOT NULL,
+    listing_time timestamp with time zone NOT NULL,
+    expiration_time timestamp with time zone,
+    price public.uint256 NOT NULL,
+    currency_id public.currencyid NOT NULL,
+    active boolean NOT NULL
+);
+
+
+--
+-- Name: opensea_events_ingestion_deferred; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.opensea_events_ingestion_deferred (
+    event_id text NOT NULL,
+    event_type public.opensea_event_type NOT NULL,
+    token_contract public.address NOT NULL,
+    on_chain_token_id public.uint256 NOT NULL
+);
+
+
+--
+-- Name: opensea_events_ingestion_queue; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.opensea_events_ingestion_queue (
+    event_id text NOT NULL,
+    event_type public.opensea_event_type NOT NULL
+);
+
+
+--
 -- Name: opensea_events_raw; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.opensea_events_raw (
     event_id text NOT NULL,
-    json jsonb NOT NULL,
-    consumed boolean NOT NULL,
-    event_type public.opensea_event_type NOT NULL
+    json jsonb NOT NULL
 );
 
 
@@ -179,7 +297,8 @@ CREATE TABLE public.opensea_events_raw (
 
 CREATE TABLE public.opensea_progress (
     opensea_slug text NOT NULL,
-    until timestamp with time zone NOT NULL
+    until timestamp with time zone NOT NULL,
+    project_id public.projectid NOT NULL
 );
 
 
@@ -189,14 +308,15 @@ CREATE TABLE public.opensea_progress (
 
 CREATE TABLE public.opensea_sales (
     event_id text NOT NULL,
-    token_contract public.address NOT NULL,
-    token_id public.uint256 NOT NULL,
-    sale_time timestamp with time zone NOT NULL,
-    currency_contract public.address,
-    price public.uint256 NOT NULL,
-    buyer_address public.address NOT NULL,
+    project_id public.projectid NOT NULL,
+    token_id public.tokenid NOT NULL,
     seller_address public.address NOT NULL,
-    CONSTRAINT currency_contract_nonzero CHECK (((currency_contract)::bytea <> '\x0000000000000000000000000000000000000000'::bytea))
+    buyer_address public.address NOT NULL,
+    transaction_timestamp timestamp with time zone NOT NULL,
+    transaction_hash text NOT NULL,
+    listing_time timestamp with time zone,
+    price public.uint256 NOT NULL,
+    currency_id public.currencyid NOT NULL
 );
 
 
@@ -278,6 +398,24 @@ INSERT INTO public.currencies VALUES (1544284093318430723, '\x6b175474e89094c44d
 
 
 --
+-- Data for Name: erc_721_transfer_scan_progress; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
+-- Data for Name: erc_721_transfers; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
+-- Data for Name: erc_721_transfers_deferred; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
 -- Data for Name: features; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -285,6 +423,37 @@ INSERT INTO public.currencies VALUES (1544284093318430723, '\x6b175474e89094c44d
 
 --
 -- Data for Name: image_progress; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
+-- Data for Name: migration_log; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+INSERT INTO public.migration_log VALUES (5387301555254102831, '0076_migration_log', '2022-01-24 20:34:13.065008+00', '\x89b198ebdeb9688d7e2de5095fcb1f57a3436a06');
+
+
+--
+-- Data for Name: opensea_ask_cancellations; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
+-- Data for Name: opensea_asks; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
+-- Data for Name: opensea_events_ingestion_deferred; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
+-- Data for Name: opensea_events_ingestion_queue; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 
@@ -372,6 +541,30 @@ ALTER TABLE ONLY public.email_signups
 
 
 --
+-- Name: erc_721_transfer_scan_progress erc_721_transfer_scan_progres_contract_address_block_number_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.erc_721_transfer_scan_progress
+    ADD CONSTRAINT erc_721_transfer_scan_progres_contract_address_block_number_key UNIQUE (contract_address, block_number);
+
+
+--
+-- Name: erc_721_transfer_scan_progress erc_721_transfer_scan_progress_contract_address_block_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.erc_721_transfer_scan_progress
+    ADD CONSTRAINT erc_721_transfer_scan_progress_contract_address_block_hash_key UNIQUE (contract_address, block_hash);
+
+
+--
+-- Name: erc_721_transfers erc_721_transfers_block_hash_log_index_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.erc_721_transfers
+    ADD CONSTRAINT erc_721_transfers_block_hash_log_index_key UNIQUE (block_hash, log_index);
+
+
+--
 -- Name: features features_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -396,6 +589,46 @@ ALTER TABLE ONLY public.image_progress
 
 
 --
+-- Name: migration_log migration_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.migration_log
+    ADD CONSTRAINT migration_log_pkey PRIMARY KEY (migration_id);
+
+
+--
+-- Name: opensea_ask_cancellations opensea_ask_cancellations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_ask_cancellations
+    ADD CONSTRAINT opensea_ask_cancellations_pkey PRIMARY KEY (event_id);
+
+
+--
+-- Name: opensea_asks opensea_asks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_asks
+    ADD CONSTRAINT opensea_asks_pkey PRIMARY KEY (event_id);
+
+
+--
+-- Name: opensea_events_ingestion_deferred opensea_events_ingestion_deferred_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_events_ingestion_deferred
+    ADD CONSTRAINT opensea_events_ingestion_deferred_pkey PRIMARY KEY (event_id);
+
+
+--
+-- Name: opensea_events_ingestion_queue opensea_events_ingestion_queue_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_events_ingestion_queue
+    ADD CONSTRAINT opensea_events_ingestion_queue_pkey PRIMARY KEY (event_id);
+
+
+--
 -- Name: opensea_events_raw opensea_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -408,7 +641,7 @@ ALTER TABLE ONLY public.opensea_events_raw
 --
 
 ALTER TABLE ONLY public.opensea_progress
-    ADD CONSTRAINT opensea_progress_pkey PRIMARY KEY (opensea_slug);
+    ADD CONSTRAINT opensea_progress_pkey PRIMARY KEY (project_id);
 
 
 --
@@ -468,6 +701,76 @@ ALTER TABLE ONLY public.traits
 
 
 --
+-- Name: erc_721_transfer_scan_progress_contract_address_block_number; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX erc_721_transfer_scan_progress_contract_address_block_number ON public.erc_721_transfer_scan_progress USING btree (contract_address, block_number DESC);
+
+
+--
+-- Name: erc_721_transfers_deferred_token_contract_on_chain_token_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX erc_721_transfers_deferred_token_contract_on_chain_token_id_idx ON public.erc_721_transfers_deferred USING btree (token_contract, on_chain_token_id, ((log_object ->> 'blockHash'::text)), ((log_object ->> 'logIndex'::text)));
+
+
+--
+-- Name: erc_721_transfers_token_id_block_number_log_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX erc_721_transfers_token_id_block_number_log_index ON public.erc_721_transfers USING btree (token_id, block_number DESC, log_index DESC);
+
+
+--
+-- Name: opensea_ask_cancellations_token_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX opensea_ask_cancellations_token_id ON public.opensea_ask_cancellations USING btree (token_id);
+
+
+--
+-- Name: opensea_asks_active_currency_id_project_id_price; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX opensea_asks_active_currency_id_project_id_price ON public.opensea_asks USING btree (active, currency_id, project_id, price);
+
+
+--
+-- Name: opensea_asks_active_currency_id_project_id_token_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX opensea_asks_active_currency_id_project_id_token_id ON public.opensea_asks USING btree (active, currency_id, project_id, token_id) INCLUDE (price);
+
+
+--
+-- Name: opensea_asks_expiration_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX opensea_asks_expiration_time ON public.opensea_asks USING btree (expiration_time) WHERE active;
+
+
+--
+-- Name: opensea_asks_token_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX opensea_asks_token_id ON public.opensea_asks USING btree (token_id);
+
+
+--
+-- Name: opensea_sales_project_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX opensea_sales_project_id_idx ON public.opensea_sales USING btree (project_id);
+
+
+--
+-- Name: opensea_sales_token_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX opensea_sales_token_id ON public.opensea_sales USING btree (token_id);
+
+
+--
 -- Name: projects_slug; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -511,6 +814,14 @@ ALTER TABLE ONLY public.artblocks_projects
 
 
 --
+-- Name: erc_721_transfers erc_721_transfers_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.erc_721_transfers
+    ADD CONSTRAINT erc_721_transfers_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.tokens(token_id);
+
+
+--
 -- Name: features features_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -524,6 +835,118 @@ ALTER TABLE ONLY public.features
 
 ALTER TABLE ONLY public.image_progress
     ADD CONSTRAINT image_progress_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
+
+
+--
+-- Name: opensea_ask_cancellations opensea_ask_cancellations_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_ask_cancellations
+    ADD CONSTRAINT opensea_ask_cancellations_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.opensea_events_raw(event_id);
+
+
+--
+-- Name: opensea_ask_cancellations opensea_ask_cancellations_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_ask_cancellations
+    ADD CONSTRAINT opensea_ask_cancellations_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
+
+
+--
+-- Name: opensea_ask_cancellations opensea_ask_cancellations_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_ask_cancellations
+    ADD CONSTRAINT opensea_ask_cancellations_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.tokens(token_id);
+
+
+--
+-- Name: opensea_asks opensea_asks_currency_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_asks
+    ADD CONSTRAINT opensea_asks_currency_id_fkey FOREIGN KEY (currency_id) REFERENCES public.currencies(currency_id);
+
+
+--
+-- Name: opensea_asks opensea_asks_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_asks
+    ADD CONSTRAINT opensea_asks_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.opensea_events_raw(event_id);
+
+
+--
+-- Name: opensea_asks opensea_asks_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_asks
+    ADD CONSTRAINT opensea_asks_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
+
+
+--
+-- Name: opensea_asks opensea_asks_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_asks
+    ADD CONSTRAINT opensea_asks_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.tokens(token_id);
+
+
+--
+-- Name: opensea_events_ingestion_deferred opensea_events_ingestion_deferred_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_events_ingestion_deferred
+    ADD CONSTRAINT opensea_events_ingestion_deferred_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.opensea_events_raw(event_id);
+
+
+--
+-- Name: opensea_events_ingestion_queue opensea_events_ingestion_queue_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_events_ingestion_queue
+    ADD CONSTRAINT opensea_events_ingestion_queue_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.opensea_events_raw(event_id);
+
+
+--
+-- Name: opensea_progress opensea_progress_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_progress
+    ADD CONSTRAINT opensea_progress_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
+
+
+--
+-- Name: opensea_sales opensea_sales_currency_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_sales
+    ADD CONSTRAINT opensea_sales_currency_id_fkey FOREIGN KEY (currency_id) REFERENCES public.currencies(currency_id);
+
+
+--
+-- Name: opensea_sales opensea_sales_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_sales
+    ADD CONSTRAINT opensea_sales_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.opensea_events_raw(event_id);
+
+
+--
+-- Name: opensea_sales opensea_sales_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_sales
+    ADD CONSTRAINT opensea_sales_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
+
+
+--
+-- Name: opensea_sales opensea_sales_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opensea_sales
+    ADD CONSTRAINT opensea_sales_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.tokens(token_id);
 
 
 --
