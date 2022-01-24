@@ -10,6 +10,8 @@ describe("db::idTypes", () => {
     [ObjectType.FEATURE]: "featureid",
     [ObjectType.TRAIT]: "traitid",
     [ObjectType.CURRENCY]: "currencyid",
+    [ObjectType.BID]: "bidid",
+    [ObjectType.ASK]: "askid",
   };
 
   for (const [idTypeName, idType] of Object.entries(ObjectType)) {

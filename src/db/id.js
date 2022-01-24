@@ -6,6 +6,8 @@ const ObjectType = Object.freeze({
   FEATURE: 3,
   TRAIT: 4,
   CURRENCY: 5,
+  BID: 6,
+  ASK: 7,
 });
 
 const objectTypeToName = Object.freeze([undefined, ...Object.keys(ObjectType)]);
