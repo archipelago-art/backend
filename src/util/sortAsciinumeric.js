@@ -28,8 +28,14 @@ function canonicalize(s) {
 }
 
 function cmp(xs, ys) {
+  // Loop invariant: at the start of each iteration, `xs[:i]` and `ys[:i]`
+  // compare equal. (Initially trivially true because `i === 0`.)
   for (let i = 0; i < xs.length; i++) {
-    if (i >= ys.length) return -1;
+    if (i >= ys.length) {
+      // `xs[:i]` and `ys` compare equal, but `xs` has more parts, so `xs`
+      // follows `ys`.
+      return 1;
+    }
     const x = xs[i];
     const y = ys[i];
     if (typeof x === "number" && typeof y === "string") return -1;
@@ -37,7 +43,11 @@ function cmp(xs, ys) {
     if (x < y) return -1;
     if (x > y) return 1;
   }
-  if (xs.length > ys.length) return 1;
+  if (xs.length < ys.length) {
+    // `xs` and `ys[:xs.length]` compare equal, but `ys` has more parts, so
+    // `xs` precedes `ys`.
+    return -1;
+  }
   return 0;
 }
 

@@ -19,6 +19,12 @@ describe("util/sortAsciinumeric", () => {
     expect(output).toEqual(["1 in 9", "1 in 23", "1 in 100"]);
   });
 
+  it("treats strings with more parts as larger, all else equal", () => {
+    const input = ["Left-tilt", "Left", "Right-tilt", "Right"];
+    const output = sortAsciinumeric(input);
+    expect(output).toEqual(["Left", "Left-tilt", "Right", "Right-tilt"]);
+  });
+
   it("allows projecting keys", () => {
     const input = [
       { value: "1 in 23", id: "a" },
