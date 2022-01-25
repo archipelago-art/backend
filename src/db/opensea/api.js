@@ -72,13 +72,12 @@ async function askForToken({ client, tokenId }) {
   const x = res.rows[0];
   return {
     ...x,
-    price: BigInt(x.price),
     sellerAddress: bufToAddress(x.sellerAddress),
   };
 }
 
 /**
- * Get the floor price for every project as a BigInt in Wei (or null if there are no asks)
+ * Get the floor price for every project as a numeric string in Wei (or null if there are no asks)
  * Returns an object with projectIds as keys and floors as values.
  * Only considers asks priced in ETH.
  */
@@ -114,7 +113,7 @@ async function floorAskByProject({ client, projectIds = null }) {
   await client.query("ROLLBACK");
   const result = {};
   for (const { projectId, price } of res.rows) {
-    result[projectId] = price == null ? null : BigInt(price);
+    result[projectId] = price;
   }
   return result;
 }
@@ -159,7 +158,7 @@ async function lastSalesByProject({ client, projectId }) {
 
 /**
  * Get the lowest open ask for each token in a project.
- * Returns an object with tokenIds as keys and BigInt eth prices as values.
+ * Returns an object with tokenIds as keys and numeric-string wei prices as values.
  * Only tokenIds that have at least one active ETH-priced ask will be included.
  * If there are multiple open asks for a token, the lowest price is provided.
  */
@@ -185,7 +184,7 @@ async function asksForProject({ client, projectId }) {
   await client.query("ROLLBACK");
   const result = {};
   for (const { id, price } of res.rows) {
-    result[id] = BigInt(price);
+    result[id] = price;
   }
   return result;
 }
@@ -200,8 +199,8 @@ async function aggregateSalesByProject({ client, afterDate }) {
   const res = await client.query(
     `
     SELECT
-      sum(price) AS sum,
-      project_id AS "projectId"
+      project_id AS "projectId",
+      sum(price) AS "totalEthSales"
     FROM opensea_sales
     WHERE transaction_timestamp >= $1 AND
       (currency_id = $2 OR currency_id = $3)
@@ -214,10 +213,7 @@ async function aggregateSalesByProject({ client, afterDate }) {
       wellKnownCurrencies.weth9.currencyId,
     ]
   );
-  return res.rows.map((x) => ({
-    projectId: x.projectId,
-    totalEthSales: BigInt(x.sum),
-  }));
+  return res.rows;
 }
 
 async function salesByToken({ client, tokenId }) {
