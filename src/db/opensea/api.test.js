@@ -232,7 +232,7 @@ describe("db/opensea/api", () => {
         expect(result).toEqual({
           expirationTime: null,
           listingTime: utcDateFromString(listed),
-          price: 950n,
+          price: "950",
           sellerAddress: wchargin,
           tokenId: archetypeTokenId1,
         });
@@ -366,7 +366,7 @@ describe("db/opensea/api", () => {
           client,
         });
         expect(result).toEqual({
-          [archetypeId]: 950n,
+          [archetypeId]: "950",
           [squigglesId]: null,
         });
       })
@@ -532,8 +532,8 @@ describe("db/opensea/api", () => {
           projectId: archetypeId,
         });
         expect(result).toEqual({
-          [archetypeTokenId1]: 500n,
-          [archetypeTokenId3]: 900n,
+          [archetypeTokenId1]: "500",
+          [archetypeTokenId3]: "900",
         });
       })
     );
@@ -555,7 +555,7 @@ describe("db/opensea/api", () => {
           projectId: archetypeId,
         });
         expect(result).toEqual({
-          [archetypeTokenId1]: 100n,
+          [archetypeTokenId1]: "100",
         });
       })
     );
@@ -591,7 +591,7 @@ describe("db/opensea/api", () => {
         });
         await addAndIngest(client, [s1, s2]);
         expect(await aggregateSalesByProject({ client })).toEqual([
-          { projectId: archetypeId, totalEthSales: 1500n },
+          { projectId: archetypeId, totalEthSales: "1500" },
         ]);
       })
     );
@@ -619,7 +619,7 @@ describe("db/opensea/api", () => {
         });
         await addAndIngest(client, [s1, s2, s3]);
         expect(await aggregateSalesByProject({ client })).toEqual([
-          { projectId: archetypeId, totalEthSales: 1500n },
+          { projectId: archetypeId, totalEthSales: "1500" },
         ]);
       })
     );
@@ -647,7 +647,7 @@ describe("db/opensea/api", () => {
             client,
             afterDate: new Date("2021-01-01"),
           })
-        ).toEqual([{ projectId: archetypeId, totalEthSales: 500n }]);
+        ).toEqual([{ projectId: archetypeId, totalEthSales: "500" }]);
       })
     );
     it(
@@ -674,8 +674,8 @@ describe("db/opensea/api", () => {
         });
         await addAndIngest(client, [s1, s2, s3]);
         expect(await aggregateSalesByProject({ client })).toEqual([
-          { projectId: archetypeId, totalEthSales: 1500n },
-          { projectId: squigglesId, totalEthSales: 99n },
+          { projectId: archetypeId, totalEthSales: "1500" },
+          { projectId: squigglesId, totalEthSales: "99" },
         ]);
       })
     );
