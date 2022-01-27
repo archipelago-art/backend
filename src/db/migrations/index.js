@@ -91,6 +91,7 @@ const migrationModules = [
   "./0080_transfers_block_hash_bytes",
   "./0081_transfers_block_hash_nullable",
   "./0082_transfers_block_hash_bytes32",
+  "./0083_transfers_block_hash_bytes_nullable",
   // ...
 ];
 
