@@ -85,6 +85,7 @@ const migrationModules = [
   "./0074_index_opensea_sales_by_project",
   "./0075_bidid_askid",
   "./0076_migration_log",
+  "./0077_bytes32",
   // ...
 ];
 
