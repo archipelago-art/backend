@@ -86,6 +86,7 @@ const migrationModules = [
   "./0075_bidid_askid",
   "./0076_migration_log",
   "./0077_bytes32",
+  "./0078_hexbytes",
   // ...
 ];
 
