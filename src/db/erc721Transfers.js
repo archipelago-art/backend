@@ -38,7 +38,6 @@ async function addTransfersNontransactionally({ client, transfers }) {
       from_address,
       to_address,
       block_number,
-      block_hash,
       block_hash_bytes,
       log_index
     )
@@ -49,9 +48,8 @@ async function addTransfersNontransactionally({ client, transfers }) {
       inputs.to_address,
       inputs.block_number,
       inputs.block_hash,
-      hexbytes(inputs.block_hash),
       inputs.log_index
-    FROM unnest($1::text[], $2::address[], $3::address[], $4::int8[], $5::text[], $6::int[], $7::address[], $8::uint256[])
+    FROM unnest($1::text[], $2::address[], $3::address[], $4::int8[], $5::bytes32[], $6::int[], $7::address[], $8::uint256[])
       AS inputs(transaction_hash, from_address, to_address, block_number, block_hash, log_index, token_contract, on_chain_token_id)
     JOIN tokens USING (token_contract, on_chain_token_id)
     RETURNING block_hash_bytes AS "blockHashBytes", log_index AS "logIndex"
@@ -61,7 +59,7 @@ async function addTransfersNontransactionally({ client, transfers }) {
       transfers.map((x) => logAddressToBuf(x.topics[1])), // 2: from address
       transfers.map((x) => logAddressToBuf(x.topics[2])), // 3: to address
       transfers.map((x) => x.blockNumber), // 4
-      transfers.map((x) => x.blockHash), // 5
+      transfers.map((x) => hexToBuf(x.blockHash)), // 5
       transfers.map((x) => x.logIndex), // 6
       transfers.map((x) => hexToBuf(x.address)), // 7
       transfers.map((x) => String(ethers.BigNumber.from(x.topics[3]))), // 8: token ID
