@@ -39,6 +39,7 @@ async function addTransfersNontransactionally({ client, transfers }) {
       to_address,
       block_number,
       block_hash,
+      block_hash_bytes,
       log_index
     )
     SELECT
@@ -48,6 +49,7 @@ async function addTransfersNontransactionally({ client, transfers }) {
       inputs.to_address,
       inputs.block_number,
       inputs.block_hash,
+      hexbytes(inputs.block_hash),
       inputs.log_index
     FROM unnest($1::text[], $2::address[], $3::address[], $4::int8[], $5::text[], $6::int[], $7::address[], $8::uint256[])
       AS inputs(transaction_hash, from_address, to_address, block_number, block_hash, log_index, token_contract, on_chain_token_id)
