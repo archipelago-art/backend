@@ -38,6 +38,7 @@ async function addTransfersNontransactionally({ client, transfers }) {
       from_address,
       to_address,
       block_number,
+      block_hash,
       block_hash_bytes,
       log_index
     )
@@ -47,6 +48,7 @@ async function addTransfersNontransactionally({ client, transfers }) {
       inputs.from_address,
       inputs.to_address,
       inputs.block_number,
+      inputs.block_hash,
       inputs.block_hash,
       inputs.log_index
     FROM unnest($1::text[], $2::address[], $3::address[], $4::int8[], $5::bytes32[], $6::int[], $7::address[], $8::uint256[])
