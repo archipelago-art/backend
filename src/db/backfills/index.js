@@ -1,4 +1,5 @@
 const backfillModules = [
+  "./blockHashBytes",
   "./projectSlugs",
   "./openseaEventTypes",
   "./populateOpenseaIngestionQueue",
