@@ -87,6 +87,7 @@ const migrationModules = [
   "./0076_migration_log",
   "./0077_bytes32",
   "./0078_hexbytes",
+  "./0079_eth_blocks",
   // ...
 ];
 
