@@ -3,7 +3,7 @@ const ethers = require("ethers");
 const log = require("../util/log")(__filename);
 const events = require("./events");
 const { ObjectType, newIds } = require("./id");
-const { hexToBuf, bufToAddress } = require("./util");
+const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 
 // Event payloads are JSON `{ tokenContract: address, onChainTokenId: string }`.
 const deferralsChannel = events.channel("erc721_transfers_deferred");
@@ -54,7 +54,7 @@ async function addTransfersNontransactionally({ client, transfers }) {
     FROM unnest($1::text[], $2::address[], $3::address[], $4::int8[], $5::text[], $6::int[], $7::address[], $8::uint256[])
       AS inputs(transaction_hash, from_address, to_address, block_number, block_hash, log_index, token_contract, on_chain_token_id)
     JOIN tokens USING (token_contract, on_chain_token_id)
-    RETURNING block_hash AS "blockHash", log_index AS "logIndex"
+    RETURNING block_hash_bytes AS "blockHashBytes", log_index AS "logIndex"
     `,
     [
       transfers.map((x) => x.transactionHash), // 1
@@ -75,7 +75,8 @@ async function addTransfersNontransactionally({ client, transfers }) {
     transfers.map((x) => blockHashIndexKey(x.blockHash, x.logIndex))
   );
   for (const row of insertsRes.rows) {
-    missing.delete(blockHashIndexKey(row.blockHash, row.logIndex));
+    const blockHash = bufToHex(row.blockHashBytes);
+    missing.delete(blockHashIndexKey(blockHash, row.logIndex));
   }
   const missingTransfers = transfers.filter((x) =>
     missing.has(blockHashIndexKey(x.blockHash, x.logIndex))
@@ -180,7 +181,7 @@ async function getTransfersForToken({ client, tokenId }) {
       block_number AS "blockNumber",
       log_index AS "logIndex",
       transaction_hash AS "transactionHash",
-      block_hash AS "blockHash",
+      block_hash_bytes AS "blockHashBytes",
       from_address AS "from",
       to_address AS "to"
     FROM erc_721_transfers
@@ -193,7 +194,7 @@ async function getTransfersForToken({ client, tokenId }) {
     blockNumber: r.blockNumber,
     logIndex: r.logIndex,
     transactionHash: r.transactionHash,
-    blockHash: r.blockHash,
+    blockHash: bufToHex(r.blockHashBytes),
     from: bufToAddress(r.from),
     to: bufToAddress(r.to),
   }));
