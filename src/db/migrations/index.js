@@ -89,6 +89,7 @@ const migrationModules = [
   "./0078_hexbytes",
   "./0079_eth_blocks",
   "./0080_transfers_block_hash_bytes",
+  "./0081_transfers_block_hash_nullable",
   // ...
 ];
 
