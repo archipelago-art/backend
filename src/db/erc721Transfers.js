@@ -54,7 +54,7 @@ async function addTransfersNontransactionally({ client, transfers }) {
     FROM unnest($1::text[], $2::address[], $3::address[], $4::int8[], $5::bytes32[], $6::int[], $7::address[], $8::uint256[])
       AS inputs(transaction_hash, from_address, to_address, block_number, block_hash, log_index, token_contract, on_chain_token_id)
     JOIN tokens USING (token_contract, on_chain_token_id)
-    RETURNING block_hash_bytes AS "blockHashBytes", log_index AS "logIndex"
+    RETURNING block_hash AS "blockHash", log_index AS "logIndex"
     `,
     [
       transfers.map((x) => x.transactionHash), // 1
@@ -75,8 +75,7 @@ async function addTransfersNontransactionally({ client, transfers }) {
     transfers.map((x) => blockHashIndexKey(x.blockHash, x.logIndex))
   );
   for (const row of insertsRes.rows) {
-    const blockHash = bufToHex(row.blockHashBytes);
-    missing.delete(blockHashIndexKey(blockHash, row.logIndex));
+    missing.delete(blockHashIndexKey(bufToHex(row.blockHash), row.logIndex));
   }
   const missingTransfers = transfers.filter((x) =>
     missing.has(blockHashIndexKey(x.blockHash, x.logIndex))
@@ -181,7 +180,7 @@ async function getTransfersForToken({ client, tokenId }) {
       block_number AS "blockNumber",
       log_index AS "logIndex",
       transaction_hash AS "transactionHash",
-      block_hash_bytes AS "blockHashBytes",
+      block_hash AS "blockHash",
       from_address AS "from",
       to_address AS "to"
     FROM erc_721_transfers
@@ -194,7 +193,7 @@ async function getTransfersForToken({ client, tokenId }) {
     blockNumber: r.blockNumber,
     logIndex: r.logIndex,
     transactionHash: r.transactionHash,
-    blockHash: bufToHex(r.blockHashBytes),
+    blockHash: bufToHex(r.blockHash),
     from: bufToAddress(r.from),
     to: bufToAddress(r.to),
   }));
