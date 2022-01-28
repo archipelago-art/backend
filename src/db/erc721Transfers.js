@@ -17,6 +17,29 @@ function logAddressToBuf(hexString) {
 }
 
 /**
+ * Adds blocks, given a list of responses from the `getBlockByHash` RPC.
+ * Blocks for which we've already seen the hash are silently ignored to
+ * facilitate concurrent inserts (since block hash implies the other
+ * properties, this shouldn't be racy). Returns the number of blocks
+ * newly added.
+ */
+async function addBlocks({ client, blocks }) {
+  const res = await client.query(
+    `
+    INSERT INTO eth_blocks (block_hash, block_number, timestamp)
+    VALUES (unnest($1::bytes32[]), unnest($2::int[]), unnest($3::timestamptz[]))
+    ON CONFLICT (block_hash) DO NOTHING
+    `,
+    [
+      blocks.map((b) => hexToBuf(b.hash)),
+      blocks.map((b) => ethers.BigNumber.from(b.number).toNumber()),
+      blocks.map((b) => new Date(ethers.BigNumber.from(b.timestamp) * 1000)),
+    ]
+  );
+  return res.rowCount;
+}
+
+/**
  * Adds ERC-721 transfer events. If this includes a transfer on contract
  * address `a` and block hash `h`, then *all* transfers with address `a` and
  * block hash `h` must either be in this input or already have been inserted
@@ -223,6 +246,7 @@ async function getPendingDeferrals({ client, tokenContracts }) {
 
 module.exports = {
   deferralsChannel,
+  addBlocks,
   addTransfers,
   getLastBlockNumber,
   getTransfersForToken,

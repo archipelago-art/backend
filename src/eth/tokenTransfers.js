@@ -2,6 +2,7 @@ const ethers = require("ethers");
 
 const artblocks = require("../db/artblocks");
 const {
+  addBlocks,
   addTransfers,
   getLastBlockNumber,
   undeferTransfers: _undeferTransfers,
@@ -9,8 +10,11 @@ const {
 const { acqrel } = require("../db/util");
 const adHocPromise = require("../util/adHocPromise");
 const log = require("../util/log")(__filename);
+const parmap = require("../util/parmap");
 const retry = require("../util/retry");
 const erc721Abi = require("./erc721Abi");
+
+const BLOCK_CONCURRENCY = 16; // how many concurrent calls to `getBlock`?
 
 const CONTRACTS = [
   { address: artblocks.CONTRACT_ARTBLOCKS_LEGACY, startBlock: 11341469 },
@@ -141,14 +145,27 @@ async function ingestTransfers({
       )
     );
     totalTransfers += transfers.length;
-    log.debug`got ${transfers.length} transfers; sending to DB`;
+    const blockHashes = Array.from(new Set(transfers.map((t) => t.blockHash)));
+    log.debug`got ${transfers.length} transfers over ${blockHashes.length} distinct blocks`;
+    await ingestBlocks({ pool, provider, blockHashes });
     const res = await acqrel(pool, (client) =>
       addTransfers({ client, transfers })
     );
-    log.debug`inserted ${res.inserted}; deferred ${res.deferred}`;
+    log.debug`inserted ${res.inserted} transfers; deferred ${res.deferred}`;
   }
   log.debug`done with transfers for ${contractAddress} through ${endBlock}`;
   return totalTransfers;
+}
+
+async function ingestBlocks({ pool, provider, blockHashes }) {
+  const blocks = await parmap(BLOCK_CONCURRENCY, blockHashes, (blockHash) =>
+    retryEthers(() => {
+      log.trace`requesting data for block ${blockHash}`;
+      return provider.getBlock(blockHash);
+    })
+  );
+  const nBlocks = await acqrel(pool, (client) => addBlocks({ client, blocks }));
+  log.debug`added ${blocks.length} blocks (${nBlocks} new)`;
 }
 
 async function undeferTransfers({ pool }) {
@@ -159,5 +176,6 @@ async function undeferTransfers({ pool }) {
 module.exports = {
   ingestTransfersLive,
   ingestTransfersInRange,
+  ingestBlocks,
   undeferTransfers,
 };
