@@ -147,7 +147,12 @@ async function ingestTransfers({
     totalTransfers += transfers.length;
     const blockHashes = Array.from(new Set(transfers.map((t) => t.blockHash)));
     log.debug`got ${transfers.length} transfers over ${blockHashes.length} distinct blocks`;
-    await ingestBlocks({ pool, provider, blockHashes });
+    await _ingestBlocks({
+      pool,
+      provider,
+      blockHashes,
+      batchSize: BLOCK_CONCURRENCY,
+    });
     const res = await acqrel(pool, (client) =>
       addTransfers({ client, transfers })
     );
@@ -157,8 +162,13 @@ async function ingestTransfers({
   return totalTransfers;
 }
 
-async function ingestBlocks({ pool, provider, blockHashes }) {
-  const blocks = await parmap(BLOCK_CONCURRENCY, blockHashes, (blockHash) =>
+async function ingestBlocks({ pool, blockHashes, batchSize }) {
+  const provider = makeProvider();
+  return await _ingestBlocks({ pool, provider, blockHashes, batchSize });
+}
+
+async function _ingestBlocks({ pool, provider, blockHashes, batchSize }) {
+  const blocks = await parmap(batchSize, blockHashes, (blockHash) =>
     retryEthers(() => {
       log.trace`requesting data for block ${blockHash}`;
       return provider.getBlock(blockHash);
@@ -166,6 +176,7 @@ async function ingestBlocks({ pool, provider, blockHashes }) {
   );
   const nBlocks = await acqrel(pool, (client) => addBlocks({ client, blocks }));
   log.debug`added ${blocks.length} blocks (${nBlocks} new)`;
+  return nBlocks;
 }
 
 async function undeferTransfers({ pool }) {
