@@ -6,6 +6,7 @@ const { fetchProjectData } = require("../scrape/fetchArtblocksProject");
 const { fetchTokenData } = require("../scrape/fetchArtblocksToken");
 const adHocPromise = require("../util/adHocPromise");
 const log = require("../util/log")(__filename);
+const parmap = require("../util/parmap");
 
 const NETWORK_CONCURRENCY = 32;
 // After each loop, wait until a new deferral event or for this many seconds,
@@ -144,23 +145,6 @@ async function followChainTokensOnce(pool) {
       await tokenTransfers.undeferTransfers({ pool });
     }
   });
-}
-
-async function parmap(batchSize, xs, f) {
-  const result = Array(xs.length).fill();
-  let nextIdx = 0;
-  async function worker() {
-    while (nextIdx < result.length) {
-      const i = nextIdx++;
-      result[i] = await f(xs[i]);
-    }
-  }
-  await Promise.all(
-    Array(batchSize)
-      .fill()
-      .map(() => worker())
-  );
-  return result;
 }
 
 module.exports = followChainTokens;
