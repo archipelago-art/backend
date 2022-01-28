@@ -373,6 +373,28 @@ describe("api", () => {
         };
       }
 
+      const nBlocks = await erc721Transfers.addBlocks({
+        client,
+        blocks: [
+          {
+            hash: dummyBlockHash(777),
+            number: ethers.BigNumber.from(777),
+            timestamp: ethers.BigNumber.from(Date.parse("2020-12-30") / 1000),
+          },
+          {
+            hash: dummyBlockHash(888),
+            number: ethers.BigNumber.from(888),
+            timestamp: ethers.BigNumber.from(Date.parse("2021-01-02") / 1000),
+          },
+          {
+            hash: dummyBlockHash(999),
+            number: ethers.BigNumber.from(999),
+            timestamp: ethers.BigNumber.from(Date.parse("2021-02-08") / 1000),
+          },
+        ],
+      });
+      expect(nBlocks).toEqual(3);
+
       let nextLogIndex = 101;
       function transfer({
         contractAddress = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
@@ -471,6 +493,7 @@ describe("api", () => {
           logIndex: 101,
           transactionHash: dummyTx(1),
           blockHash: dummyBlockHash(777),
+          timestamp: new Date("2020-12-30"),
           from: ethers.constants.AddressZero,
           to: alice,
         },
@@ -491,6 +514,7 @@ describe("api", () => {
           logIndex: 103,
           transactionHash: dummyTx(3),
           blockHash: dummyBlockHash(999),
+          timestamp: new Date("2021-02-08T00:00:00Z"),
           from: bob,
           to: cheryl,
         },
@@ -500,6 +524,7 @@ describe("api", () => {
           logIndex: 104,
           transactionHash: dummyTx(3),
           blockHash: dummyBlockHash(999),
+          timestamp: new Date("2021-02-08T00:00:00Z"),
           from: cheryl,
           to: cherylsVault,
         },

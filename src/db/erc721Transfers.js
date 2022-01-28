@@ -202,6 +202,10 @@ async function getTransfersForToken({ client, tokenId }) {
       log_index AS "logIndex",
       transaction_hash AS "transactionHash",
       block_hash AS "blockHash",
+      (
+        SELECT timestamp FROM eth_blocks
+        WHERE eth_blocks.block_hash = erc_721_transfers.block_hash
+      ) AS "timestamp",
       from_address AS "from",
       to_address AS "to"
     FROM erc_721_transfers
@@ -215,6 +219,7 @@ async function getTransfersForToken({ client, tokenId }) {
     logIndex: r.logIndex,
     transactionHash: r.transactionHash,
     blockHash: bufToHex(r.blockHash),
+    timestamp: r.timestamp,
     from: bufToAddress(r.from),
     to: bufToAddress(r.to),
   }));
