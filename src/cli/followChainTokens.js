@@ -163,24 +163,4 @@ async function parmap(batchSize, xs, f) {
   return result;
 }
 
-async function tryAddTokenLive({ pool, artblocksTokenId }) {
-  try {
-    const token = await fetchTokenData(artblocksTokenId, {
-      checkFeaturesPresent: true,
-    });
-    if (!token.found) return false;
-    await acqrel(pool, (client) =>
-      artblocks.addToken({
-        client,
-        artblocksTokenId,
-        rawTokenData: token.raw,
-      })
-    );
-    return true;
-  } catch (e) {
-    log.warn`failed to add token ${artblocksTokenId}: ${e}`;
-    return false;
-  }
-}
-
 module.exports = followChainTokens;
