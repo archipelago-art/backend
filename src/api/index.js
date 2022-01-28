@@ -185,10 +185,6 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
   return res;
 }
 
-function tokenTransfers({ client, tokenId }) {
-  return erc721Transfers.getTransfersForToken({ client, tokenId });
-}
-
 async function tokenHistory({ client, tokenId }) {
   const transfers = await erc721Transfers.getTransfersForToken({
     client,
@@ -275,7 +271,6 @@ module.exports = {
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
   tokenSummariesByOnChainId,
-  tokenTransfers,
   tokenHistory,
   sortAsciinumeric,
   addEmailSignup,
