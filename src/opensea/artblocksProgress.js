@@ -15,6 +15,15 @@ const log = require("../util/log")(__filename);
 
 const BEGINNING_OF_HISTORY = new Date("2020-11-27");
 
+// Slug used by OpenSea for miscellaneous Art Blocks tokens, sometimes(???).
+// This can include the mint-0 token for a project between the time that it's
+// minted and the time that OpenSea makes a dedicated collection for the
+// project. It also includes some tokens over longer periods of time (e.g.,
+// Beauty of Skateboarding #336).
+//
+// The value is `printf 'Art Blocks Purgatory' | base64 | tr A-Z a-z | tr -d =`.
+const PURGATORY_SLUG = "qxj0iejsb2nrcybqdxjnyxrvcnk";
+
 /**
  * Enumerate all of the ArtBlocks collections on OpenSea.
  * Result will be an array of objects with the following form:
@@ -36,6 +45,10 @@ async function initializeArtblocksProgress({ client, apiKey }) {
         apiKey,
         project.artblocksProjectIndex
       );
+      if (slug === PURGATORY_SLUG) {
+        log.warn`got purgatory slug ${slug} for artblocks project with idx ${project.artblocksProjectIndex} (id: ${project.projectId}; skipping`;
+        continue;
+      }
       if (slug == null) {
         log.warn`can't find slug for artblocks project with idx ${project.artblocksProjectIndex} (id: ${project.projectId})`;
         continue;
