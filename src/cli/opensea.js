@@ -1,4 +1,4 @@
-const { withClient } = require("../db/util");
+const { withClient, bufToHex } = require("../db/util");
 const {
   downloadCollection,
   downloadAllCollections,
@@ -48,19 +48,44 @@ async function cliDownloadAllCollections(args) {
   });
 }
 
+/**
+ * re-download events for tokens in a given collection.
+ * If no index is provided, download events for every token in the collection.
+ * If index is provided, download events for that specific token.
+ */
 async function cliDownloadTokens(args) {
-  if (args.length !== 3) {
-    throw new Error("usage: download-tokens token-contract start-id end-id");
+  if (args.length < 1 || args.length > 2) {
+    throw new Error("usage: download-tokens project-slug [index]");
   }
   const apiKey = process.env.OPENSEA_API_KEY;
-  const contract = args[0];
-  const start = +args[1];
-  const end = +args[2];
-  const specs = [];
-  for (let id = start; id < end; id++) {
-    specs.push({ onChainId: String(id), contract });
-  }
+  const slug = args[0];
+  const index = args[1];
   await withClient(async (client) => {
+    const projectId = await projectIdForSlug({ client, slug });
+    if (projectId == null) {
+      throw new Error(`can't find project id for ${slug}`);
+    }
+
+    const res = await client.query(
+      `
+      SELECT
+        token_id AS "tokenId",
+        tokens.token_contract AS "tokenContract",
+        on_chain_token_id AS "onChainTokenId",
+        token_index AS "tokenIndex",
+        slug
+      FROM tokens
+      JOIN projects USING (project_id)
+      WHERE tokens.project_id = $1
+      AND (tokens.token_index = $2 OR $2 IS NULL)
+      ORDER BY token_index ASC
+        `,
+      [projectId, index]
+    );
+    const specs = res.rows.map((x) => ({
+      ...x,
+      contract: bufToHex(x.tokenContract),
+    }));
     await downloadEventsForTokens({ tokenSpecs: specs, apiKey, client });
   });
 }
@@ -86,6 +111,8 @@ async function cliFixFloors(args) {
     const tokenSpecs = floorTokens.map((x) => ({
       onChainId: x.onChainTokenId,
       contract: x.tokenContract,
+      tokenIndex: x.tokenIndex,
+      slug: x.slug,
     }));
     await downloadEventsForTokens({ tokenSpecs, apiKey, client });
   });

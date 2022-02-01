@@ -15,8 +15,10 @@ async function floorAsksByProject({
       tokens.project_id AS "projectId",
       token_rank AS "tokenRank",
       token_id AS "tokenId",
-      token_contract AS "tokenContract",
-      on_chain_token_id AS "onChainTokenId"
+      tokens.token_contract AS "tokenContract",
+      on_chain_token_id AS "onChainTokenId",
+      token_index AS "tokenIndex",
+      slug
     FROM (
       SELECT
         project_id,
@@ -47,6 +49,7 @@ async function floorAsksByProject({
       ) q
     ) q
     JOIN tokens USING (token_id)
+    JOIN projects ON (tokens.project_id = projects.project_id)
     WHERE token_rank <= $3
     ORDER BY tokens.project_id, token_rank, token_id
     `,

@@ -63,7 +63,7 @@ async function downloadWindow({
 }
 
 async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
-  for (const { contract, onChainId } of tokenSpecs) {
+  for (const { contract, onChainId, slug, tokenIndex } of tokenSpecs) {
     const events = await fetchEventsByTypes({
       source: { contract },
       eventTypes: ["successful", "created", "cancelled"],
@@ -74,7 +74,11 @@ async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
       .filter((x) => x.asset != null)
       .map(stripEvent);
     const added = await addRawEvents({ client, events: strippedEvents });
-    log.info`Added ${added}/${strippedEvents.length} for ${contract}/${onChainId}`;
+    if (added > 0) {
+      log.info`Added ${added}/${strippedEvents.length} for ${slug} #${tokenIndex}`;
+    } else {
+      log.info`No new events for ${slug} #${tokenIndex}`;
+    }
   }
 }
 
