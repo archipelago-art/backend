@@ -10,6 +10,8 @@ const { ingestEvents } = require("../db/opensea/ingestEvents");
 const { syncLoop } = require("../opensea/sync");
 const { projectIdForSlug } = require("../db/projects");
 
+const ONE_DAY_MS = 1000 * 60 * 60 * 24;
+
 async function cliDownloadCollection(args) {
   if (args.length !== 2) {
     throw new Error(
@@ -18,8 +20,7 @@ async function cliDownloadCollection(args) {
   }
   const apiKey = process.env.OPENSEA_API_KEY;
   const slug = args[0];
-  const ONE_DAY = 1000 * 60 * 60 * 24;
-  const windowDurationMs = ONE_DAY * +args[1];
+  const windowDurationMs = ONE_DAY_MS * +args[1];
   await withClient(async (client) => {
     await downloadCollection({
       client,
@@ -36,8 +37,7 @@ async function cliDownloadAllCollections(args) {
   }
   const apiKey = process.env.OPENSEA_API_KEY;
   const slug = args[0];
-  const ONE_DAY = 1000 * 60 * 60 * 24;
-  const windowDurationMs = ONE_DAY * 30;
+  const windowDurationMs = ONE_DAY_MS * 30;
   await withClient(async (client) => {
     await downloadAllCollections({
       client,
@@ -131,7 +131,6 @@ async function cliSync(args) {
   if (args.length > 1) {
     throw new Error("usage: sync [sleep-duration-seconds]");
   }
-  const ONE_DAY = 1000 * 60 * 60 * 24;
   const apiKey = process.env.OPENSEA_API_KEY;
   const sleepDurationSeconds = args[0] == null ? 1 : args[0];
   const sleepDurationMs = sleepDurationSeconds * 1000;
@@ -146,7 +145,7 @@ async function cliSync(args) {
   // case of auto-running sync when we've recently retrieved the whole history.
   // If you do need to load historical data for a project and the window size is an issue,
   // use the manual CLI commands to download that project in particular with a custom window
-  windowDurationMs = ONE_DAY * 1000;
+  windowDurationMs = ONE_DAY_MS;
   await withClient(async (client) => {
     await syncLoop({ apiKey, client, windowDurationMs, sleepDurationMs });
   });
