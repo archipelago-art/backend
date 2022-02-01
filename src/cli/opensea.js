@@ -8,6 +8,7 @@ const { floorAsksByProject } = require("../db/opensea/hacks");
 const log = require("../util/log")(__filename);
 const { ingestEvents } = require("../db/opensea/ingestEvents");
 const { syncLoop } = require("../opensea/sync");
+const { projectIdForSlug } = require("../db/projects");
 
 async function cliDownloadCollection(args) {
   if (args.length !== 2) {
@@ -66,12 +67,17 @@ async function cliDownloadTokens(args) {
 
 async function cliFixFloors(args) {
   if (args.length > 2) {
-    throw new Error("usage: fix-floors [limit] [projectId]");
+    throw new Error("usage: fix-floors [limit] [projectSlug]");
   }
   const limitEach = args[0];
-  const projectIds = args[1] == null ? null : [args[1]];
+  const projectSlug = args[1];
   const apiKey = process.env.OPENSEA_API_KEY;
   await withClient(async (client) => {
+    const projectId =
+      projectSlug == null
+        ? null
+        : await projectIdForSlug({ client, slug: projectSlug });
+    const projectIds = projectId == null ? null : [projectId];
     const floorTokens = await floorAsksByProject({
       client,
       projectIds,
