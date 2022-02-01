@@ -102,9 +102,6 @@ async function ingestEventPage(client, limit) {
   const idsToSkip = new Set([
     ...(await transactionsToSkip(client, events)),
     ...(await asksToSkip(client, events)),
-    // legacy: we used to support transfers, and hypothetically some could still be in the
-    // deferred ingestion queue.
-    ...events.filter((x) => x.type === "transfer"),
   ]);
   const validEvents = events.filter((x) => !idsToSkip.has(x.id));
 
