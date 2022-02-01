@@ -109,7 +109,7 @@ async function cliFixFloors(args) {
       limitEach,
     });
     const tokenSpecs = floorTokens.map((x) => ({
-      onChainId: x.onChainTokenId,
+      onChainTokenId: x.onChainTokenId,
       contract: x.tokenContract,
       tokenIndex: x.tokenIndex,
       slug: x.slug,

@@ -63,11 +63,11 @@ async function downloadWindow({
 }
 
 async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
-  for (const { contract, onChainId, slug, tokenIndex } of tokenSpecs) {
+  for (const { contract, onChainTokenId, slug, tokenIndex } of tokenSpecs) {
     const events = await fetchEvents({
       source: { contract },
       apiKey,
-      tokenId: onChainId,
+      tokenId: onChainTokenId,
     });
 
     const strippedEvents = events
