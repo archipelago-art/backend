@@ -79,6 +79,14 @@ async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
           x.event_type === "cancelled"
       )
       .map(stripEvent);
+    if (log.debug.isEnabled()) {
+      for (const event of strippedEvents) {
+        const type = event.event_type;
+        const id = event.id;
+        const time = event.listing_time;
+        log.debug`event: ${slug} #${tokenIndex}: type=${type}, id=${id}, listing_time=${time}`;
+      }
+    }
     const added = await addRawEvents({ client, events: strippedEvents });
     if (added > 0) {
       log.info`Added ${added}/${strippedEvents.length} for ${slug} #${tokenIndex}`;
