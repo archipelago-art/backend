@@ -64,14 +64,20 @@ async function downloadWindow({
 
 async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
   for (const { contract, onChainId, slug, tokenIndex } of tokenSpecs) {
-    const events = await fetchEventsByTypes({
+    const events = await fetchEvents({
       source: { contract },
-      eventTypes: ["successful", "created", "cancelled"],
       apiKey,
       tokenId: onChainId,
     });
+
     const strippedEvents = events
       .filter((x) => x.asset != null)
+      .filter(
+        (x) =>
+          x.event_type === "created" ||
+          x.event_type === "successful" ||
+          x.event_type === "cancelled"
+      )
       .map(stripEvent);
     const added = await addRawEvents({ client, events: strippedEvents });
     if (added > 0) {
