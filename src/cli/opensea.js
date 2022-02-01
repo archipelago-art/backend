@@ -8,6 +8,7 @@ const { floorAsksByProject } = require("../db/opensea/hacks");
 const log = require("../util/log")(__filename);
 const { ingestEvents } = require("../db/opensea/ingestEvents");
 const { syncLoop } = require("../opensea/sync");
+const { deleteLastUpdated } = require("../db/opensea/progress");
 const { projectIdForSlug } = require("../db/projects");
 
 async function cliDownloadCollection(args) {
@@ -90,6 +91,22 @@ async function cliDownloadTokens(args) {
   });
 }
 
+async function cliClearProgress(args) {
+  if (args.length !== 1) {
+    throw new Error("usage: clear-progress <projectSlug>");
+  }
+  const slug = args[0];
+  await withClient(async (client) => {
+    const projectId = await projectIdForSlug({ client, slug });
+    const res = await deleteLastUpdated({ client, projectId });
+    if (res) {
+      log.info`cleared last-updated progress for ${slug} (project id: ${projectId})`;
+    } else {
+      log.info`no-op: no last-updated progress for ${slug} (project id: ${projectId})`;
+    }
+  });
+}
+
 async function cliFixFloors(args) {
   if (args.length > 2) {
     throw new Error("usage: fix-floors [limit] [projectSlug]");
@@ -159,6 +176,7 @@ async function cli(outerArgs, self) {
     ["download-all-collections", cliDownloadAllCollections],
     ["ingest-events", cliIngestEvents],
     ["download-tokens", cliDownloadTokens],
+    ["clear-progress", cliClearProgress],
     ["fix-floors", cliFixFloors],
     ["sync", cliSync],
   ];

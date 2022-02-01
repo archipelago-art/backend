@@ -37,6 +37,23 @@ async function setLastUpdated({ client, slug, until, projectId }) {
   );
 }
 
+/**
+ * Deletes a progress entry for an Archipelago project ID. Returns `true` if
+ * this had an effect or `false` if there was no entry.
+ */
+async function deleteLastUpdated({ client, projectId }) {
+  if (projectId == null) {
+    throw new Error("null projectId");
+  }
+  const res = await client.query(
+    `
+    DELETE FROM opensea_progress WHERE project_id = $1
+    `,
+    [projectId]
+  );
+  return res.rowCount > 0;
+}
+
 async function getProgress({ client }) {
   const res = await client.query(
     `
@@ -53,5 +70,6 @@ async function getProgress({ client }) {
 module.exports = {
   getLastUpdated,
   setLastUpdated,
+  deleteLastUpdated,
   getProgress,
 };

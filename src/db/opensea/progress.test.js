@@ -1,4 +1,9 @@
-const { setLastUpdated, getLastUpdated, getProgress } = require("./progress");
+const {
+  setLastUpdated,
+  getLastUpdated,
+  deleteLastUpdated,
+  getProgress,
+} = require("./progress");
 const { testDbProvider } = require("../testUtil");
 const { parseProjectData } = require("../../scrape/fetchArtblocksProject");
 const artblocks = require("../artblocks");
@@ -33,14 +38,23 @@ describe("db/opensea/progress", () => {
     })
   );
   it(
-    "last updated may be set and retrieved",
+    "last updated may be set, deleted, and retrieved",
     withTestDb(async ({ client }) => {
       const { projectId } = await exampleProject(client);
       const slug = "awesome-drop-by-archipelago";
-      const until = new Date("2021-01-01");
-      await setLastUpdated({ client, slug, until, projectId });
-      const result = await getLastUpdated({ client, slug, projectId });
-      expect(result).toEqual(until);
+
+      expect(await deleteLastUpdated({ client, projectId })).toBe(false);
+
+      const until1 = new Date("2021-01-01");
+      await setLastUpdated({ client, slug, until: until1, projectId });
+      expect(await getLastUpdated({ client, slug, projectId })).toEqual(until1);
+
+      expect(await deleteLastUpdated({ client, projectId })).toBe(true);
+      expect(await getLastUpdated({ client, slug, projectId })).toEqual(null);
+
+      const until2 = new Date("2021-02-02");
+      await setLastUpdated({ client, slug, until: until2, projectId });
+      expect(await getLastUpdated({ client, slug, projectId })).toEqual(until2);
     })
   );
   it(
