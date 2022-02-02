@@ -65,4 +65,11 @@ describe("slugify", () => {
       "overcast-w-precipitation"
     );
   });
+
+  it("uses a charmap for non-ASCII characters", () => {
+    // project "letters-to-my-future-self", feature "Palette"
+    expect(slugify("jardin d'été")).toEqual("jardin-dete");
+    // project "the-liths-of-sisyphus", feature "Realm of"
+    expect(slugify("Persephónē")).toEqual("persephone");
+  });
 });

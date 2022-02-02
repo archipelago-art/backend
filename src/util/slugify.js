@@ -97,7 +97,7 @@ function slugifyGroup(string) {
   string = string.replace(/(?<![0-9])\.(?![0-9])/g, "");
   const slugifyOptions = {
     charmap: {
-      ...slugify.charmap,
+      ...defaultSlugify.charmap,
       ".": ".",
     },
   };
