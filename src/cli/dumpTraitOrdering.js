@@ -15,7 +15,7 @@ async function dumpTraitOrdering() {
       JSON.stringify(row.featureName),
       JSON.stringify(slugify(row.featureName))
     );
-    const traits = sortAsciinumeric(row.traitValues, (t) => String(t));
+    const traits = sortAsciinumeric(row.traitValues, (t) => slugify(String(t)));
     for (const trait of traits) {
       console.log(
         "trait %s, trait slug %s",

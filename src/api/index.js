@@ -134,10 +134,10 @@ async function projectFeaturesAndTraits({ client, slug }) {
   });
   for (const feature of res) {
     feature.slug = slugify(feature.name);
-    feature.traits = sortAsciinumeric(feature.traits, (t) => String(t.value));
     for (const trait of feature.traits) {
       trait.slug = slugify(String(trait.value));
     }
+    feature.traits = sortAsciinumeric(feature.traits, (t) => String(t.slug));
   }
   return res;
 }
