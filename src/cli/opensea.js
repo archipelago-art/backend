@@ -162,7 +162,7 @@ async function cliSync(args) {
   // case of auto-running sync when we've recently retrieved the whole history.
   // If you do need to load historical data for a project and the window size is an issue,
   // use the manual CLI commands to download that project in particular with a custom window
-  windowDurationMs = ONE_DAY_MS;
+  windowDurationMs = ONE_DAY_MS * 1000;
   await withClient(async (client) => {
     await syncLoop({ apiKey, client, windowDurationMs, sleepDurationMs });
   });
