@@ -272,7 +272,6 @@ module.exports = {
   tokenFeaturesAndTraits,
   tokenSummariesByOnChainId,
   tokenHistory,
-  sortAsciinumeric,
   addEmailSignup,
   formatImageUrl,
   opensea: openseaApi,
