@@ -4,7 +4,7 @@ const erc721Transfers = require("../db/erc721Transfers");
 const { bufToAddress } = require("../db/util");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const slugify = require("../util/slugify");
-const sortAsciinumeric = require("../util/sortAsciinumeric");
+const { sortAsciinumeric } = require("../util/sortAsciinumeric");
 const openseaApi = require("../db/opensea/api");
 
 const PROJECT_STRIDE = 1e6;

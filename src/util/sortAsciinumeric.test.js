@@ -1,4 +1,4 @@
-const sortAsciinumeric = require("./sortAsciinumeric");
+const { sortAsciinumeric, cmpAsciinumeric } = require("./sortAsciinumeric");
 
 describe("util/sortAsciinumeric", () => {
   it("handles all-alphabetical strings", () => {
@@ -123,5 +123,13 @@ describe("util/sortAsciinumeric", () => {
     expect(() => sortAsciinumeric(input, (x) => x.value)).toThrow(
       "key function returned non-string: undefined"
     );
+  });
+
+  it("supports manually using `cmp`", () => {
+    expect(["four", "two", "three"].sort(cmpAsciinumeric)).toEqual([
+      "two",
+      "three",
+      "four",
+    ]);
   });
 });

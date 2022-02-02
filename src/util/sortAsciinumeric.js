@@ -88,4 +88,8 @@ function cmp(xs, ys) {
   return 0;
 }
 
-module.exports = sortAsciinumeric;
+function cmpAsciinumeric(x, y) {
+  return cmp(canonicalize(x), canonicalize(y));
+}
+
+module.exports = { sortAsciinumeric, cmpAsciinumeric };

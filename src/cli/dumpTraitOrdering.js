@@ -2,7 +2,7 @@ const artblocks = require("../db/artblocks");
 const { withClient } = require("../db/util");
 const log = require("../util/log")(__filename);
 const slugify = require("../util/slugify");
-const sortAsciinumeric = require("../util/sortAsciinumeric");
+const { sortAsciinumeric } = require("../util/sortAsciinumeric");
 
 async function dumpTraitOrdering() {
   const res = await withClient(async (client) => {
