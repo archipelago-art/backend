@@ -1,3 +1,5 @@
+const extractNumbers = require("./extractNumbers");
+
 function sortAsciinumeric(xs, key = (s) => s) {
   const schwartz = xs.map((x) => {
     const k = key(x);
@@ -45,18 +47,19 @@ const NUMBERS = (() => {
 
 function canonicalize(s) {
   const result = [];
-  while (s.length > 0) {
-    const match = s.match(GROUP_RE);
-    if (match == null) {
-      // shouldn't happen, but bail just to be safe
-      result.push(s);
-      break;
+  const tokens = extractNumbers(s).flatMap((group) => {
+    // Split each group on hyphens (and whitespace), unless doing so would
+    // split a negative number from its minus sign.
+    if (Number.isFinite(Number(group))) {
+      return [group];
+    } else {
+      return group.split(/([\s-]+)/g).filter(Boolean);
     }
-    const group = match[0];
-    s = s.slice(group.length);
-    if (group.match(/^\s*$/)) continue;
-    const num = Number(NUMBERS.get(group.toLowerCase()) ?? group);
-    result.push(Number.isFinite(num) ? num : group);
+  });
+  for (const token of tokens) {
+    if (token.match(/^\s*$/)) continue;
+    const num = Number(NUMBERS.get(token.toLowerCase()) ?? token);
+    result.push(Number.isFinite(num) ? num : token);
   }
   return result;
 }
