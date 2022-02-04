@@ -669,6 +669,72 @@ describe("db/opensea/ingestEvents", () => {
   );
 
   it(
+    "handles events with null payment token",
+    withTestDb(async ({ client }) => {
+      // We got this event from OpenSea. It doesn't seem to make sense---e.g.,
+      // the asset address is an externally owned account, not a contract---and
+      // OpenSea won't return it on subsequent calls. But, we still shouldn't
+      // crash on it.
+      const event = {
+        id: 3249279049,
+        asset: {
+          address: "0x2953399124f0cbb46d2cbacd8a89cf0599974963",
+          token_id:
+            "33045074806130434421210947411507583564092974799725809586528142502404611375105",
+        },
+        seller: {
+          user: null,
+          config: "",
+          address: "0x490ed97b354fd7e100399df05a46bf339176ddfa",
+          profile_img_url:
+            "https://storage.googleapis.com/opensea-static/opensea-profile/10.png",
+        },
+        duration: "604800",
+        quantity: "1",
+        bid_amount: null,
+        event_type: "created",
+        is_private: false,
+        to_account: null,
+        total_price: null,
+        transaction: null,
+        asset_bundle: null,
+        auction_type: null,
+        created_date: "2022-02-03T23:14:48.844868",
+        ending_price: "9200000000000000",
+        from_account: {
+          user: null,
+          config: "",
+          address: "0x490ed97b354fd7e100399df05a46bf339176ddfa",
+          profile_img_url:
+            "https://storage.googleapis.com/opensea-static/opensea-profile/10.png",
+        },
+        listing_time: "2022-02-03T23:14:35",
+        owner_account: null,
+        payment_token: null,
+        starting_price: "9200000000000000",
+        winner_account: null,
+        collection_slug: "affluent-of-nfts",
+        approved_account: null,
+        contract_address: "",
+        custom_event_name: null,
+        dev_fee_payment_event: null,
+        dev_seller_fee_basis_points: null,
+      };
+      await addAndIngest(client, [event]);
+      // The current behavior is that the event gets implicitly deferred
+      // because it doesn't match a known currency (since none is added).
+      const deferredCountRes = await client.query(
+        `
+        SELECT count(1) AS n FROM opensea_events_ingestion_deferred
+        WHERE event_id = $1
+        `,
+        [event.id]
+      );
+      expect(deferredCountRes.rows).toEqual([{ n: "1" }]);
+    })
+  );
+
+  it(
     "paginates as needed",
     withTestDb(async ({ client }) => {
       const ev1 = ask({ id: "1" });

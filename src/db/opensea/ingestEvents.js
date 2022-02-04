@@ -373,8 +373,11 @@ async function addNewCurrencies(client, ids) {
     `
     SELECT DISTINCT ON (json->'payment_token'->>'address')
       json->'payment_token' AS "token" FROM opensea_events_raw
-    WHERE event_id = ANY($1::text[]) AND
-      NOT EXISTS (
+    WHERE
+      event_id = ANY($1::text[])
+      AND json->'payment_token' IS NOT NULL
+      AND json->'payment_token' <> 'null'::jsonb
+      AND NOT EXISTS (
         SELECT 1
         FROM currencies
         WHERE address = hexaddr(json->'payment_token'->>'address')
