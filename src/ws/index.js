@@ -50,6 +50,10 @@ const responseParser = C.sum("type", {
   },
 });
 
+// IP address of a websocket client, stashed on the websocket itself under this
+// symbol.
+const REMOTE_ADDRESS = Symbol("remoteAddress");
+
 function formatResponse(json) {
   const parseResult = responseParser.parse(json);
   if (!parseResult.ok) {
@@ -102,24 +106,25 @@ async function attach(server, pool) {
           projectId
         );
       });
-      const msg = formatResponse({ type: "NEW_TOKENS", tokens });
+      const type = "NEW_TOKENS";
+      const msg = formatResponse({ type, tokens });
       for (const ws of server.clients) {
-        send(ws, msg);
+        send(ws, type, msg);
       }
     });
     await artblocks.imageProgressChannel.listen(listenClient);
 
-    server.on("connection", (ws) => {
+    server.on("connection", (ws, req) => {
+      ws[REMOTE_ADDRESS] = req.socket.remoteAddress;
+      const peer = req.socket.remoteAddress;
       ws.on("message", async (msgRaw) => {
         let msgJson;
         try {
           msgJson = JSON.parse(msgRaw);
         } catch (e) {
-          console.warn(
-            "ignoring invalid-JSON message from client: %s%s",
-            msgRaw.slice(0, 32),
-            msgRaw.length > 32 ? "[...]" : ""
-          );
+          const start = msgRaw.slice(0, 32);
+          const rest = msgRaw.length > 32 ? "[...]" : "";
+          log.warn`ignoring invalid-JSON message from client at ${ws[REMOTE_ADDRESS]}: ${start}${rest}`;
           return;
         }
         let request;
@@ -142,10 +147,10 @@ async function attach(server, pool) {
               await handleGetLatestTokens(ws, pool, imageProgress, request);
               break;
             default:
-              console.error("unhandled request type: %s", request.type);
+              log.error`unhandled request type: ${request.type}`;
           }
         } catch (e) {
-          console.error(e);
+          log.error`handling ${request.type} request: ${e}`;
           sendJson(ws, {
             type: "ERROR",
             httpStatus: 500,
@@ -157,7 +162,7 @@ async function attach(server, pool) {
 
     return shutDown;
   } catch (e) {
-    console.error(e);
+    log.error`failed to initialize server: ${e}`;
     await shutDown();
   }
 }
@@ -200,15 +205,18 @@ function formatOutgoingTokens(tokenFeaturesAndTraits, projectId) {
   }));
 }
 
-function send(ws, msg) {
+function send(ws, type, msg) {
   util
     .promisify(ws.send.bind(ws))(msg)
+    .then(() => {
+      log.trace`sent ${type} message to client at ${ws[REMOTE_ADDRESS]}`;
+    })
     .catch((e) => {
-      console.error("failed to send message (%s) to client:", msg, e);
+      log.error`failed to send ${type} message to client at ${ws[REMOTE_ADDRESS]}: ${e}`;
     });
 }
 function sendJson(ws, json) {
-  send(ws, formatResponse(json));
+  send(ws, json.type, formatResponse(json));
 }
 
 module.exports = attach;

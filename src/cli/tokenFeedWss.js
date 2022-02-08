@@ -35,6 +35,7 @@ async function tokenFeedWss(args) {
     log.info`listening on port ${port}`;
     await new Promise((res) => {
       httpServer.once("close", async () => {
+        log.warn`server closing`;
         await shutDown();
         res();
       });
