@@ -8,6 +8,7 @@ const ObjectType = Object.freeze({
   CURRENCY: 5,
   BID: 6,
   ASK: 7,
+  CNF: 8,
 });
 
 const objectTypeToName = Object.freeze([undefined, ...Object.keys(ObjectType)]);

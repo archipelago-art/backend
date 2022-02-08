@@ -12,6 +12,7 @@ describe("db::idTypes", () => {
     [ObjectType.CURRENCY]: "currencyid",
     [ObjectType.BID]: "bidid",
     [ObjectType.ASK]: "askid",
+    [ObjectType.CNF]: "cnfid",
   };
 
   for (const [idTypeName, idType] of Object.entries(ObjectType)) {

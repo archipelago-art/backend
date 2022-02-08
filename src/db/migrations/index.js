@@ -107,6 +107,7 @@ const migrationModules = [
   "./0096_projects_image_template_not_null",
   "./0097_opensea_cancellations",
   "./0098_auth_tokens_and_account_emails",
+  "./0099_archipelago_orderbook",
   // ...
 ];
 
