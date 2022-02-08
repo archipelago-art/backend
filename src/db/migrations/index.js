@@ -93,6 +93,7 @@ const migrationModules = [
   "./0082_transfers_block_hash_bytes32",
   "./0083_transfers_block_hash_bytes_nullable",
   "./0084_transfers_drop_block_hash_bytes",
+  "./0085_signature_type",
   // ...
 ];
 
