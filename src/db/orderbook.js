@@ -1,5 +1,6 @@
+const ethers = require("ethers");
 const { ObjectType, newId } = require("./id");
-const { hexToBuf } = require("./util");
+const { hexToBuf, bufToAddress } = require("./util");
 
 /**
  * type Scope = ProjectScope | TokenScope | TraitScope | CnfScope;
@@ -150,6 +151,39 @@ async function addAsk({
   return askId;
 }
 
+async function floorAsk({ client, projectId, tokenId }) {
+  if ((projectId == null) == (tokenId == null)) {
+    throw new Error("must provide either projectId or tokenId");
+  }
+  const res = await client.query(
+    `
+    SELECT
+      ask_id AS "askId",
+      token_id AS "tokenId",
+      price,
+      deadline,
+      asker
+    FROM asks
+    WHERE (token_id = $1 OR $1 IS NULL)
+      AND (project_id = $2 OR $2 IS NULL)
+      AND active
+    ORDER BY price ASC, create_time ASC
+    LIMIT 1
+    `,
+    [tokenId, projectId]
+  );
+  if (res.rows.length === 0) {
+    return null;
+  }
+  const x = res.rows[0];
+  return {
+    ...x,
+    asker: bufToAddress(x.asker),
+    price: ethers.BigNumber.from(x.price),
+  };
+  return res.rows[0];
+}
+
 async function checkProjectExists(client, projectId) {
   const res = await client.query(
     `
@@ -187,4 +221,5 @@ async function projectForTraitId(client, traitId) {
 module.exports = {
   addBid,
   addAsk,
+  floorAsk,
 };

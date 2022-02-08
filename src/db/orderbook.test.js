@@ -3,7 +3,7 @@ const ethers = require("ethers");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const artblocks = require("./artblocks");
-const { addBid, addAsk } = require("./orderbook");
+const { addBid, addAsk, floorAsk } = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
 
 describe("db/orderbook", () => {
@@ -236,6 +236,157 @@ describe("db/orderbook", () => {
         });
         const active = await isAskActive(client, askId);
         expect(active).toBe(true); // for now...
+      })
+    );
+  });
+
+  describe("floorAsk", () => {
+    async function markInactive(client, askId) {
+      await client.query(
+        `
+        UPDATE asks
+        SET active = false
+        WHERE ask_id = $1::askid
+        `,
+        [askId]
+      );
+    }
+
+    it(
+      "returns returns the lowest active ask on a project",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const [theCube, arch1] = await addTokens(client, [
+          snapshots.THE_CUBE,
+          snapshots.ARCH_TRIPTYCH_1,
+        ]);
+        const deadline = new Date("2099-01-01");
+        const ask1 = await addAsk({
+          client,
+          tokenId: theCube,
+          price: ethers.BigNumber.from("100"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        const ask2 = await addAsk({
+          client,
+          tokenId: arch1,
+          price: ethers.BigNumber.from("50"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        const ask3 = await addAsk({
+          client,
+          tokenId: arch1,
+          price: ethers.BigNumber.from("5"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        await markInactive(client, ask3);
+        const floor = await floorAsk({ client, projectId: archetype });
+        expect(floor).toEqual({
+          askId: ask2,
+          tokenId: arch1,
+          price: ethers.BigNumber.from("50"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+        });
+      })
+    );
+
+    it(
+      "returns returns the lowest active ask on a token",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const [theCube, arch1] = await addTokens(client, [
+          snapshots.THE_CUBE,
+          snapshots.ARCH_TRIPTYCH_1,
+        ]);
+        const deadline = new Date("2099-01-01");
+        const ask1 = await addAsk({
+          client,
+          tokenId: theCube,
+          price: ethers.BigNumber.from("100"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        const ask2 = await addAsk({
+          client,
+          tokenId: theCube,
+          price: ethers.BigNumber.from("50"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        const ask3 = await addAsk({
+          client,
+          tokenId: theCube,
+          price: ethers.BigNumber.from("5"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        await markInactive(client, ask3);
+        const ask4 = await addAsk({
+          client,
+          tokenId: arch1,
+          price: ethers.BigNumber.from("5"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        const floor = await floorAsk({ client, tokenId: theCube });
+        expect(floor).toEqual({
+          askId: ask2,
+          tokenId: theCube,
+          price: ethers.BigNumber.from("50"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+        });
+      })
+    );
+
+    it(
+      "returns null if no asks for that project",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const floor = await floorAsk({ client, projectId: archetype });
+        expect(floor).toEqual(null);
+      })
+    );
+
+    it(
+      "returns null if no asks for that token",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const [theCube] = await addTokens(client, [snapshots.THE_CUBE]);
+        const floor = await floorAsk({ client, tokenId: theCube });
+        expect(floor).toEqual(null);
       })
     );
   });
