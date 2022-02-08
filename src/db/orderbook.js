@@ -89,6 +89,67 @@ async function addBid({
   return bidId;
 }
 
+async function addAsk({
+  client,
+  tokenId /*: tokenid */,
+  price /*: ethers.BigNumber */,
+  deadline /*: Date */,
+  asker /*: address */,
+  nonce /*: uint256 */,
+  agreement /*: bytes: ABI-encoded [OrderAgreement] */,
+  message /*: bytes: ABI-encoded [Bid] */,
+  signature /*: bytes65 */,
+}) {
+  await client.query("BEGIN");
+  const projectId = await projectForTokenId(client, tokenId);
+  const askId = newId(ObjectType.ASK);
+  await client.query(
+    `
+    INSERT INTO asks (
+      ask_id,
+      project_id,
+      token_id,
+      active,
+      price,
+      deadline,
+      create_time,
+      asker,
+      nonce,
+      agreement,
+      message,
+      signature
+    ) VALUES (
+      $1::askid,
+      $2::projectid,
+      $3::tokenid,
+      true,
+      $4::uint256,
+      $5::timestamptz,
+      now(),
+      $6::address,
+      $7::uint256,
+      $8::bytea,
+      $9::bytea,
+      $10::signature
+    )
+    `,
+    [
+      askId,
+      projectId,
+      tokenId,
+      String(price),
+      deadline,
+      hexToBuf(asker),
+      String(nonce),
+      hexToBuf(agreement),
+      hexToBuf(message),
+      hexToBuf(signature),
+    ]
+  );
+  await client.query("COMMIT");
+  return askId;
+}
+
 async function checkProjectExists(client, projectId) {
   const res = await client.query(
     `
@@ -125,4 +186,5 @@ async function projectForTraitId(client, traitId) {
 
 module.exports = {
   addBid,
+  addAsk,
 };

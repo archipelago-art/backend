@@ -3,7 +3,7 @@ const ethers = require("ethers");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const artblocks = require("./artblocks");
-const { addBid } = require("./orderbook");
+const { addBid, addAsk } = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
 
 describe("db/orderbook", () => {
@@ -55,6 +55,23 @@ describe("db/orderbook", () => {
       [bidId]
     );
     if (res.rowCount !== 1) throw new Error(`no such bid: ${bidId}`);
+    return res.rows[0].active;
+  }
+
+  async function getAsks(client) {
+    const res = await client.query(`
+      SELECT ask_id AS "askId", token_id AS "tokenId" FROM asks
+    `);
+    return res.rows;
+  }
+  async function isAskActive(client, askId) {
+    const res = await client.query(
+      `
+      SELECT active FROM asks WHERE ask_id = $1::askid
+      `,
+      [askId]
+    );
+    if (res.rowCount !== 1) throw new Error(`no such ask: ${askId}`);
     return res.rows[0].active;
   }
 
@@ -174,6 +191,50 @@ describe("db/orderbook", () => {
         });
         const bids = await getBids(client);
         const active = await isBidActive(client, bids[0].bidId);
+        expect(active).toBe(true); // for now...
+      })
+    );
+  });
+
+  describe("addAsk", () => {
+    it(
+      "adds an ask",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const [theCube] = await addTokens(client, [snapshots.THE_CUBE]);
+        const askId = await addAsk({
+          client,
+          tokenId: theCube,
+          price: ethers.BigNumber.from("100"),
+          deadline: new Date("2099-01-01"),
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        expect(await getAsks(client)).toEqual([{ askId, tokenId: theCube }]);
+      })
+    );
+
+    it(
+      "always sets asks to active",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const [theCube] = await addTokens(client, [snapshots.THE_CUBE]);
+        const deadline = new Date("2000-01-01"); // expired!
+        const askId = await addAsk({
+          client,
+          tokenId: theCube,
+          price: ethers.BigNumber.from("100"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        const active = await isAskActive(client, askId);
         expect(active).toBe(true); // for now...
       })
     );
