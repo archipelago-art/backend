@@ -114,14 +114,18 @@ async function downloadCollection({
 }
 
 async function syncProject({ client, slug, projectId, apiKey }) {
+  log.debug`>getLastUpdated`;
   const since = await getLastUpdated({ client, slug, projectId });
+  log.debug`<getLastUpdated`;
   const until = new Date();
+  log.debug`>fetchEvents`;
   const events = await fetchEvents({
     source: { slug },
     since,
     until,
     apiKey,
   });
+  log.debug`<fetchEvents`;
   const relevantEvents = events.filter(
     (x) =>
       x.event_type === "created" ||
@@ -131,10 +135,13 @@ async function syncProject({ client, slug, projectId, apiKey }) {
   const strippedEvents = relevantEvents
     .filter((x) => x.asset != null)
     .map(stripEvent);
+  log.debug`>addRawEvents`;
   await addRawEvents({ client, events: strippedEvents });
   log.info`fast sync: ${strippedEvents.length} events for ${slug}`;
   const updated = new Date(Date.now() - LATE_EVENT_SAFETY_MARGIN);
+  log.debug`now setLastUpdated`;
   await setLastUpdated({ client, slug, until, projectId });
+  log.debug`done setLastUpdated`;
 }
 
 async function downloadAllCollections({ client, apiKey, windowDurationMs }) {
