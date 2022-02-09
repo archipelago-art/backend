@@ -30,6 +30,10 @@ function asI64(bigint) {
   return BigInt.asIntN(64, bigint);
 }
 
+function asU64(bigint) {
+  return BigInt.asUintN(64, bigint);
+}
+
 function newId(
   objectType,
   {
@@ -93,10 +97,15 @@ function idBounds(objectType) {
   return { min: String(asI64(min)), max: String(asI64(max)) };
 }
 
+function idType(id) {
+  return Number(asU64(id) >> 58n);
+}
+
 module.exports = {
   ObjectType,
   objectTypeToName,
   idBounds,
   newId,
   newIds,
+  idType,
 };

@@ -1,4 +1,4 @@
-const { ObjectType, idBounds, newId } = require("./id");
+const { ObjectType, idBounds, newId, idType } = require("./id");
 
 describe("db/id", () => {
   describe("newId", () => {
@@ -79,6 +79,17 @@ describe("db/id", () => {
     });
     it("rejects unknown object types", () => {
       expect(() => newId(30)).toThrow("invalid object type: 30");
+    });
+  });
+
+  describe("idType", () => {
+    it("returns the type as expected", () => {
+      const id = newId(5);
+      expect(idType(id)).toEqual(5);
+    });
+    it("works for discriminants over 32", () => {
+      const id = newId(63, { checkObjectType: false });
+      expect(idType(id)).toEqual(63);
     });
   });
 });
