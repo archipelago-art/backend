@@ -262,6 +262,30 @@ describe("api", () => {
   );
 
   it(
+    "provides chain data for a single token",
+    withTestDb(async ({ client }) => {
+      const project = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      await artblocks.addProject({ client, project });
+      const artblocksTokenId = snapshots.THE_CUBE;
+      const rawTokenData = await sc.token(snapshots.THE_CUBE);
+      const tokenId = await artblocks.addToken({
+        client,
+        artblocksTokenId,
+        rawTokenData,
+      });
+
+      const res = await api.tokenChainData({ client, tokenId });
+      expect(res).toEqual({
+        tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+        onChainTokenId: String(snapshots.THE_CUBE),
+      });
+    })
+  );
+
+  it(
     "provides summaries for multiple tokens",
     withTestDb(async ({ client }) => {
       for (const id of [snapshots.ARCHETYPE, snapshots.SQUIGGLES]) {

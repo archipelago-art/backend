@@ -613,6 +613,25 @@ async function getTokenImageData({ client, projectId }) {
   return res.rows;
 }
 
+async function getTokenChainData({ client, tokenId }) {
+  const res = await client.query(
+    `
+    SELECT
+      token_contract AS "tokenContract",
+      on_chain_token_id AS "onChainTokenId"
+    FROM tokens
+    WHERE token_id = $1::tokenid
+  `,
+    [tokenId]
+  );
+  if (res.rows.length === 0) throw new Error(`no such token: ${tokenId}`);
+  const row = res.rows[0];
+  return {
+    tokenContract: bufToAddress(row.tokenContract),
+    onChainTokenId: row.onChainTokenId,
+  };
+}
+
 async function getTokenSummaries({ client, tokens }) {
   const res = await client.query(
     `
@@ -779,6 +798,7 @@ module.exports = {
   getTokenFeaturesAndTraits,
   getUnfetchedTokens,
   getTokenImageData,
+  getTokenChainData,
   getTokenSummaries,
   getProjectScript,
   getAllProjectScripts,

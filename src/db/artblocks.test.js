@@ -740,6 +740,19 @@ describe("db/artblocks", () => {
   );
 
   it(
+    "supports getTokenChainData",
+    withTestDb(async ({ client }) => {
+      await addProjects(client, [snapshots.ARCHETYPE]);
+      const [{ id: tokenId }] = await addTokens(client, [snapshots.THE_CUBE]);
+      const res = await artblocks.getTokenChainData({ client, tokenId });
+      expect(res).toEqual({
+        tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+        onChainTokenId: String(snapshots.THE_CUBE),
+      });
+    })
+  );
+
+  it(
     "supports getTokenSummaries",
     withTestDb(async ({ client }) => {
       await addProjects(client, [snapshots.ARCHETYPE]);

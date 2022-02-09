@@ -160,6 +160,10 @@ function formatTokenTraits(result) {
   return result;
 }
 
+async function tokenChainData({ client, tokenId }) {
+  return await artblocks.getTokenChainData({ client, tokenId });
+}
+
 // `tokens` should be a list of `{ address, tokenId }` pairs, where `address`
 // is a "0x..." string and `tokenId` is a numeric string.
 async function tokenSummariesByOnChainId({ client, tokens }) {
@@ -270,6 +274,7 @@ module.exports = {
   collectionTokens,
   projectFeaturesAndTraits,
   tokenFeaturesAndTraits,
+  tokenChainData,
   tokenSummariesByOnChainId,
   tokenHistory,
   addEmailSignup,
