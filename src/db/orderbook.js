@@ -184,6 +184,38 @@ async function floorAsk({ client, projectId, tokenId }) {
   return res.rows[0];
 }
 
+/**
+ * Return all active bids that match a token
+ */
+async function bidsForToken({ client, tokenId }) {
+  const res = await client.query(
+    `
+    SELECT
+      bid_id AS "bidId",
+      price,
+      deadline,
+      bidder
+    FROM bids
+    WHERE active
+    AND scope IN (
+      SELECT $1::tokenid AS scope
+      UNION ALL
+      SELECT project_id AS scope FROM tokens WHERE token_id = $1
+      UNION ALL
+      SELECT trait_id AS scope FROM trait_members WHERE token_id = $1
+    )
+    ORDER BY price DESC, create_time ASC
+    `,
+    [tokenId]
+  );
+  return res.rows.map((x) => ({
+    bidId: x.bidId,
+    price: ethers.BigNumber.from(x.price),
+    deadline: x.deadline,
+    bidder: bufToAddress(x.bidder),
+  }));
+}
+
 async function checkProjectExists(client, projectId) {
   const res = await client.query(
     `
@@ -222,4 +254,5 @@ module.exports = {
   addBid,
   addAsk,
   floorAsk,
+  bidsForToken,
 };
