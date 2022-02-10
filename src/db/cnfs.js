@@ -31,7 +31,25 @@ async function addCnf({
   throw new Error("addCnf: not yet implemented");
 }
 
+async function projectIdForTraits(client, traits) {
+  const res = await client.query(
+    `
+    SELECT DISTINCT project_id AS "id"
+    FROM
+      unnest($1::traitid[]) AS these_traits(trait_id)
+      LEFT OUTER JOIN traits USING (trait_id)
+      LEFT OUTER JOIN features USING (feature_id)
+    LIMIT 2
+    `,
+    [traits]
+  );
+  if (res.rows.length !== 1 || res.rows[0].id == null)
+    throw new Error("did not find single unique project id");
+  return res.rows[0].id;
+}
+
 module.exports = {
   canonicalForm,
   addCnf,
+  projectIdForTraits,
 };
