@@ -249,6 +249,17 @@ async function getPendingDeferrals({ client, tokenContracts }) {
   }));
 }
 
+async function getTransferCount({ client, fromAddress, toAddress }) {
+  const res = await client.query(
+    `
+    SELECT count(1) AS "count" FROM erc_721_transfers
+    WHERE from_address = $1::address AND to_address = $2::address
+    `,
+    [hexToBuf(fromAddress), hexToBuf(toAddress)]
+  );
+  return Number(res.rows[0].count);
+}
+
 module.exports = {
   deferralsChannel,
   addBlocks,
@@ -257,4 +268,5 @@ module.exports = {
   getTransfersForToken,
   undeferTransfers,
   getPendingDeferrals,
+  getTransferCount,
 };

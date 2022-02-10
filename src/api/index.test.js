@@ -565,6 +565,55 @@ describe("api", () => {
   );
 
   it(
+    "counts transfers from one address to another",
+    withTestDb(async ({ client }) => {
+      const archetype = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      const theCube = await sc.token(snapshots.THE_CUBE);
+      await artblocks.addProject({ client, project: archetype });
+      await artblocks.addToken({
+        client,
+        artblocksTokenId: snapshots.THE_CUBE,
+        rawTokenData: theCube,
+      });
+
+      const zero = ethers.constants.AddressZero;
+      const alice = ethers.utils.getAddress(
+        ethers.utils.id("address:alice").slice(0, 42)
+      );
+      function pad(value, type) {
+        return ethers.utils.defaultAbiCoder.encode([type], [value]);
+      }
+      const transfer = {
+        address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+        removed: false,
+        data: "0x",
+        tokenId: snapshots.THE_CUBE,
+        topics: [
+          ethers.utils.id("Transfer(address,address,uint256)"),
+          pad(zero, "address"),
+          pad(alice, "address"),
+          pad(snapshots.THE_CUBE, "uint256"),
+        ],
+        blockNumber: 12164300,
+        blockHash: ethers.utils.id("block:12164300"),
+        logIndex: 123,
+        transactionHash: "0x" + "fe".repeat(32),
+        transactionIndex: 77,
+      };
+      await erc721Transfers.addTransfers({ client, transfers: [transfer] });
+      const res = await api.transferCount({
+        client,
+        fromAddress: zero,
+        toAddress: alice,
+      });
+      expect(res).toEqual({ transfers: 1 });
+    })
+  );
+
+  it(
     "permits adding emails",
     withTestDb(async ({ client }) => {
       const email = "alice@example.com";

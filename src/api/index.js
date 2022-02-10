@@ -241,6 +241,17 @@ async function tokenHistory({ client, tokenId }) {
   return result;
 }
 
+async function transferCount({ client, fromAddress, toAddress }) {
+  const count = await erc721Transfers.getTransferCount({
+    client,
+    fromAddress,
+    toAddress,
+  });
+  return {
+    transfers: count,
+  };
+}
+
 // Adds a new email address to the signups list. Returns `true` if this made a
 // change or `false` if the email already existed in the database. Idempotent.
 async function addEmailSignup({ client, email }) {
@@ -277,6 +288,7 @@ module.exports = {
   tokenChainData,
   tokenSummariesByOnChainId,
   tokenHistory,
+  transferCount,
   addEmailSignup,
   formatImageUrl,
   opensea: openseaApi,
