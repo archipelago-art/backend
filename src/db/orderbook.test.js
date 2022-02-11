@@ -4,7 +4,7 @@ const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const artblocks = require("./artblocks");
 const cnfs = require("./cnfs");
-const { addBid, addAsk, floorAsk, bidsForToken } = require("./orderbook");
+const { addBid, addAsk, floorAsk, bidDetailsForToken } = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
 
 describe("db/orderbook", () => {
@@ -80,7 +80,7 @@ describe("db/orderbook", () => {
           signature: "0x" + "fe".repeat(65),
         });
         const bid = { bidId, price, bidder, deadline };
-        expect(await bidsForToken({ client, tokenId })).toEqual([bid]);
+        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
@@ -104,7 +104,7 @@ describe("db/orderbook", () => {
           signature: "0x" + "fe".repeat(65),
         });
         const bid = { bidId, price, bidder, deadline };
-        expect(await bidsForToken({ client, tokenId })).toEqual([bid]);
+        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
@@ -147,7 +147,7 @@ describe("db/orderbook", () => {
           signature: "0x" + "fe".repeat(65),
         });
         const bid = { bidId, price, bidder, deadline };
-        expect(await bidsForToken({ client, tokenId })).toEqual([bid]);
+        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
@@ -185,7 +185,7 @@ describe("db/orderbook", () => {
           signature: "0x" + "fe".repeat(65),
         });
         const bid = { bidId, price, bidder, deadline };
-        expect(await bidsForToken({ client, tokenId })).toEqual([bid]);
+        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
@@ -210,15 +210,15 @@ describe("db/orderbook", () => {
         });
         const bid = { bidId, price, bidder, deadline };
         // Bid is included because it's (incorrectly) marked active (for now)
-        expect(await bidsForToken({ client, tokenId })).toEqual([bid]);
-        // Manually set active=false so we can test the bidsForToken behavior
+        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
+        // Manually set active=false so we can test the bidDetailsForToken behavior
         await client.query(
           `
           UPDATE bids SET active = false WHERE bid_id = $1::bidid
           `,
           [bidId]
         );
-        expect(await bidsForToken({ client, tokenId })).toEqual([]);
+        expect(await bidDetailsForToken({ client, tokenId })).toEqual([]);
       })
     );
   });

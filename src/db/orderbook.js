@@ -194,14 +194,10 @@ async function floorAsk({ client, projectId, tokenId }) {
 /**
  * Return all active bids that match a token
  */
-async function bidsForToken({ client, tokenId }) {
+async function bidIdsForToken({ client, tokenId }) {
   const res = await client.query(
     `
-    SELECT
-      bid_id AS "bidId",
-      price,
-      deadline,
-      bidder
+    SELECT bid_id AS "bidId"
     FROM bids
     WHERE active
     AND scope IN (
@@ -217,12 +213,29 @@ async function bidsForToken({ client, tokenId }) {
     `,
     [tokenId]
   );
-  return res.rows.map((x) => ({
-    bidId: x.bidId,
-    price: ethers.BigNumber.from(x.price),
-    deadline: x.deadline,
-    bidder: bufToAddress(x.bidder),
+  return res.rows.map((r) => r.bidId);
+}
+
+async function bidDetails({ client, bidIds }) {
+  const res = await client.query(
+    `
+    SELECT bid_id AS "bidId", price, deadline, bidder
+    FROM bids
+    WHERE bid_id = ANY($1::bidid[])
+    `,
+    [bidIds]
+  );
+  return res.rows.map((r) => ({
+    bidId: r.bidId,
+    price: ethers.BigNumber.from(r.price),
+    deadline: r.deadline,
+    bidder: bufToAddress(r.bidder),
   }));
+}
+
+async function bidDetailsForToken({ client, tokenId }) {
+  const bidIds = await bidIdsForToken({ client, tokenId });
+  return await bidDetails({ client, bidIds });
 }
 
 async function checkProjectExists(client, projectId) {
@@ -274,5 +287,7 @@ module.exports = {
   addBid,
   addAsk,
   floorAsk,
-  bidsForToken,
+  bidIdsForToken,
+  bidDetails,
+  bidDetailsForToken,
 };
