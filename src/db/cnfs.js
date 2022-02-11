@@ -24,6 +24,12 @@ function canonicalForm(clauses) {
   return dedupedClauses;
 }
 
+function matchesCnf(tokenTraits /*: Set<T> */, clauses /*: T[][] */) {
+  return clauses.every((clause) =>
+    clause.some((trait) => tokenTraits.has(trait))
+  );
+}
+
 async function addCnf({
   client,
   clauses /** An array of arrays of traitids */,
@@ -51,5 +57,6 @@ async function projectIdForTraits(client, traits) {
 module.exports = {
   canonicalForm,
   addCnf,
+  matchesCnf,
   projectIdForTraits,
 };

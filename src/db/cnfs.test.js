@@ -1,5 +1,10 @@
 const { ObjectType, newId } = require("./id");
-const { addCnf, canonicalForm, projectIdForTraits } = require("./cnfs");
+const {
+  addCnf,
+  canonicalForm,
+  matchesCnf,
+  projectIdForTraits,
+} = require("./cnfs");
 
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
@@ -161,5 +166,48 @@ describe("db/cnfs", () => {
         );
       })
     );
+  });
+
+  describe("matchesCnf", () => {
+    it("handles a singleton match", () => {
+      const has = new Set(["a", "b", "c"]);
+      const cnf = [["a"]];
+      expect(matchesCnf(has, cnf)).toBe(true);
+    });
+    it("handles a singleton non-match", () => {
+      const has = new Set(["a", "b", "c"]);
+      const cnf = [["z"]];
+      expect(matchesCnf(has, cnf)).toBe(false);
+    });
+    it("handles a strict disjunction match", () => {
+      const has = new Set(["a", "b", "c"]);
+      const cnf = [["a", "z"]];
+      expect(matchesCnf(has, cnf)).toBe(true);
+    });
+    it("handles a strict disjunction non-match", () => {
+      const has = new Set(["a", "b", "c"]);
+      const cnf = [["y", "z"]];
+      expect(matchesCnf(has, cnf)).toBe(false);
+    });
+    it("handles a strict conjunction match", () => {
+      const has = new Set(["a", "b", "c"]);
+      const cnf = [["a"], ["b"]];
+      expect(matchesCnf(has, cnf)).toBe(true);
+    });
+    it("handles a strict conjunction non-match", () => {
+      const has = new Set(["a", "b", "c"]);
+      const cnf = [["a"], ["z"]];
+      expect(matchesCnf(has, cnf)).toBe(false);
+    });
+    it("handles a representative non-trivial match", () => {
+      const has = new Set(["a", "b", "c"]);
+      const cnf = [["a", "z"], ["b", "c"]];
+      expect(matchesCnf(has, cnf)).toBe(true);
+    });
+    it("handles a representative non-trivial non-match", () => {
+      const has = new Set(["a", "b", "c"]);
+      const cnf = [["y", "z"], ["b", "c"]];
+      expect(matchesCnf(has, cnf)).toBe(false);
+    });
   });
 });
