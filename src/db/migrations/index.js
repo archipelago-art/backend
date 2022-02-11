@@ -109,6 +109,7 @@ const migrationModules = [
   "./0098_auth_tokens_and_account_emails",
   "./0099_archipelago_orderbook",
   "./0100_bidscopes_forwarding_table",
+  "./0101_bids_scope_fkey",
   // ...
 ];
 
