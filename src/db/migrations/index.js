@@ -108,6 +108,7 @@ const migrationModules = [
   "./0097_opensea_cancellations",
   "./0098_auth_tokens_and_account_emails",
   "./0099_archipelago_orderbook",
+  "./0100_bidscopes_forwarding_table",
   // ...
 ];
 
