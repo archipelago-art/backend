@@ -6,6 +6,7 @@ const {
   canonicalForm,
   matchesCnf,
   projectIdForTraits,
+  retrieveCnfs,
 } = require("./cnfs");
 
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
@@ -223,7 +224,7 @@ describe("db/cnfs", () => {
     it(
       "adds a new CNF, or returns the ID of an existing one",
       withTestDb(async ({ client }) => {
-        const [archetype] = await addProjects(client, [
+        const [archetype, squiggles] = await addProjects(client, [
           snapshots.ARCHETYPE,
           snapshots.SQUIGGLES, // just to have another project
         ]);
@@ -289,20 +290,21 @@ describe("db/cnfs", () => {
 
         // Check that the full CNF can be reconstructed from the data added to
         // `cnf_clauses`.
-        const clausesRes = await client.query(
-          `
-          SELECT clause_idx AS "i", trait_id AS "traitId" FROM cnf_clauses
-          WHERE cnf_id = $1::cnfid
-          ORDER BY clause_idx, trait_id
-          `,
-          [cnfId]
-        );
-        const retrievedCnf = [];
-        for (const { i, traitId } of clausesRes.rows) {
-          if (i >= retrievedCnf.length) retrievedCnf.push([]);
-          retrievedCnf[retrievedCnf.length - 1].push(traitId);
-        }
-        expect(canonicalForm(retrievedCnf)).toEqual(canonicalForm(cnf));
+        const retrievedCnfsSingle = await retrieveCnfs({ client, cnfId });
+        // (and that it does the same thing if we filter by project instead)
+        const retrievedCnfsProject = await retrieveCnfs({
+          client,
+          projectId: archetype,
+        });
+        expect(retrievedCnfsSingle).toEqual(retrievedCnfsProject);
+        // (as long as we ask for the right project)
+        const retrievedCnfsWrongProject = await retrieveCnfs({
+          client,
+          projectId: squiggles,
+        });
+        expect(retrievedCnfsWrongProject).toEqual([]);
+
+        expect(retrievedCnfsSingle[0].clauses).toEqual(canonicalForm(cnf));
 
         // Check that exactly the right tokens were added.
         const membersRes = await client.query(

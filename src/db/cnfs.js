@@ -141,9 +141,54 @@ async function projectIdForTraits(client, traits) {
   return res.rows[0].id;
 }
 
+async function retrieveCnfs({ client, cnfId, projectId }) {
+  if ((cnfId == null) === (projectId == null)) {
+    throw new Error("must set cnfId xor projectId");
+  }
+  const res = await client.query(
+    `
+    SELECT cnf_id AS "cnfId", clause_idx AS "clauseIdx", trait_id AS "traitId"
+    FROM cnfs JOIN cnf_clauses USING (cnf_id)
+    WHERE true
+      AND (project_id = $1 OR $1 IS NULL)
+      AND (cnf_id = $2 OR $2 IS NULL)
+    ORDER BY cnf_id, clause_idx, trait_id
+    `,
+    [projectId, cnfId]
+  );
+
+  const results = [];
+  let lastCnfId = null;
+  let thisCnf = null;
+  let lastClauseIdx = null;
+  let thisClause = null;
+  for (const { cnfId, clauseIdx, traitId } of res.rows) {
+    if (cnfId !== lastCnfId) {
+      lastCnfId = cnfId;
+      lastClauseIdx = null;
+      thisCnf = { cnfId, clauses: [] };
+      results.push(thisCnf);
+    }
+    if (clauseIdx !== lastClauseIdx) {
+      lastClauseIdx = clauseIdx;
+      thisClause = [];
+      thisCnf.clauses.push(thisClause);
+    }
+    thisClause.push(traitId);
+  }
+
+  // Re-canonicalize, just to be safe.
+  for (const cnf of results) {
+    cnf.clauses = canonicalForm(cnf.clauses);
+  }
+
+  return results;
+}
+
 module.exports = {
   canonicalForm,
   addCnf,
   matchesCnf,
   projectIdForTraits,
+  retrieveCnfs,
 };
