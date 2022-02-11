@@ -7,7 +7,7 @@ const { hexToBuf, bufToAddress } = require("./util");
  * type ProjectScope = {type: "PROJECT", projectId}
  * type TokenScope = {type: "TOKEN", tokenId}
  * type TraitScope = {type: "TRAIT", traitId}
- * type CnfScope = empty; // not yet implemented
+ * type CnfScope = {type: "CNF", cnfId}
  */
 async function addBid({
   client,
@@ -37,7 +37,8 @@ async function addBid({
       scopeId = scope.traitId;
       break;
     case "CNF":
-      throw new Error("CNF scopes not implemented");
+      projectId = await projectForCnfId(client, scope.cnfId);
+      scopeId = scope.cnfId;
       break;
     default:
       throw new Error(`Unrecognized scope type: ${scope.type}`);
@@ -203,6 +204,8 @@ async function bidsForToken({ client, tokenId }) {
       SELECT project_id AS scope FROM tokens WHERE token_id = $1
       UNION ALL
       SELECT trait_id AS scope FROM trait_members WHERE token_id = $1
+      UNION ALL
+      SELECT cnf_id AS scope FROM cnf_members WHERE token_id = $1
     )
     ORDER BY price DESC, create_time ASC
     `,
@@ -247,6 +250,17 @@ async function projectForTraitId(client, traitId) {
     [traitId]
   );
   if (res.rows.length !== 1) throw new Error(`no such trait: ${traitId}`);
+  return res.rows[0].id;
+}
+
+async function projectForCnfId(client, cnfId) {
+  const res = await client.query(
+    `
+    SELECT project_id AS "id" FROM cnfs WHERE cnf_id = $1
+    `,
+    [cnfId]
+  );
+  if (res.rows.length !== 1) throw new Error(`no such CNF: ${cnfId}`);
   return res.rows[0].id;
 }
 

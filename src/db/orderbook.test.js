@@ -3,6 +3,7 @@ const ethers = require("ethers");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const artblocks = require("./artblocks");
+const cnfs = require("./cnfs");
 const { addBid, addAsk, floorAsk, bidsForToken } = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
 
@@ -151,21 +152,40 @@ describe("db/orderbook", () => {
     );
 
     it(
-      "errors on CNF scope",
+      "adds a bid with CNF scope",
       withTestDb(async ({ client }) => {
-        await expect(() =>
-          addBid({
-            client,
-            scope: { type: "CNF" },
-            price: ethers.BigNumber.from("100"),
-            deadline: new Date("2099-01-01"),
-            bidder: ethers.constants.AddressZero,
-            nonce: ethers.BigNumber.from("0xabcd"),
-            agreement: "0x",
-            message: "0x",
-            signature: "0x" + "fe".repeat(65),
-          })
-        ).rejects.toThrow("CNF scopes not implemented");
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
+
+        const traitData = await artblocks.getTokenFeaturesAndTraits({
+          client,
+          tokenId,
+        });
+        const { traitId: palette } = traitData[0].traits.find(
+          (t) => t.name === "Palette" && t.value === "Paddle"
+        );
+        const { traitId: shading } = traitData[0].traits.find(
+          (t) => t.name === "Shading" && t.value === "Bright Morning"
+        );
+        const clauses = [[palette], [shading]];
+        const cnfId = await cnfs.addCnf({ client, clauses });
+
+        const price = ethers.BigNumber.from("100");
+        const deadline = new Date("2099-01-01");
+        const bidder = ethers.constants.AddressZero;
+        const bidId = await addBid({
+          client,
+          scope: { type: "CNF", cnfId },
+          price: ethers.BigNumber.from("100"),
+          deadline: new Date("2099-01-01"),
+          bidder: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        const bid = { bidId, price, bidder, deadline };
+        expect(await bidsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
