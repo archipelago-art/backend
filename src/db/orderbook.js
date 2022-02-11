@@ -43,6 +43,12 @@ async function addBid({
     default:
       throw new Error(`Unrecognized scope type: ${scope.type}`);
   }
+  await client.query(
+    `
+    INSERT INTO bidscopes(scope) VALUES($1) ON CONFLICT DO NOTHING
+    `,
+    [scopeId]
+  );
   const bidId = newId(ObjectType.BID);
   await client.query(
     `
