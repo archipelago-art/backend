@@ -141,6 +141,76 @@ async function projectIdForTraits(client, traits) {
   return res.rows[0].id;
 }
 
+async function processTraitUpdateQueue({ client }) {
+  await client.query("BEGIN");
+  const headRes = await client.query(
+    `
+    SELECT
+      token_id AS "tokenId",
+      project_id AS "projectId",
+      traits_last_update_time::text AS "traitsLastUpdateTime"
+    FROM cnf_trait_update_queue JOIN tokens USING (token_id)
+    LIMIT 1
+    `
+  );
+  if (headRes.rowCount === 0) {
+    // Spurious wake; no problem.
+    return { madeProgress: false };
+  }
+  const { tokenId, projectId, traitsLastUpdateTime } = headRes.rows[0];
+  await regenerateCnfMembersForTokenNontransactionally({
+    client,
+    tokenId,
+    projectId,
+  });
+  const deleteRes = await client.query(
+    `
+    DELETE FROM cnf_trait_update_queue
+    WHERE token_id = $1 AND traits_last_update_time <= $2::timestamptz
+    `,
+    [tokenId, traitsLastUpdateTime]
+  );
+  await client.query("COMMIT");
+  return {
+    madeProgress: true,
+    tokenId,
+    tokenStillQueued: deleteRes.rowCount === 0,
+  };
+}
+
+async function regenerateCnfMembersForTokenNontransactionally({
+  client,
+  tokenId,
+  projectId,
+}) {
+  const tokenTraitsRes = await client.query(
+    `
+    SELECT trait_id AS "traitId" FROM trait_members
+    WHERE token_id = $1
+    `,
+    [tokenId]
+  );
+  const tokenTraits = new Set(tokenTraitsRes.rows.map((r) => r.traitId));
+  const cnfs = await retrieveCnfs({ client, projectId });
+  const matchingCnfs = cnfs.filter(({ clauses }) =>
+    matchesCnf(tokenTraits, clauses)
+  );
+
+  await client.query(
+    `
+    DELETE FROM cnf_members WHERE token_id = $1::tokenid
+    `,
+    [tokenId]
+  );
+  await client.query(
+    `
+    INSERT INTO cnf_members (token_id, cnf_id)
+    VALUES ($1, unnest($2::cnfid[]))
+    `,
+    [tokenId, matchingCnfs.map((cnf) => cnf.cnfId)]
+  );
+}
+
 async function retrieveCnfs({ client, cnfId, projectId }) {
   if ((cnfId == null) === (projectId == null)) {
     throw new Error("must set cnfId xor projectId");
@@ -191,4 +261,5 @@ module.exports = {
   matchesCnf,
   projectIdForTraits,
   retrieveCnfs,
+  processTraitUpdateQueue,
 };

@@ -7,6 +7,7 @@ const {
   matchesCnf,
   projectIdForTraits,
   retrieveCnfs,
+  processTraitUpdateQueue,
 } = require("./cnfs");
 
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
@@ -54,6 +55,22 @@ describe("db/cnfs", () => {
       timestampMs: +new Date("2022-02-02"),
       entropyBuf: Buffer.from(new Uint8Array([0, x])),
     });
+  }
+
+  async function findTraitId(client, tokenId, featureName, traitValue) {
+    const [{ traits }] = await artblocks.getTokenFeaturesAndTraits({
+      client,
+      tokenId,
+    });
+    const trait = traits.find(
+      (t) => t.name === featureName && t.value === traitValue
+    );
+    if (trait == null) {
+      throw new Error(
+        `token ${tokenId} has no such trait: "${featureName}: ${traitValue}"`
+      );
+    }
+    return trait.traitId;
   }
 
   describe("canonicalForm", () => {
@@ -236,29 +253,14 @@ describe("db/cnfs", () => {
           snapshots.PERFECT_CHROMATIC,
         ]);
 
-        async function findTraitId(tokenId, featureName, traitValue) {
-          const [{ traits }] = await artblocks.getTokenFeaturesAndTraits({
-            client,
-            tokenId,
-          });
-          const trait = traits.find(
-            (t) => t.name === featureName && t.value === traitValue
-          );
-          if (trait == null) {
-            throw new Error(
-              `token ${tokenId} has no such trait: "${featureName}: ${traitValue}"`
-            );
-          }
-          return trait.traitId;
-        }
         const cnf = [
           [
-            await findTraitId(theCube, "Palette", "Paddle"),
-            await findTraitId(theCube, "Palette", "Paddle"), // dupe
+            await findTraitId(client, theCube, "Palette", "Paddle"),
+            await findTraitId(client, theCube, "Palette", "Paddle"), // dupe
           ],
           [
-            await findTraitId(theCube, "Coloring strategy", "Single"),
-            await findTraitId(tri1, "Coloring strategy", "Random"),
+            await findTraitId(client, theCube, "Coloring strategy", "Single"),
+            await findTraitId(client, tri1, "Coloring strategy", "Random"),
           ],
         ];
 
@@ -322,6 +324,128 @@ describe("db/cnfs", () => {
         // returning the same ID.
         const cnfId2 = await addCnf({ client, clauses: cnf });
         expect(cnfId2).toEqual(cnfId);
+      })
+    );
+  });
+
+  describe("processTraitUpdateQueue", () => {
+    it(
+      "processes updates, or not, as appropriate",
+      withTestDb(async ({ client }) => {
+        // The plan:
+        //
+        // (1) Add a token with trait A.
+        // (2) Add CNF#1 [["A"]] and CNF#2 [["B"]].
+        // (3) Check that token matches CNF#1 and not CNF#2.
+        // (4) Flush the queue (it's non-empty, since tokens were added).
+        // (5) Update token to have trait B *instead of* A.
+        // (6) Re-check step (3); should be the same (stale).
+        // (7) Process from the queue and ensure that we report progress.
+        // (8) Check that token matches CNF#2 and not CNF#1.
+        // (9) Check that there's nothing to do in the queue.
+        async function getQueue() {
+          const res = await client.query(
+            `
+            SELECT token_id AS "id" FROM cnf_trait_update_queue
+            ORDER BY token_id
+            `
+          );
+          return res.rows.map((r) => r.id);
+        }
+        async function getCnfMembers() /*: Map<TokenId, Set<CnfId>> */ {
+          const res = await client.query(
+            `
+            SELECT token_id AS "tokenId", cnf_id AS "cnfId" FROM cnf_members
+            ORDER BY token_id, cnf_id
+            `
+          );
+          const result = new Map();
+          for (const { tokenId, cnfId } of res.rows) {
+            if (!result.has(tokenId)) result.set(tokenId, new Set());
+            result.get(tokenId).add(cnfId);
+          }
+          return result;
+        }
+
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const [theCube, tri1] = await addTokens(client, [
+          snapshots.THE_CUBE, // (1)
+          snapshots.ARCH_TRIPTYCH_1,
+        ]);
+
+        const findShading = (token, value) =>
+          findTraitId(client, token, "Shading", value);
+        const traitOld = await findShading(theCube, "Bright Morning");
+        const traitNew = await findShading(tri1, "Noon");
+        // (2)
+        const oldCnf = await addCnf({ client, clauses: [[traitOld]] });
+        const newCnf = await addCnf({ client, clauses: [[traitNew]] });
+
+        // (3)
+        expect(await getCnfMembers()).toEqual(
+          new Map([
+            [theCube, new Set([oldCnf])],
+            [tri1, new Set([newCnf])],
+          ])
+        );
+
+        // (4)
+        expect(await getQueue()).toEqual([theCube, tri1].sort());
+        for (let i = 0; i < 2; i++) {
+          expect(await processTraitUpdateQueue({ client })).toEqual(
+            expect.objectContaining({
+              madeProgress: true,
+              tokenId: expect.any(String),
+            })
+          );
+        }
+        expect(await processTraitUpdateQueue({ client })).toEqual({
+          madeProgress: false,
+        });
+        expect(await getQueue()).toEqual([]);
+
+        // (5) oh no, the sun has moved
+        const theCubeDataOld = await sc.token(snapshots.THE_CUBE);
+        const theCubeDataNew = (() => {
+          const parsed = JSON.parse(theCubeDataOld);
+          expect(parsed.features["Shading"]).toEqual("Bright Morning");
+          parsed.features["Shading"] = "Noon";
+          return JSON.stringify(parsed);
+        })();
+        await artblocks.updateTokenData({
+          client,
+          tokenId: theCube,
+          rawTokenData: theCubeDataNew,
+        });
+        expect(await getQueue()).toEqual([theCube]);
+
+        // (6): data still stale
+        expect(await getCnfMembers()).toEqual(
+          new Map([
+            [theCube, new Set([oldCnf])],
+            [tri1, new Set([newCnf])],
+          ])
+        );
+
+        // (7)
+        expect(await processTraitUpdateQueue({ client })).toEqual({
+          madeProgress: true,
+          tokenId: theCube,
+          tokenStillQueued: false,
+        });
+
+        // (8): data updated
+        expect(await getCnfMembers()).toEqual(
+          new Map([
+            [theCube, new Set([newCnf])],
+            [tri1, new Set([newCnf])],
+          ])
+        );
+
+        // (9)
+        expect(await processTraitUpdateQueue({ client })).toEqual({
+          madeProgress: false,
+        });
       })
     );
   });

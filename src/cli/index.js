@@ -19,6 +19,7 @@ const commands = [
   ["alchemy-follow-transfers", require("./alchemyFollowTransfers")],
   ["alchemy-poke-transfers", require("./alchemyPokeTransfers")],
   ["alchemy-undefer-transfers", require("./alchemyUndeferTransfers")],
+  ["watch-cnf-queue", require("./watchCnfQueue")],
   ["opensea", require("./opensea")],
 ];
 

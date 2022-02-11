@@ -6,6 +6,7 @@ const { hexToBuf, bufToAddress } = require("./util");
 
 const newTokensChannel = channels.newTokens;
 const imageProgressChannel = channels.imageProgress;
+const traitsUpdatedChannel = channels.traitsUpdated;
 
 const PROJECT_STRIDE = 1e6;
 
@@ -300,6 +301,16 @@ async function populateTraitMembers({
     `,
     [tokenId, featureIds, traitValues]
   );
+
+  await client.query(
+    `
+    INSERT INTO cnf_trait_update_queue (token_id, traits_last_update_time)
+    VALUES ($1, now())
+    ON CONFLICT (token_id) DO UPDATE SET traits_last_update_time = now()
+    `,
+    [tokenId]
+  );
+  await traitsUpdatedChannel.send(client, {});
 }
 
 async function updateTokenData({ client, tokenId, rawTokenData }) {
@@ -744,6 +755,7 @@ module.exports = {
   PROJECT_STRIDE,
   newTokensChannel,
   imageProgressChannel,
+  traitsUpdatedChannel,
   addProject,
   projectIdsFromArtblocksIndices,
   artblocksProjectIndicesFromIds,
