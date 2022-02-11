@@ -1,3 +1,5 @@
+const ethers = require("ethers");
+
 const { ObjectType, newId } = require("./id");
 const {
   addCnf,
@@ -201,13 +203,124 @@ describe("db/cnfs", () => {
     });
     it("handles a representative non-trivial match", () => {
       const has = new Set(["a", "b", "c"]);
-      const cnf = [["a", "z"], ["b", "c"]];
+      const cnf = [
+        ["a", "z"],
+        ["b", "c"],
+      ];
       expect(matchesCnf(has, cnf)).toBe(true);
     });
     it("handles a representative non-trivial non-match", () => {
       const has = new Set(["a", "b", "c"]);
-      const cnf = [["y", "z"], ["b", "c"]];
+      const cnf = [
+        ["y", "z"],
+        ["b", "c"],
+      ];
       expect(matchesCnf(has, cnf)).toBe(false);
     });
+  });
+
+  describe("addCnf", () => {
+    it(
+      "adds a new CNF, or returns the ID of an existing one",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [
+          snapshots.ARCHETYPE,
+          snapshots.SQUIGGLES, // just to have another project
+        ]);
+        const [theCube, tri1, tri2, tri3] = await addTokens(client, [
+          snapshots.THE_CUBE,
+          snapshots.ARCH_TRIPTYCH_1,
+          snapshots.ARCH_TRIPTYCH_2,
+          snapshots.ARCH_TRIPTYCH_3,
+          snapshots.PERFECT_CHROMATIC,
+        ]);
+
+        async function findTraitId(tokenId, featureName, traitValue) {
+          const [{ traits }] = await artblocks.getTokenFeaturesAndTraits({
+            client,
+            tokenId,
+          });
+          const trait = traits.find(
+            (t) => t.name === featureName && t.value === traitValue
+          );
+          if (trait == null) {
+            throw new Error(
+              `token ${tokenId} has no such trait: "${featureName}: ${traitValue}"`
+            );
+          }
+          return trait.traitId;
+        }
+        const cnf = [
+          [
+            await findTraitId(theCube, "Palette", "Paddle"),
+            await findTraitId(theCube, "Palette", "Paddle"), // dupe
+          ],
+          [
+            await findTraitId(theCube, "Coloring strategy", "Single"),
+            await findTraitId(tri1, "Coloring strategy", "Random"),
+          ],
+        ];
+
+        const cnfId = await addCnf({ client, clauses: cnf });
+
+        // Check that the metadata in `cnfs` is as expected.
+        const metadataRes = await client.query(
+          `
+          SELECT
+            project_id AS "projectId",
+            canonical_form AS "canonicalForm",
+            replace(digest::text, '-', '') AS "digest"
+          FROM cnfs
+          WHERE cnf_id = $1::cnfid
+          `,
+          [cnfId]
+        );
+        const canonicalJson = JSON.stringify(canonicalForm(cnf));
+        expect(metadataRes.rows).toEqual([
+          {
+            projectId: archetype,
+            canonicalForm: canonicalJson,
+            digest: ethers.utils
+              .sha256(ethers.utils.toUtf8Bytes(canonicalJson))
+              .slice(2 /* 0x */)
+              .slice(32),
+          },
+        ]);
+
+        // Check that the full CNF can be reconstructed from the data added to
+        // `cnf_clauses`.
+        const clausesRes = await client.query(
+          `
+          SELECT clause_idx AS "i", trait_id AS "traitId" FROM cnf_clauses
+          WHERE cnf_id = $1::cnfid
+          ORDER BY clause_idx, trait_id
+          `,
+          [cnfId]
+        );
+        const retrievedCnf = [];
+        for (const { i, traitId } of clausesRes.rows) {
+          if (i >= retrievedCnf.length) retrievedCnf.push([]);
+          retrievedCnf[retrievedCnf.length - 1].push(traitId);
+        }
+        expect(canonicalForm(retrievedCnf)).toEqual(canonicalForm(cnf));
+
+        // Check that exactly the right tokens were added.
+        const membersRes = await client.query(
+          `
+          SELECT token_id AS "id" FROM cnf_members
+          WHERE cnf_id = $1::cnfid
+          `,
+          [cnfId]
+        );
+        const members = membersRes.rows.map((r) => r.id).sort();
+        const expectedMembers = [theCube, tri1].sort();
+        expect(members).toEqual(expectedMembers);
+
+        // Check that attempting to add the CNF again is a happy no-op,
+        // returning the same ID.
+        const cnfId2 = await addCnf({ client, clauses: cnf });
+        expect(cnfId2).toEqual(cnfId);
+      })
+    );
   });
 });

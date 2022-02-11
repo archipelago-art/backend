@@ -1,3 +1,7 @@
+const ethers = require("ethers");
+
+const { ObjectType, newId } = require("./id");
+
 function canonicalForm(clauses) {
   if (clauses.length === 0) {
     throw new Error("empty cnf disallowed");
@@ -34,7 +38,90 @@ async function addCnf({
   client,
   clauses /** An array of arrays of traitids */,
 }) {
-  throw new Error("addCnf: not yet implemented");
+  clauses = canonicalForm(clauses);
+
+  await client.query("BEGIN");
+  const cnfId = newId(ObjectType.CNF);
+  const traits = Array.from(new Set(clauses.flat()));
+  const projectId = await projectIdForTraits(client, traits);
+
+  const canonicalFormText = JSON.stringify(clauses);
+  const canonicalFormBytes = ethers.utils.toUtf8Bytes(canonicalFormText);
+  const digest = ethers.utils
+    .sha256(canonicalFormBytes)
+    .slice("0x".length + 32);
+  const addCnfRes = await client.query(
+    `
+    INSERT INTO cnfs (cnf_id, project_id, canonical_form, digest)
+    VALUES ($1::cnfid, $2::projectid, $3::text, $4::uuid)
+    ON CONFLICT (project_id, digest) DO NOTHING
+    `,
+    [cnfId, projectId, canonicalFormText, digest]
+  );
+  if (addCnfRes.rowCount === 0) {
+    const existingRes = await client.query(
+      `
+      SELECT cnf_id AS "oldCnfId", canonical_form AS "oldCanonicalForm"
+      FROM cnfs
+      WHERE project_id = $1 AND digest = $2
+      `,
+      [projectId, digest]
+    );
+    const { oldCnfId, oldCanonicalForm } = existingRes.rows[0];
+    if (oldCanonicalForm !== canonicalFormText) {
+      throw new Error(
+        `unexpected digest collision: ${projectId}, ${digest}: ${text} vs ${canonicalForm}`
+      );
+    }
+    await client.query("ROLLBACK");
+    return oldCnfId;
+  }
+
+  await client.query(
+    `
+    INSERT INTO cnf_clauses (cnf_id, clause_idx, trait_id)
+    VALUES ($1::cnfid, unnest($2::int[]), unnest($3::traitid[]))
+    `,
+    [
+      cnfId,
+      clauses.flatMap((clause, clauseIdx) =>
+        Array(clause.length).fill(clauseIdx)
+      ),
+      clauses.flat(),
+    ]
+  );
+
+  const tokenTraitsRes = await client.query(
+    `
+    SELECT token_id AS "tokenId", trait_id AS "traitId"
+    FROM trait_members
+    WHERE trait_id = ANY($1::traitid[])
+    `,
+    [traits]
+  );
+  const tokenIdToTraitset = new Map();
+  for (const { tokenId, traitId } of tokenTraitsRes.rows) {
+    if (!tokenIdToTraitset.has(tokenId)) {
+      tokenIdToTraitset.set(tokenId, new Set());
+    }
+    tokenIdToTraitset.get(tokenId).add(traitId);
+  }
+  const matchingTokens = [];
+  for (const [tokenId, tokenTraits] of tokenIdToTraitset) {
+    if (matchesCnf(tokenTraits, clauses)) {
+      matchingTokens.push(tokenId);
+    }
+  }
+  await client.query(
+    `
+    INSERT INTO cnf_members (cnf_id, token_id)
+    VALUES ($1, unnest($2::tokenid[]))
+    `,
+    [cnfId, matchingTokens]
+  );
+
+  await client.query("COMMIT");
+  return cnfId;
 }
 
 async function projectIdForTraits(client, traits) {
