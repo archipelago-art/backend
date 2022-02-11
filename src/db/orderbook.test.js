@@ -4,7 +4,13 @@ const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const artblocks = require("./artblocks");
 const cnfs = require("./cnfs");
-const { addBid, addAsk, floorAsk, bidDetailsForToken } = require("./orderbook");
+const {
+  addBid,
+  addAsk,
+  floorAsk,
+  bidDetailsForToken,
+  highBidIdsForAllTokensInProject,
+} = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
 
 describe("db/orderbook", () => {
@@ -40,6 +46,22 @@ describe("db/orderbook", () => {
       result.push(id);
     }
     return result;
+  }
+
+  async function findTraitId(client, tokenId, featureName, traitValue) {
+    const [{ traits }] = await artblocks.getTokenFeaturesAndTraits({
+      client,
+      tokenId,
+    });
+    const trait = traits.find(
+      (t) => t.name === featureName && t.value === traitValue
+    );
+    if (trait == null) {
+      throw new Error(
+        `token ${tokenId} has no such trait: "${featureName}: ${traitValue}"`
+      );
+    }
+    return trait.traitId;
   }
 
   async function getAsks(client) {
@@ -414,6 +436,106 @@ describe("db/orderbook", () => {
         const [theCube] = await addTokens(client, [snapshots.THE_CUBE]);
         const floor = await floorAsk({ client, tokenId: theCube });
         expect(floor).toEqual(null);
+      })
+    );
+  });
+
+  describe("highBidIdsForAllTokensInProject", () => {
+    it(
+      "handles all types of high bids, as well as absence of bid",
+      withTestDb(async ({ client }) => {
+        const [archetype, squiggles] = await addProjects(client, [
+          snapshots.ARCHETYPE,
+          snapshots.SQUIGGLES,
+        ]);
+        const [theCube, tri1, tri2, a66, aSquiggle] = await addTokens(client, [
+          snapshots.THE_CUBE,
+          snapshots.ARCH_TRIPTYCH_1,
+          snapshots.ARCH_TRIPTYCH_2,
+          snapshots.ARCH_66,
+          snapshots.PERFECT_CHROMATIC,
+        ]);
+
+        const traitPaddle = await findTraitId(
+          client,
+          theCube,
+          "Palette",
+          "Paddle"
+        );
+        const traitRandom = await findTraitId(
+          client,
+          tri1,
+          "Coloring strategy",
+          "Random"
+        );
+        const traitCube = await findTraitId(client, theCube, "Scene", "Cube");
+
+        async function makeBid({ scope, price }) {
+          return await addBid({
+            client,
+            scope,
+            price,
+            deadline: new Date("2099-01-01"),
+            bidder: ethers.constants.AddressZero,
+            nonce: ethers.BigNumber.from("0xabcd").add(price),
+            agreement: "0x",
+            message: "0x",
+            signature: "0x" + "fe".repeat(65),
+          });
+        }
+
+        // Doesn't match any Archetypes.
+        const bidFloorSquiggles = await makeBid({
+          scope: { type: "PROJECT", projectId: squiggles },
+          price: "100",
+        });
+        // Matches `theCube`, `tri1`, and `tri2` (not `a66`).
+        const bidTraitPaddle = await makeBid({
+          scope: { type: "TRAIT", traitId: traitPaddle },
+          price: "300",
+        });
+        // Matches `theCube` and `tri1`.
+        const cnfRandomOrCube = await cnfs.addCnf({
+          client,
+          clauses: [[traitRandom, traitCube]],
+        });
+        const bidCnfRandomOrCube = await makeBid({
+          scope: { type: "CNF", cnfId: cnfRandomOrCube },
+          price: "400",
+        });
+        // Matches `theCube` only.
+        const bidTokenTheCube = await makeBid({
+          scope: { type: "TOKEN", tokenId: theCube },
+          price: "500",
+        });
+
+        const res1 = await highBidIdsForAllTokensInProject({
+          client,
+          projectId: archetype,
+        });
+        expect(res1).toEqual([
+          { tokenId: theCube, bidId: bidTokenTheCube },
+          { tokenId: tri1, bidId: bidCnfRandomOrCube },
+          { tokenId: tri2, bidId: bidTraitPaddle },
+          { tokenId: a66, bidId: null },
+        ]);
+
+        // Now, add an Archetype floor bid.
+        const bidFloorArchetype = await makeBid({
+          scope: { type: "PROJECT", projectId: archetype },
+          price: "200",
+        });
+
+        const res2 = await highBidIdsForAllTokensInProject({
+          client,
+          projectId: archetype,
+        });
+        expect(res2).toEqual([
+          { tokenId: theCube, bidId: bidTokenTheCube },
+          { tokenId: tri1, bidId: bidCnfRandomOrCube },
+          { tokenId: tri2, bidId: bidTraitPaddle },
+          { tokenId: a66, bidId: bidFloorArchetype },
+        ]);
       })
     );
   });

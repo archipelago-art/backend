@@ -216,6 +216,95 @@ async function bidIdsForToken({ client, tokenId }) {
   return res.rows.map((r) => r.bidId);
 }
 
+async function highBidIdsForAllTokensInProject({ client, projectId }) {
+  // Plan:
+  // 1. Find all the distinct scopes relevant to the project.
+  // 2. For each scope, find the best bid ID and its price/create_time.
+  // 3. For each token, find matching scopes, join, order by rank limit 1.
+  await client.query("BEGIN");
+  await client.query(
+    `
+    CREATE TEMPORARY TABLE this_project_id(project_id)
+    ON COMMIT DROP
+    AS (SELECT $1::projectid)
+    `,
+    [projectId]
+  );
+  const res = await client.query(`
+    CREATE TEMPORARY TABLE these_scopes(
+      scope bidscope PRIMARY KEY
+    );
+    CREATE TEMPORARY TABLE these_ranked_scopes(
+      rank int8 PRIMARY KEY,
+      scope bidscope NOT NULL,
+      bid_id bidid
+    );
+
+    INSERT INTO these_scopes(scope)
+      SELECT token_id FROM tokens WHERE project_id = (
+        SELECT project_id FROM this_project_id
+      )
+    UNION ALL
+      SELECT project_id FROM this_project_id
+    UNION ALL
+      SELECT trait_id FROM features JOIN traits USING (feature_id)
+      WHERE features.project_id = (
+        SELECT project_id FROM this_project_id
+      )
+    UNION ALL
+      SELECT cnf_id FROM cnfs WHERE project_id = (
+        SELECT project_id FROM this_project_id
+      )
+    ;
+
+    INSERT INTO these_ranked_scopes(rank, scope, bid_id)
+    SELECT
+      rank() OVER (ORDER BY price DESC, create_time ASC),
+      scope,
+      bid_id
+    FROM (
+      SELECT
+        rank() OVER (
+          PARTITION BY scope
+          ORDER BY price DESC, create_time ASC
+        ) AS bid_rank,
+        scope,
+        bid_id,
+        price,
+        create_time
+      FROM these_scopes JOIN bids USING (scope)
+      WHERE active
+    ) AS bids_ranked_by_scope
+    WHERE bid_rank = 1
+    ;
+
+    SELECT
+      token_id AS "tokenId",
+      (
+        SELECT bid_id FROM these_ranked_scopes
+        WHERE scope IN (
+          SELECT token_id AS scope
+          UNION ALL
+          SELECT project_id AS scope
+          UNION ALL
+          SELECT trait_id AS scope FROM trait_members
+            WHERE trait_members.token_id = tokens.token_id
+          UNION ALL
+          SELECT cnf_id AS scope FROM cnf_members
+            WHERE cnf_members.token_id = tokens.token_id
+        )
+        ORDER BY rank
+        LIMIT 1
+      ) AS "bidId"
+    FROM tokens JOIN this_project_id USING (project_id)
+    ORDER BY token_id
+    ;
+  `);
+  const result = res[res.length - 1].rows;
+  await client.query("ROLLBACK");
+  return result;
+}
+
 async function bidDetails({ client, bidIds }) {
   const res = await client.query(
     `
@@ -290,4 +379,5 @@ module.exports = {
   bidIdsForToken,
   bidDetails,
   bidDetailsForToken,
+  highBidIdsForAllTokensInProject,
 };
