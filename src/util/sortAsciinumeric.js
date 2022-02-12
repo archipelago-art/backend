@@ -1,3 +1,4 @@
+const Cmp = require("./cmp");
 const extractNumbers = require("./extractNumbers");
 
 function sortAsciinumeric(xs, key = (s) => s) {
@@ -64,29 +65,11 @@ function canonicalize(s) {
   return result;
 }
 
-function cmp(xs, ys) {
-  // Loop invariant: at the start of each iteration, `xs[:i]` and `ys[:i]`
-  // compare equal. (Initially trivially true because `i === 0`.)
-  for (let i = 0; i < xs.length; i++) {
-    if (i >= ys.length) {
-      // `xs[:i]` and `ys` compare equal, but `xs` has more parts, so `xs`
-      // follows `ys`.
-      return 1;
-    }
-    const x = xs[i];
-    const y = ys[i];
-    if (typeof x === "number" && typeof y === "string") return -1;
-    if (typeof x === "string" && typeof y === "number") return 1;
-    if (x < y) return -1;
-    if (x > y) return 1;
-  }
-  if (xs.length < ys.length) {
-    // `xs` and `ys[:xs.length]` compare equal, but `ys` has more parts, so
-    // `xs` precedes `ys`.
-    return -1;
-  }
-  return 0;
-}
+const cmp = Cmp.array((x, y) => {
+  if (typeof x === "number" && typeof y === "string") return -1;
+  if (typeof x === "string" && typeof y === "number") return 1;
+  return Cmp.natural(x, y);
+});
 
 function cmpAsciinumeric(x, y) {
   return cmp(canonicalize(x), canonicalize(y));
