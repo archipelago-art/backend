@@ -1,31 +1,31 @@
 const ethers = require("ethers");
 
+const Cmp = require("../util/cmp");
+const uniqInPlace = require("../util/uniqInPlace");
 const { ObjectType, newId } = require("./id");
 
 function canonicalForm(clauses) {
   if (clauses.length === 0) {
     throw new Error("empty cnf disallowed");
   }
-  const cleanedClauses = clauses.map((x) => {
-    if (x.length === 0) {
+  clauses = [...clauses];
+  // It suffices to compare trait IDs as strings because any valid trait ID is
+  // between 1.15e18 and 1.45e18, and therefore is always a 19-digit string, so
+  // the natural and lexicographic orders coincide.
+  const cmpTraitIds = Cmp.natural;
+  const cmpClauses = Cmp.array(cmpTraitIds);
+
+  clauses = clauses.map((clause) => {
+    if (clause.length === 0) {
       throw new Error("empty clause disallowed");
     }
-    const deduped = Array.from(new Set(x));
-    deduped.sort();
-    return deduped;
+    clause = [...clause].sort(cmpTraitIds);
+    uniqInPlace(clause, cmpTraitIds);
+    return clause;
   });
-  const dedupedClauses = [];
-  const seen = new Set();
-  for (const x of cleanedClauses) {
-    const s = String(x);
-    if (seen.has(s)) {
-      continue;
-    }
-    seen.add(s);
-    dedupedClauses.push(x);
-  }
-  dedupedClauses.sort();
-  return dedupedClauses;
+  clauses.sort(cmpClauses);
+  uniqInPlace(clauses, cmpClauses);
+  return clauses;
 }
 
 function matchesCnf(tokenTraits /*: Set<T> */, clauses /*: T[][] */) {
