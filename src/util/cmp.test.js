@@ -70,4 +70,36 @@ describe("util/cmp", () => {
       expect(actual).toEqual(["bob", "alice", null]);
     });
   });
+
+  describe("array", () => {
+    function checkPrecedes(xs, ys, cmp = Cmp.array()) {
+      expect({ xs, ys, result: cmp(xs, ys) }).toEqual({ xs, ys, result: -1 });
+      expect({ xs, ys, result: cmp(ys, xs) }).toEqual({ xs, ys, result: 1 });
+    }
+    function checkEqual(xs, ys, cmp = Cmp.array()) {
+      expect({ xs, ys, result: cmp(xs, ys) }).toEqual({ xs, ys, result: 0 });
+      expect({ xs, ys, result: cmp(ys, xs) }).toEqual({ xs, ys, result: 0 });
+    }
+    it("compares empty array shorter than any other", () => {
+      checkEqual([], []);
+      checkPrecedes([], [1]);
+      checkPrecedes([], [-1]);
+    });
+    it("honors the first differing element", () => {
+      checkPrecedes([1, 2, 3], [1, 5, 2]);
+    });
+    it("honors strict prefixes", () => {
+      checkPrecedes([1, 2, 3], [1, 2, 3, 2, 1]);
+    });
+    it("honors exact equality", () => {
+      checkEqual([1, 2, 3], [1, 2, 3]);
+    });
+    it("honors exact comparator equality even on object inequality", () => {
+      checkEqual(
+        [2, 4, 6],
+        [3, 5, 7],
+        Cmp.comparing((x) => Math.floor(x / 2))
+      );
+    });
+  });
 });

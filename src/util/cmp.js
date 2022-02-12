@@ -71,10 +71,39 @@ function nullsLast(cmp = natural) {
   };
 }
 
+/**
+ * Lifts an comparator of elements to a lexicographic comparator of arrays. The
+ * first index at which the array elements compare unequal, if any, determines
+ * the order of the arrays. If one array is a strict prefix of the other, the
+ * shorter array compares smaller.
+ */
+function array(cmp = natural) {
+  return (xs, ys) => {
+    // Loop invariant: at the start of each iteration, `xs[:i]` and `ys[:i]`
+    // compare equal. (Initially trivially true because `i === 0`.)
+    for (let i = 0; i < xs.length; i++) {
+      if (i >= ys.length) {
+        // `xs[:i]` and `ys` compare equal, but `xs` has more parts, so `xs`
+        // follows `ys`.
+        return 1;
+      }
+      const result = cmp(xs[i], ys[i]);
+      if (result !== 0) return result;
+    }
+    if (xs.length < ys.length) {
+      // `xs` and `ys[:xs.length]` compare equal, but `ys` has more parts, so
+      // `xs` precedes `ys`.
+      return -1;
+    }
+    return 0;
+  };
+}
+
 module.exports = {
   natural,
   rev,
   comparing,
   first,
   nullsLast,
+  array,
 };
