@@ -200,6 +200,36 @@ async function floorAsk({ client, projectId, tokenId }) {
 }
 
 /**
+ * Return {askId, tokenId} objects for every token in the project that has
+ * at least one active ask.
+ */
+async function floorAskIdsForAllTokensInProject({ client, projectId }) {
+  const res = await client.query(
+    `
+    SELECT
+      ask_id AS "askId",
+      token_id AS "tokenId"
+    FROM (
+      SELECT
+        ask_id,
+        token_id,
+        rank() OVER (
+          PARTITION BY token_id
+          ORDER BY price ASC, create_time ASC
+        ) AS ask_rank
+      FROM asks
+      WHERE project_id = $1::projectid
+        AND active
+      ) AS ranked_asks
+    WHERE ask_rank = 1
+    ORDER BY token_id
+    `,
+    [projectId]
+  );
+  return res.rows;
+}
+
+/**
  * Return all active bids that match a token
  */
 async function bidIdsForToken({ client, tokenId }) {
@@ -224,6 +254,10 @@ async function bidIdsForToken({ client, tokenId }) {
   return res.rows.map((r) => r.bidId);
 }
 
+/**
+ * Return {tokenId, bidId} pairs for every token in the project.
+ * bidId will be null if there is no bid matching that token.
+ */
 async function highBidIdsForAllTokensInProject({ client, projectId }) {
   // Plan:
   // 1. Find all the distinct scopes relevant to the project.
@@ -385,6 +419,7 @@ module.exports = {
   addAsk,
   askDetails,
   floorAsk,
+  floorAskIdsForAllTokensInProject,
   bidIdsForToken,
   bidDetails,
   bidDetailsForToken,
