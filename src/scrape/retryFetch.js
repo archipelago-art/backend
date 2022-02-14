@@ -10,7 +10,10 @@ const FETCH_TIMEOUT_NEEDLE = "network timeout at:";
 // wait policies.
 const WAIT_DELAY_MS_FOR_429 = 20000;
 
-async function fetchWithRetries(url, fetchOptions = { timeout: 5000 }) {
+async function fetchWithRetries(url, fetchOptions = {}) {
+  if (fetchOptions.timeout === undefined) {
+    fetchOptions.timeout = 5000;
+  }
   const result = await retry(async () => {
     let res;
     try {
