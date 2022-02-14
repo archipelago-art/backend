@@ -167,9 +167,10 @@ async function asksForProject({ client, projectId }) {
   await _findOwners({ client, projectIds: [projectId] });
   const res = await client.query(
     `
-    SELECT
-      token_id AS id,
-      min(price) AS price
+    SELECT DISTINCT ON (token_id)
+      token_id AS "tokenId",
+      price AS "priceWei",
+      listing_time AS "listingTime"
     FROM opensea_asks JOIN token_owners USING (token_id)
     WHERE
       active
@@ -177,14 +178,14 @@ async function asksForProject({ client, projectId }) {
       AND project_id = $1
       AND (expiration_time IS NULL OR expiration_time > now())
       AND seller_address = owner
-    GROUP BY token_id
+    ORDER BY token_id, price ASC
     `,
     [projectId, wellKnownCurrencies.eth.currencyId]
   );
   await client.query("ROLLBACK");
   const result = {};
-  for (const { id, price } of res.rows) {
-    result[id] = price;
+  for (const { tokenId, priceWei, listingTime } of res.rows) {
+    result[tokenId] = { priceWei, listingTime };
   }
   return result;
 }

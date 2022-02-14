@@ -502,17 +502,21 @@ describe("db/opensea/api", () => {
           await exampleProjectAndToken({
             client,
           });
-        const a1 = ask({ id: "1", price: "500", tokenId: snapshots.THE_CUBE });
+        const a1 = ask({ id: "1", price: "500", tokenId: snapshots.THE_CUBE,
+          listingTime: dateToOpenseaString(new Date("2021-01-01")),
+        });
         const a2 = ask({
           id: "2",
           price: "1000",
           tokenId: snapshots.ARCH_TRIPTYCH_1,
           sellerAddress: dandelion, // wrong owner
+          listingTime: dateToOpenseaString(new Date("2021-02-02")),
         });
         const a3 = ask({
           id: "3",
           price: "900",
           tokenId: snapshots.ARCH_TRIPTYCH_2,
+          listingTime: dateToOpenseaString(new Date("2021-03-03")),
         });
         await addAndIngest(client, [a1, a2, a3]);
         const t1 = transfer({ tokenId: snapshots.THE_CUBE, blockNumber: 7 });
@@ -532,8 +536,14 @@ describe("db/opensea/api", () => {
           projectId: archetypeId,
         });
         expect(result).toEqual({
-          [archetypeTokenId1]: "500",
-          [archetypeTokenId3]: "900",
+          [archetypeTokenId1]: {
+            priceWei: "500",
+            listingTime: new Date("2021-01-01"),
+          },
+          [archetypeTokenId3]: {
+            priceWei: "900",
+            listingTime: new Date("2021-03-03"),
+          },
         });
       })
     );
@@ -543,9 +553,21 @@ describe("db/opensea/api", () => {
         const { archetypeId, archetypeTokenId1 } = await exampleProjectAndToken(
           { client }
         );
-        const a1 = ask({ id: "1", price: "5000" });
-        const a2 = ask({ id: "2", price: "100" });
-        const a3 = ask({ id: "3", price: "1000" });
+        const a1 = ask({
+          id: "1",
+          price: "5000",
+          listingTime: dateToOpenseaString(new Date("2021-01-01")),
+        });
+        const a2 = ask({
+          id: "2",
+          price: "100",
+          listingTime: dateToOpenseaString(new Date("2021-02-02")),
+        });
+        const a3 = ask({
+          id: "3",
+          price: "1000",
+          listingTime: dateToOpenseaString(new Date("2021-03-03")),
+        });
         await addAndIngest(client, [a1, a2, a3]);
         const t = transfer();
         await addTransfers({ client, transfers: [t] });
@@ -555,7 +577,10 @@ describe("db/opensea/api", () => {
           projectId: archetypeId,
         });
         expect(result).toEqual({
-          [archetypeTokenId1]: "100",
+          [archetypeTokenId1]: {
+            priceWei: "100",
+            listingTime: new Date("2021-02-02"),
+          },
         });
       })
     );
