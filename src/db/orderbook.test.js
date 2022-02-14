@@ -9,6 +9,7 @@ const {
   addAsk,
   floorAsk,
   floorAskIdsForAllTokensInProject,
+  floorAskForEveryProject,
   askDetails,
   bidDetailsForToken,
   highBidIdsForAllTokensInProject,
@@ -75,6 +76,17 @@ describe("db/orderbook", () => {
     );
     if (res.rowCount !== 1) throw new Error(`no such ask: ${askId}`);
     return res.rows[0].active;
+  }
+
+  async function markInactive(client, askId) {
+    await client.query(
+      `
+        UPDATE asks
+        SET active = false
+        WHERE ask_id = $1::askid
+        `,
+      [askId]
+    );
   }
 
   describe("addBid", () => {
@@ -292,17 +304,6 @@ describe("db/orderbook", () => {
   });
 
   describe("floorAsk", () => {
-    async function markInactive(client, askId) {
-      await client.query(
-        `
-        UPDATE asks
-        SET active = false
-        WHERE ask_id = $1::askid
-        `,
-        [askId]
-      );
-    }
-
     it(
       "returns returns the lowest active ask on a project",
       withTestDb(async ({ client }) => {
@@ -431,17 +432,6 @@ describe("db/orderbook", () => {
   });
 
   describe("floorAsk", () => {
-    async function markInactive(client, askId) {
-      await client.query(
-        `
-        UPDATE asks
-        SET active = false
-        WHERE ask_id = $1::askid
-        `,
-        [askId]
-      );
-    }
-
     it(
       "returns returns the lowest active ask on a project",
       withTestDb(async ({ client }) => {
@@ -593,6 +583,71 @@ describe("db/orderbook", () => {
           { tokenId: tri1, bidId: bidCnfRandomOrCube },
           { tokenId: tri2, bidId: bidTraitPaddle },
           { tokenId: a66, bidId: bidFloorArchetype },
+        ]);
+      })
+    );
+  });
+
+  describe("floorAskForEveryProject", () => {
+    it(
+      "works",
+      withTestDb(async ({ client }) => {
+        const [archetype, squiggles] = await addProjects(client, [
+          snapshots.ARCHETYPE,
+          snapshots.SQUIGGLES,
+        ]);
+        const [theCube, tri1, tri2, a66, aSquiggle] = await addTokens(client, [
+          snapshots.THE_CUBE,
+          snapshots.ARCH_TRIPTYCH_1,
+          snapshots.ARCH_TRIPTYCH_2,
+          snapshots.ARCH_66,
+          snapshots.PERFECT_CHROMATIC,
+        ]);
+        const deadline = new Date("2099-01-01");
+        const ask1 = await addAsk({
+          client,
+          tokenId: theCube,
+          price: ethers.BigNumber.from("100"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        expect(await floorAskForEveryProject({ client })).toEqual([
+          { projectId: archetype, askId: ask1 },
+        ]);
+        const ask2 = await addAsk({
+          client,
+          tokenId: aSquiggle,
+          price: ethers.BigNumber.from("50"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        const ask3 = await addAsk({
+          client,
+          tokenId: aSquiggle,
+          price: ethers.BigNumber.from("5"),
+          deadline,
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        expect(await floorAskForEveryProject({ client })).toEqual([
+          { projectId: archetype, askId: ask1 },
+          { projectId: squiggles, askId: ask3 },
+        ]);
+        await markInactive(client, ask3);
+        expect(await floorAskForEveryProject({ client })).toEqual([
+          { projectId: archetype, askId: ask1 },
+          { projectId: squiggles, askId: ask2 },
         ]);
       })
     );

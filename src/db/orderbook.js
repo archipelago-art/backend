@@ -230,6 +230,32 @@ async function floorAskIdsForAllTokensInProject({ client, projectId }) {
 }
 
 /**
+ * Return {askId, projectId} objects for every project which has at least one ask.
+ * If the project has an ask, the askId will be the lowest ask for that project.
+ */
+async function floorAskForEveryProject({ client }) {
+  const res = await client.query(
+    `
+    SELECT ask_id AS "askId", project_id AS "projectId"
+    FROM (
+      SELECT
+        ask_id,
+        project_id,
+        rank() OVER (
+          PARTITION BY project_id
+          ORDER BY price ASC, create_time ASC
+        ) AS ask_rank
+      FROM asks
+      WHERE active
+    ) AS ranked_asks
+    WHERE ask_rank = 1
+    ORDER BY project_id
+    `
+  );
+  return res.rows;
+}
+
+/**
  * Return all active bids that match a token
  */
 async function bidIdsForToken({ client, tokenId }) {
@@ -420,6 +446,7 @@ module.exports = {
   askDetails,
   floorAsk,
   floorAskIdsForAllTokensInProject,
+  floorAskForEveryProject,
   bidIdsForToken,
   bidDetails,
   bidDetailsForToken,
