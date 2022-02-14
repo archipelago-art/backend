@@ -158,6 +158,24 @@ async function addAsk({
   return askId;
 }
 
+async function askDetails({ client, askIds }) {
+  const res = await client.query(
+    `
+    SELECT ask_id AS "askId", price, deadline, asker, token_id AS "tokenId"
+    FROM asks
+    WHERE ask_id = ANY($1::askid[])
+    `,
+    [askIds]
+  );
+  return res.rows.map((r) => ({
+    askId: r.askId,
+    price: ethers.BigNumber.from(r.price),
+    deadline: r.deadline,
+    asker: bufToAddress(r.asker),
+    tokenId: r.tokenId,
+  }));
+}
+
 async function floorAsk({ client, projectId, tokenId }) {
   if ((projectId == null) == (tokenId == null)) {
     throw new Error("must provide either projectId or tokenId");
@@ -165,11 +183,7 @@ async function floorAsk({ client, projectId, tokenId }) {
   const res = await client.query(
     `
     SELECT
-      ask_id AS "askId",
-      token_id AS "tokenId",
-      price,
-      deadline,
-      asker
+      ask_id AS "askId"
     FROM asks
     WHERE (token_id = $1 OR $1 IS NULL)
       AND (project_id = $2 OR $2 IS NULL)
@@ -182,13 +196,7 @@ async function floorAsk({ client, projectId, tokenId }) {
   if (res.rows.length === 0) {
     return null;
   }
-  const x = res.rows[0];
-  return {
-    ...x,
-    asker: bufToAddress(x.asker),
-    price: ethers.BigNumber.from(x.price),
-  };
-  return res.rows[0];
+  return res.rows[0].askId;
 }
 
 /**
@@ -375,6 +383,7 @@ async function projectForCnfId(client, cnfId) {
 module.exports = {
   addBid,
   addAsk,
+  askDetails,
   floorAsk,
   bidIdsForToken,
   bidDetails,

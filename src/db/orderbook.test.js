@@ -8,6 +8,7 @@ const {
   addBid,
   addAsk,
   floorAsk,
+  askDetails,
   bidDetailsForToken,
   highBidIdsForAllTokensInProject,
 } = require("./orderbook");
@@ -64,12 +65,6 @@ describe("db/orderbook", () => {
     return trait.traitId;
   }
 
-  async function getAsks(client) {
-    const res = await client.query(`
-      SELECT ask_id AS "askId", token_id AS "tokenId" FROM asks
-    `);
-    return res.rows;
-  }
   async function isAskActive(client, askId) {
     const res = await client.query(
       `
@@ -251,18 +246,24 @@ describe("db/orderbook", () => {
       withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [theCube] = await addTokens(client, [snapshots.THE_CUBE]);
+        const price = ethers.BigNumber.from("100");
+        const asker = ethers.constants.AddressZero;
+        const deadline = new Date("2099-01-01");
         const askId = await addAsk({
           client,
           tokenId: theCube,
-          price: ethers.BigNumber.from("100"),
-          deadline: new Date("2099-01-01"),
-          asker: ethers.constants.AddressZero,
+          price,
+          deadline,
+          asker,
           nonce: ethers.BigNumber.from("0xabcd"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
-        expect(await getAsks(client)).toEqual([{ askId, tokenId: theCube }]);
+        expect(await floorAsk({ client, tokenId: theCube })).toEqual(askId);
+        expect(await askDetails({ client, askIds: [askId] })).toEqual([
+          { askId, price, deadline, asker, tokenId: theCube },
+        ]);
       })
     );
 
@@ -345,13 +346,7 @@ describe("db/orderbook", () => {
         });
         await markInactive(client, ask3);
         const floor = await floorAsk({ client, projectId: archetype });
-        expect(floor).toEqual({
-          askId: ask2,
-          tokenId: arch1,
-          price: ethers.BigNumber.from("50"),
-          deadline,
-          asker: ethers.constants.AddressZero,
-        });
+        expect(floor).toEqual(ask2);
       })
     );
 
@@ -410,13 +405,7 @@ describe("db/orderbook", () => {
           signature: "0x" + "fe".repeat(65),
         });
         const floor = await floorAsk({ client, tokenId: theCube });
-        expect(floor).toEqual({
-          askId: ask2,
-          tokenId: theCube,
-          price: ethers.BigNumber.from("50"),
-          deadline,
-          asker: ethers.constants.AddressZero,
-        });
+        expect(floor).toEqual(ask2);
       })
     );
 
