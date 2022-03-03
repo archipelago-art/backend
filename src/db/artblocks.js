@@ -405,25 +405,6 @@ async function getAllFeaturesAndTraitsOnly({ client }) {
 }
 
 /**
- * Finds traits whose value is not a JSON string (e.g., `8` rather than `"8"`).
- * Returns all token IDs with any of these traits.
- */
-async function findSuspiciousTraits({ client }) {
-  const res = await client.query(
-    `
-    SELECT DISTINCT token_id AS "tokenId"
-    FROM (
-      SELECT trait_id FROM traits
-      WHERE value <> to_jsonb(coalesce(value->>0, 'null')::text)
-    ) AS suspicious_traits
-    JOIN trait_members USING (trait_id)
-    ORDER BY token_id
-    `
-  );
-  return res.rows.map((r) => r.tokenId);
-}
-
-/**
  * Finds tokens that have no traits even though other tokends within their
  * project do have traits.
  *
@@ -782,7 +763,6 @@ module.exports = {
   updateTokenData,
   getProjectFeaturesAndTraits,
   getAllFeaturesAndTraitsOnly,
-  findSuspiciousTraits,
   findSuspiciousTraitlessTokens,
   getArtblocksTokenIds,
   pruneEmptyFeaturesAndTraits,
