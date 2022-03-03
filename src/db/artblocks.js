@@ -262,32 +262,55 @@ async function populateTraitMembers({
   );
 
   const featureIds = featureIdsRes.rows.map((r) => r.id);
+
+  // `traits.value` migrating from `jsonb` to `text`.
+  const traitValuesTypeRes = await client.query(
+    `
+    SELECT data_type AS ty FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'traits' AND column_name = 'value'
+    `
+  );
+  const traitValuesType = traitValuesTypeRes.rows[0].ty;
+  let makeTraitValue;
+  switch (traitValuesType) {
+    case "jsonb":
+      makeTraitValue = (s) => JSON.stringify(s);
+      break;
+    case "text":
+      makeTraitValue = (s) => s;
+      break;
+    default:
+      throw new Error('unexpected type for "traits.value": ' + traitValuesType);
+  }
+
   const traitValues = featureIdsRes.rows.map((r) =>
     // Convert all values to JSON strings to normalize, since Art Blocks can't
     // be trusted to give consistently typed values (e.g., giving `1` for some
     // values and `"1"` for others within the same feature).
-    JSON.stringify(String(featureData[r.name]))
+    makeTraitValue(String(featureData[r.name]))
   );
 
+  // SAFETY: `traitValuesType` is checked above to be either `jsonb` or `text`.
   await client.query(
     `
     INSERT INTO traits (feature_id, trait_id, value)
     VALUES (
       unnest($1::featureid[]),
       unnest($2::traitid[]),
-      unnest($3::jsonb[])
+      unnest($3::${traitValuesType}[])
     )
     ON CONFLICT (feature_id, value) DO NOTHING
     `,
     [featureIds, newIds(traitValues.length, ObjectType.TRAIT), traitValues]
   );
 
+  // SAFETY: `traitValuesType` is checked above to be either `jsonb` or `text`.
   await client.query(
     `
     INSERT INTO trait_members (trait_id, token_id)
     SELECT trait_id, $1::tokenid
     FROM traits
-    JOIN unnest($2::featureid[], $3::jsonb[]) AS my_traits(feature_id, value)
+    JOIN unnest($2::featureid[], $3::${traitValuesType}[]) AS my_traits(feature_id, value)
       USING (feature_id, value)
     ON CONFLICT DO NOTHING
     `,
