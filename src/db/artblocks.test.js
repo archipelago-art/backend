@@ -227,7 +227,7 @@ describe("db/artblocks", () => {
   );
 
   it(
-    "inserts data whose features are strings, numbers, or null",
+    "inserts data whose features are strings, numbers, or null, converting to string",
     withTestDb(async ({ client }) => {
       const [{ id: projectId }] = await addProjects(client, [
         snapshots.BYTEBEATS,
@@ -254,7 +254,7 @@ describe("db/artblocks", () => {
             name: "Sample Rate",
             traits: [
               expect.objectContaining({
-                value: 4978,
+                value: "4978",
                 tokenIndices: [snapshots.BYTEBEATS_NULL_FEATURE % 1e6],
               }),
             ],
@@ -263,7 +263,7 @@ describe("db/artblocks", () => {
             name: "Progressions",
             traits: [
               expect.objectContaining({
-                value: null,
+                value: "null",
                 tokenIndices: [snapshots.BYTEBEATS_NULL_FEATURE % 1e6],
               }),
             ],
@@ -347,7 +347,7 @@ describe("db/artblocks", () => {
         expect.objectContaining({ name: "Color", value: "Red" }),
         expect.objectContaining({ name: "Number", value: "7" }),
       ]);
-      const data1 = await dataWithFeatures({ Color: "Red", Number: 7 });
+      const data1 = await dataWithFeatures({ Color: "Red", Number: 8 });
       await artblocks.updateTokenData({ client, tokenId, rawTokenData: data1 });
       const t1 = await getFetchTime(tokenId);
       const traits1 = await getTraits(tokenId);
@@ -357,7 +357,7 @@ describe("db/artblocks", () => {
           featureId: traits0[1].featureId,
           name: "Number",
           traitId: expect.any(String),
-          value: 7, // type changed!
+          value: "8", // value changed!
         },
       ]);
       expect(traits1[1].traitId).not.toEqual(traits0[1].traitId);

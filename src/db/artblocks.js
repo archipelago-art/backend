@@ -263,7 +263,10 @@ async function populateTraitMembers({
 
   const featureIds = featureIdsRes.rows.map((r) => r.id);
   const traitValues = featureIdsRes.rows.map((r) =>
-    JSON.stringify(featureData[r.name])
+    // Convert all values to JSON strings to normalize, since Art Blocks can't
+    // be trusted to give consistently typed values (e.g., giving `1` for some
+    // values and `"1"` for others within the same feature).
+    JSON.stringify(String(featureData[r.name]))
   );
 
   await client.query(
