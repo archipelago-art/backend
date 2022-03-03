@@ -502,7 +502,10 @@ describe("db/opensea/api", () => {
           await exampleProjectAndToken({
             client,
           });
-        const a1 = ask({ id: "1", price: "500", tokenId: snapshots.THE_CUBE,
+        const a1 = ask({
+          id: "1",
+          price: "500",
+          tokenId: snapshots.THE_CUBE,
           listingTime: dateToOpenseaString(new Date("2021-01-01")),
         });
         const a2 = ask({
