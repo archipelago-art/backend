@@ -405,28 +405,16 @@ async function getAllFeaturesAndTraitsOnly({ client }) {
 }
 
 /**
- * Finds distinct traits for the same feature that have the same value after
- * JSON stringification: e.g., `"0"` vs `0`, or `"null"` vs `null`. Returns all
- * token IDs with any of these traits.
+ * Finds traits whose value is not a JSON string (e.g., `8` rather than `"8"`).
+ * Returns all token IDs with any of these traits.
  */
 async function findSuspiciousTraits({ client }) {
   const res = await client.query(
     `
     SELECT DISTINCT token_id AS "tokenId"
     FROM (
-      SELECT trait_id
-      FROM traits
-      JOIN (
-        SELECT feature_id, value->>0 AS value_string
-        FROM traits
-        WHERE EXISTS (
-          SELECT 1 FROM trait_members
-          WHERE trait_members.trait_id = traits.trait_id
-        )
-        GROUP BY feature_id, value->>0
-        HAVING count(1) > 1
-      ) AS q
-      ON traits.feature_id = q.feature_id AND traits.value->>0 = q.value_string
+      SELECT trait_id FROM traits
+      WHERE value <> to_jsonb(coalesce(value->>0, 'null')::text)
     ) AS suspicious_traits
     JOIN trait_members USING (trait_id)
     ORDER BY token_id
