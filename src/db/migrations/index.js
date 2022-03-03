@@ -95,6 +95,7 @@ const migrationModules = [
   "./0084_transfers_drop_block_hash_bytes",
   "./0085_signature_type",
   "./0086_index_erc_721_transfers_hom",
+  "./0087_traits_value_json_text",
   // ...
 ];
 
