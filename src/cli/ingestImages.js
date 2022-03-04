@@ -16,6 +16,10 @@ const GENERATOR_WHITELIST = [
   206, // Asemica
 ];
 
+async function sleepMs(ms) {
+  await new Promise((res) => void setTimeout(res, ms));
+}
+
 async function ingestImages(args) {
   await withPool(async (pool) => {
     function usage() {
