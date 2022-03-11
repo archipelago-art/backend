@@ -97,8 +97,9 @@ async function fetchEvents({ source, pageSize = 300, apiKey, tokenId, since }) {
     if (since && events.length > 0) {
       const lastEvent = events[events.length - 1];
       if (new Date(lastEvent.created_date) < since) {
-        log.debug`done scanning: event created: ${new Date(lastEvent.created_date)} vs since: ${since}`
-        );
+        log.debug`done scanning: event created: ${new Date(
+          lastEvent.created_date
+        )} vs since: ${since}`;
         break;
       }
     }
