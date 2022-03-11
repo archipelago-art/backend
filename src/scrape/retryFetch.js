@@ -28,7 +28,7 @@ async function fetchWithRetries(url, fetchOptions = {}) {
         const until = new Date(Date.now() + WAIT_DELAY_MS_FOR_429);
         console.warn("waiting due to 429 at %s", url);
         return { type: "WAIT", until, err: result };
-      } else if (res.status >= 500) {
+      } else if (res.status >= 500 || res.status == 495) {
         console.warn(
           "retrying due to server error: %s %s at %s",
           res.status,
