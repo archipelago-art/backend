@@ -58,20 +58,18 @@ async function syncProject({ client, slug, projectId, apiKey }) {
   const strippedEvents = relevantEvents
     .filter((x) => x.asset != null)
     .map(stripEvent);
-  if (strippedEvents.length !== 0) {
-    await addRawEvents({ client, events: strippedEvents });
-    // Important: only setLastUpdated after getting all of the events since
-    // last update time, otherwise we might have "gaps". This means that
-    // downloading all events since last update is a oneshot. If this becomes a
-    // problem, we can write another method that gets events in past windows.
-    await setLastUpdated({
-      client,
-      slug,
-      until: new Date(strippedEvents[0].created_date),
-      projectId,
-    });
-  }
-  log.info`fast sync: ${strippedEvents.length} events for ${slug}`;
+  const numAdded = await addRawEvents({ client, events: strippedEvents });
+  // Important: only setLastUpdated after getting all of the events since
+  // last update time, otherwise we might have "gaps". This means that
+  // downloading all events since last update is a oneshot. If this becomes a
+  // problem, we can write another method that gets events in past windows.
+  await setLastUpdated({
+    client,
+    slug,
+    until: new Date(events[0].created_date),
+    projectId,
+  });
+  log.info`fast sync: ${numAdded} events for ${slug} (of ${events.length} raw events)`;
 }
 
 async function syncAllProjects({ client, apiKey, windowDurationMs }) {
