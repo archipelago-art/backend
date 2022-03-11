@@ -12,7 +12,10 @@ async function fetchUrl(baseUrl, urlParams, apiKey) {
   const promisedSleep = sleepMs(HACKY_OPENSEA_FETCH_DELAY_MS);
 
   try {
-    const { text, res } = await fetchWithRetries(url, { headers });
+    const { text, res } = await fetchWithRetries(url, {
+      headers,
+      timeout: 10000,
+    });
     const json = JSON.parse(text);
     await promisedSleep;
     return json;
