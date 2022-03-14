@@ -85,9 +85,11 @@ async function _collections({ client, projectId }) {
     slug: row.slug,
     artblocksProjectIndex: row.artblocksProjectIndex,
     imageUrlTemplate:
-      row.artblocksProjectIndex == null
-        ? null
-        : artblocksImageUrlTemplate(row.artblocksProjectIndex),
+      row.slug === "autoglyphs"
+        ? `${IMAGE_BASE_URL}/autoglyphs/svg/${PARAM_INDEX_LOW}`
+        : row.artblocksProjectIndex != null
+        ? artblocksImageUrlTemplate(row.artblocksProjectIndex)
+        : null,
     name: row.name,
     artistName: row.artistName,
     description: row.description,

@@ -10,6 +10,7 @@ const openseaIngest = require("../db/opensea/ingestEvents");
 const wellKnownCurrencies = require("../db/wellKnownCurrencies");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
+const addAutoglyphs = require("../db/autoglyphs");
 
 describe("api", () => {
   const withTestDb = testDbProvider();
@@ -621,6 +622,28 @@ describe("api", () => {
       expect(await emails.getEmailSignups({ client })).toEqual([
         { email, createTime: expect.any(Date) },
       ]);
+    })
+  );
+
+  it(
+    "generates appropriate urls for autoglyphs",
+    withTestDb(async ({ client }) => {
+      const projectId = await addAutoglyphs({ client });
+      const res = await api.collection({ client, slug: "autoglyphs" });
+      expect(res).toEqual({
+        projectId,
+        slug: "autoglyphs",
+        artblocksProjectIndex: null,
+        imageUrlTemplate: expect.stringContaining("/autoglyphs/svg/"),
+        name: "Autoglyphs",
+        artistName: "Larva Labs",
+        description: expect.stringContaining(
+          "the first “on-chain” generative art"
+        ),
+        aspectRatio: 1,
+        numTokens: 512,
+        maxInvocations: 512,
+      });
     })
   );
 });
