@@ -3,6 +3,7 @@ const commands = [
   ["migrate", require("./migrate")],
   ["backfill", require("./backfill")],
   ["add-project", require("./addProject")],
+  ["add-autoglyphs", require("./addAutoglyphs")],
   ["add-token", require("./addToken")],
   ["add-project-tokens", require("./addProjectTokens")],
   ["follow-chain-tokens", require("./followChainTokens")],
