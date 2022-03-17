@@ -98,6 +98,7 @@ const migrationModules = [
   "./0087_traits_value_json_text",
   "./0088_traits_value_text",
   "./0089_ab_concept_migrations",
+  "./0090_ab_concept_cleanup",
   // ...
 ];
 
