@@ -97,6 +97,7 @@ const migrationModules = [
   "./0086_index_erc_721_transfers_hom",
   "./0087_traits_value_json_text",
   "./0088_traits_value_text",
+  "./0089_ab_concept_migrations",
   // ...
 ];
 
