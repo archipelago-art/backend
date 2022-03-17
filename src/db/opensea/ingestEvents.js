@@ -102,6 +102,7 @@ async function ingestEventPage(client, limit) {
   const idsToSkip = new Set([
     ...(await transactionsToSkip(client, events)),
     ...(await asksToSkip(client, events)),
+    ...(await cancellationsToSkip(client, events)),
   ]);
   const validEvents = events.filter((x) => !idsToSkip.has(x.id));
 
@@ -249,6 +250,11 @@ async function transactionsToSkip(client, events) {
  * The dutch auctions are normal asks (modulo starting price / ending price weirdness).
  * We only care about the dutch asks. All other types, we will remove from queue and
  * skip.
+ *
+ * We also skip private asks, since they aren't of general interest and displaying them
+ * as an offer would be misleading.
+ *
+ * We also skip asks with null listing time, to avoid opensea data corruption issues.
  */
 async function asksToSkip(client, events) {
   const ids = events.filter((x) => x.type === "created").map((x) => x.id);
@@ -259,6 +265,7 @@ async function asksToSkip(client, events) {
     AND (
       json->>'auction_type' != 'dutch'
       OR json->>'is_private' = 'true'
+      OR json->>'listing_time' IS NULL
     )
     `,
     [ids]
@@ -323,6 +330,19 @@ async function ingestAsks(client, askIds) {
   );
 
   return result.rows.map((x) => x.id);
+}
+
+async function cancellationsToSkip(client, events) {
+  const ids = events.filter((x) => x.type === "cancelled").map((x) => x.id);
+  const invalid = await client.query(
+    `
+    SELECT event_id AS id FROM opensea_events_raw
+    WHERE event_id = ANY($1::text[])
+    AND json->>'listing_time' IS NULL
+    `,
+    [ids]
+  );
+  return invalid.rows.map((x) => x.id);
 }
 
 async function ingestCancellations(client, cancellationIds) {
