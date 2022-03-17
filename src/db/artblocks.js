@@ -576,7 +576,7 @@ async function getUnfetchedTokens({
     LEFT OUTER JOIN tokens USING (project_id, token_index)
     LEFT OUTER JOIN artblocks_tokens USING (token_id)
     WHERE
-      artblocks_tokens.token_data IS NULL  -- either no "tokens" row or failed fetch
+      token_data IS NULL  -- either no "tokens" row or failed fetch
       AND (project_id = $1 OR $1 IS NULL)
     ORDER BY project_id, token_index
     `,
@@ -591,8 +591,8 @@ async function getTokenImageData({ client, projectId }) {
     SELECT
       artblocks_project_index * $1 + token_index AS "tokenId",
       project_id AS "projectId",
-      artblocks_tokens.token_data->'image' AS "imageUrl",
-      artblocks_tokens.token_data->'token_hash' AS "tokenHash"
+      token_data->'image' AS "imageUrl",
+      token_data->'token_hash' AS "tokenHash"
     FROM tokens
     JOIN artblocks_projects USING (project_id)
     JOIN artblocks_tokens USING (token_id)
@@ -652,8 +652,8 @@ async function getProjectScript({ client, projectId }) {
   const res = await client.query(
     `
     SELECT
-      artblocks_projects.script,
-      artblocks_projects.script_json->>'type' AS library,
+      script,
+      script_json->>'type' AS library,
       aspect_ratio AS "aspectRatio"
     FROM projects JOIN artblocks_projects USING (project_id)
     WHERE project_id = $1
@@ -667,8 +667,8 @@ async function getAllProjectScripts({ client }) {
   const res = await client.query(`
     SELECT
       project_id AS "projectId",
-      artblocks_projects.script,
-      artblocks_projects.script_json->>'type' AS library,
+      script,
+      script_json->>'type' AS library,
       aspect_ratio AS "aspectRatio"
     FROM projects JOIN artblocks_projects USING (project_id)
     ORDER BY project_id ASC
@@ -679,7 +679,7 @@ async function getAllProjectScripts({ client }) {
 async function getTokenHash({ client, slug, tokenIndex }) {
   const res = await client.query(
     `
-    SELECT artblocks_tokens.token_data->>'token_hash' AS hash
+    SELECT token_data->>'token_hash' AS hash
     FROM projects
     JOIN tokens USING (project_id)
     JOIN artblocks_tokens USING (token_id)

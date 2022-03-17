@@ -49,11 +49,11 @@ describe("db/artblocks", () => {
         max_invocations AS "maxInvocations",
         artist_name AS "artistName",
         description AS "description",
-        artblocks_projects.script_json AS "scriptJson",
+        script_json AS "scriptJson",
         aspect_ratio AS "aspectRatio",
         num_tokens AS "numTokens",
         slug AS "slug",
-        artblocks_projects.script AS "script",
+        script AS "script",
         token_contract AS "tokenContract"
       FROM projects JOIN artblocks_projects USING (project_id)
       WHERE project_id = $1
