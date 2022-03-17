@@ -4,11 +4,7 @@ const { newId, newIds, ObjectType } = require("./id");
 const { hexToBuf } = require("./util");
 const { newTokensChannel } = require("./artblocks");
 
-const MIGRATIONS_TO_DO = [
-  "move AB specific concepts out of the projects table (script json, script)",
-  "move AB specific concepts out of the tokens table (token_data)",
-  "move newTokensChannel (+ others?) to common module",
-];
+const MIGRATIONS_TO_DO = ["move newTokensChannel (+ others?) to common module"];
 
 async function addAutoglyphs({ client }) {
   await client.query("BEGIN");
