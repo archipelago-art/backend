@@ -6,6 +6,7 @@ const backfillModules = [
   "./populateOpenseaIngestionQueue",
   "./openseaInvalidateAsksWithSubsequentSale",
   "./openseaSkipPrivateAsks",
+  "./abConceptMigrations",
   // ...
 ];
 
