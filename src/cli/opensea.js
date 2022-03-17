@@ -8,7 +8,7 @@ const { floorAsksByProject } = require("../db/opensea/hacks");
 const log = require("../util/log")(__filename);
 const { ingestEvents } = require("../db/opensea/ingestEvents");
 const { syncLoop } = require("../opensea/sync");
-const { deleteLastUpdated } = require("../db/opensea/progress");
+const { deleteLastUpdated, setLastUpdated } = require("../db/opensea/progress");
 const { projectIdForSlug } = require("../db/projects");
 
 const ONE_DAY_MS = 1000 * 60 * 60 * 24;
@@ -107,6 +107,22 @@ async function cliClearProgress(args) {
   });
 }
 
+async function cliAddProgress(args) {
+  if (args.length !== 2) {
+    throw new Error("usage: add-progress <projectSlug> <openseaSlug>");
+  }
+  const [projectSlug, openseaSlug] = args;
+  await withClient(async (client) => {
+    const projectId = await projectIdForSlug({ client, slug: projectSlug });
+    // We need a last updated date that will be before history starts for the project we're
+    // adding. We could use OpenSea's founding date in Dec 2017, but I think it's cuter to use
+    // the deployment time for the Cryptopunks contract.
+    const until = new Date("2017-06-22");
+    await setLastUpdated({ client, projectId, slug: openseaSlug, until });
+    log.info`project ${projectSlug} now has opensea slug ${openseaSlug} (projectId: ${projectId})`;
+  });
+}
+
 async function cliFixFloors(args) {
   if (args.length > 2) {
     throw new Error("usage: fix-floors [limit] [projectSlug]");
@@ -177,6 +193,7 @@ async function cli(outerArgs, self) {
     ["ingest-events", cliIngestEvents],
     ["download-tokens", cliDownloadTokens],
     ["clear-progress", cliClearProgress],
+    ["add-progress", cliAddProgress],
     ["fix-floors", cliFixFloors],
     ["sync", cliSync],
   ];
