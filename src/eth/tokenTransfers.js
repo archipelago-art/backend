@@ -16,9 +16,16 @@ const erc721Abi = require("./erc721Abi");
 
 const BLOCK_CONCURRENCY = 16; // how many concurrent calls to `getBlock`?
 
+const AUTOGLYPH_CONTRACT = {
+  // Autoglyphs
+  address: "0xd4e4078ca3495de5b1d4db434bebc5a986197782",
+  startBlock: 7510386,
+};
+
 const CONTRACTS = [
   { address: artblocks.CONTRACT_ARTBLOCKS_LEGACY, startBlock: 11341469 },
   { address: artblocks.CONTRACT_ARTBLOCKS_STANDARD, startBlock: 11438389 },
+  AUTOGLYPH_CONTRACT,
 ];
 
 function makeProvider() {
