@@ -62,6 +62,19 @@ async function floorAsksByProject({
   }));
 }
 
+async function deactivateLegacyListings({ client, deactivationDate }) {
+  const res = await client.query(
+    `
+    UPDATE opensea_asks
+    SET active = false
+    WHERE active AND listing_time < $1
+    `,
+    [deactivationDate]
+  );
+  return res.rowCount;
+}
+
 module.exports = {
   floorAsksByProject,
+  deactivateLegacyListings,
 };

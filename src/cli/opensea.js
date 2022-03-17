@@ -4,7 +4,10 @@ const {
   downloadAllCollections,
   downloadEventsForTokens,
 } = require("../opensea/download");
-const { floorAsksByProject } = require("../db/opensea/hacks");
+const {
+  floorAsksByProject,
+  deactivateLegacyListings,
+} = require("../db/opensea/hacks");
 const log = require("../util/log")(__filename);
 const { ingestEvents } = require("../db/opensea/ingestEvents");
 const { syncLoop } = require("../opensea/sync");
@@ -123,6 +126,22 @@ async function cliAddProgress(args) {
   });
 }
 
+async function cliDeactivateLegacyListings(args) {
+  if (args.length !== 0) {
+    throw new Error("usage: deactivate-legacy-listings");
+  }
+  // OpenSea made a contract upgrade on this date which expired all previous asks.
+  // https://opensea.io/blog/announcements/announcing-a-contract-upgrade/
+  const deactivationDate = new Date("2022-02-18");
+  await withClient(async (client) => {
+    const changed = await deactivateLegacyListings({
+      client,
+      deactivationDate,
+    });
+    log.info`deactivated ${changed} asks`;
+  });
+}
+
 async function cliFixFloors(args) {
   if (args.length > 2) {
     throw new Error("usage: fix-floors [limit] [projectSlug]");
@@ -194,6 +213,7 @@ async function cli(outerArgs, self) {
     ["download-tokens", cliDownloadTokens],
     ["clear-progress", cliClearProgress],
     ["add-progress", cliAddProgress],
+    ["deactivate-legacy-listings", cliDeactivateLegacyListings],
     ["fix-floors", cliFixFloors],
     ["sync", cliSync],
   ];
