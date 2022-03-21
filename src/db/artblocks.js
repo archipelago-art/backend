@@ -97,11 +97,18 @@ async function addProject({ client, project, slugOverride }) {
   );
   await client.query(
     `
-    INSERT INTO artblocks_projects (project_id, artblocks_project_index)
-    VALUES ($1, $2)
-    ON CONFLICT DO NOTHING
+    INSERT INTO artblocks_projects (
+      project_id,
+      artblocks_project_index,
+      script_json,
+      script
+    )
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (project_id) DO UPDATE SET
+      script_json = $3,
+      script = $4
     `,
-    [projectId, project.projectId]
+    [projectId, project.projectId, project.scriptJson, project.script]
   );
   await client.query("COMMIT");
   return projectId;
@@ -216,6 +223,15 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
       rawTokenData,
     ]
   );
+  await client.query(
+    `
+    INSERT INTO artblocks_tokens (
+      token_id,
+      token_data
+    ) VALUES ($1, $2)
+    `,
+    [tokenId, rawTokenData]
+  );
   await populateTraitMembers({
     client,
     tokenId,
@@ -302,7 +318,7 @@ async function updateTokenData({ client, tokenId, rawTokenData }) {
     throw new Error("can't update token data to become missing");
   }
   await client.query("BEGIN");
-  const updateRes = await client.query(
+  const updateRes1 = await client.query(
     `
     UPDATE tokens
     SET fetch_time = now(), token_data = $2
@@ -311,10 +327,21 @@ async function updateTokenData({ client, tokenId, rawTokenData }) {
     `,
     [tokenId, rawTokenData]
   );
-  if (updateRes.rowCount !== 1) {
+  const updateRes2 = await client.query(
+    `
+    UPDATE artblocks_tokens
+    SET token_data = $2
+    WHERE token_id = $1
+    `,
+    [tokenId, rawTokenData]
+  );
+  if (updateRes1.rowCount !== 1) {
     throw new Error("no token with ID " + tokenId);
   }
-  const projectId = updateRes.rows[0].projectId;
+  if (updateRes2.rowCount !== 1) {
+    throw new Error("issue updating artblocks_tokens for ID " + tokenId);
+  }
+  const projectId = updateRes1.rows[0].projectId;
   await client.query(
     `
     DELETE FROM trait_members
