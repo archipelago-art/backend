@@ -25,11 +25,9 @@ async function addAutoglyphs({ client }) {
       max_invocations,
       artist_name,
       description,
-      script_json,
       aspect_ratio,
       num_tokens,
       slug,
-      script,
       token_contract
     ) VALUES (
       $1,
@@ -37,11 +35,9 @@ async function addAutoglyphs({ client }) {
       512,
       'Larva Labs',
       $2,
-      NULL,
       1,
       512,
       'autoglyphs',
-      NULL,
       $3
     )
     `,
@@ -57,16 +53,14 @@ async function addAutoglyphs({ client }) {
       token_index,
       token_contract,
       on_chain_token_id,
-      fetch_time,
-      token_data
+      fetch_time
     ) VALUES (
       unnest($1::tokenid[]),
       $2,
       generate_series(1, 512),
       $3,
       generate_series(1, 512),
-      now(),
-      NULL
+      now()
     )
     `,
     [tokenIds, projectId, hexToBuf(contractAddress)]
