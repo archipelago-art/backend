@@ -453,7 +453,7 @@ async function findSuspiciousTraitlessTokens({ client }) {
     LEFT OUTER JOIN trait_members USING (token_id)
     WHERE
       num_zero > 0 AND num_nonzero > 0
-      AND trait_id IS NULL 
+      AND trait_id IS NULL
     ORDER BY token_contract, on_chain_token_id
     `
   );
