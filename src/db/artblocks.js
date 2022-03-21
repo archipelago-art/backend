@@ -587,8 +587,9 @@ async function getUnfetchedTokens({
         LATERAL generate_series(0, max_invocations - 1) AS token_index
     ) AS q
     LEFT OUTER JOIN tokens USING (project_id, token_index)
+    LEFT OUTER JOIN artblocks_tokens USING (token_id)
     WHERE
-      token_data IS NULL  -- either no "tokens" row or failed fetch
+      artblocks_tokens.token_data IS NULL  -- either no "tokens" row or failed fetch
       AND (project_id = $1 OR $1 IS NULL)
     ORDER BY project_id, token_index
     `,
@@ -603,9 +604,11 @@ async function getTokenImageData({ client, projectId }) {
     SELECT
       artblocks_project_index * $1 + token_index AS "tokenId",
       project_id AS "projectId",
-      token_data->'image' AS "imageUrl",
-      token_data->'token_hash' AS "tokenHash"
-    FROM tokens JOIN artblocks_projects USING (project_id)
+      artblocks_tokens.token_data->'image' AS "imageUrl",
+      artblocks_tokens.token_data->'token_hash' AS "tokenHash"
+    FROM tokens
+    JOIN artblocks_projects USING (project_id)
+    JOIN artblocks_tokens USING (token_id)
     WHERE project_id = $2 OR $2 IS NULL
     ORDER BY artblocks_project_index, token_index
     `,
@@ -662,10 +665,10 @@ async function getProjectScript({ client, projectId }) {
   const res = await client.query(
     `
     SELECT
-      script,
-      script_json->>'type' AS library,
+      artblocks_projects.script,
+      artblocks_projects.script_json->>'type' AS library,
       aspect_ratio AS "aspectRatio"
-    FROM projects
+    FROM projects JOIN artblocks_projects USING (project_id)
     WHERE project_id = $1
     `,
     [projectId]
@@ -677,10 +680,10 @@ async function getAllProjectScripts({ client }) {
   const res = await client.query(`
     SELECT
       project_id AS "projectId",
-      script,
-      script_json->>'type' AS library,
+      artblocks_projects.script,
+      artblocks_projects.script_json->>'type' AS library,
       aspect_ratio AS "aspectRatio"
-    FROM projects
+    FROM projects JOIN artblocks_projects USING (project_id)
     ORDER BY project_id ASC
   `);
   return res.rows;
@@ -689,8 +692,10 @@ async function getAllProjectScripts({ client }) {
 async function getTokenHash({ client, slug, tokenIndex }) {
   const res = await client.query(
     `
-    SELECT token_data->>'token_hash' AS hash
-    FROM projects JOIN tokens USING (project_id)
+    SELECT artblocks_tokens.token_data->>'token_hash' AS hash
+    FROM projects
+    JOIN tokens USING (project_id)
+    JOIN artblocks_tokens USING (token_id)
     WHERE slug = $1 AND token_index = $2
     `,
     [slug, tokenIndex]
