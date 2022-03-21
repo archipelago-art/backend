@@ -59,28 +59,24 @@ async function addProject({ client, project, slugOverride }) {
       max_invocations,
       artist_name,
       description,
-      script_json,
       aspect_ratio,
       num_tokens,
       slug,
-      script,
       token_contract
     )
     SELECT
       $1::projectid,
-      $2, $3, $4, $5, $6, $7,
+      $2, $3, $4, $5, $6,
       0,  -- no tokens to start: tokens must be added after project
-      $8, $9, $10
+      $7, $8
     ON CONFLICT (project_id) DO UPDATE SET
       name = $2,
       max_invocations = $3,
       artist_name = $4,
       description = $5,
-      script_json = $6,
-      aspect_ratio = $7,
-      slug = $8,
-      script = $9,
-      token_contract = $10
+      aspect_ratio = $6,
+      slug = $7,
+      token_contract = $8
     `,
     [
       projectId,
@@ -88,10 +84,8 @@ async function addProject({ client, project, slugOverride }) {
       project.maxInvocations,
       project.artistName,
       project.description,
-      project.scriptJson,
       aspectRatio,
       slugOverride ?? slug(project.name),
-      project.script,
       hexToBuf(artblocksContractAddress(project.projectId)),
     ]
   );
@@ -206,22 +200,15 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
       token_index,
       token_contract,
       on_chain_token_id,
-      fetch_time,
-      token_data
+      fetch_time
     )
     VALUES (
       $1, $2, $3,
       (SELECT token_contract FROM projects WHERE project_id = $2::projectid),
-      $4, now(), $5
+      $4, now()
     )
     `,
-    [
-      tokenId,
-      projectId,
-      artblocksTokenId % PROJECT_STRIDE,
-      artblocksTokenId,
-      rawTokenData,
-    ]
+    [tokenId, projectId, artblocksTokenId % PROJECT_STRIDE, artblocksTokenId]
   );
   await client.query(
     `
@@ -321,11 +308,11 @@ async function updateTokenData({ client, tokenId, rawTokenData }) {
   const updateRes1 = await client.query(
     `
     UPDATE tokens
-    SET fetch_time = now(), token_data = $2
+    SET fetch_time = now()
     WHERE token_id = $1
     RETURNING project_id AS "projectId"
     `,
-    [tokenId, rawTokenData]
+    [tokenId]
   );
   const updateRes2 = await client.query(
     `
