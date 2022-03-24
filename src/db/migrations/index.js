@@ -105,6 +105,7 @@ const migrationModules = [
   "./0094_projects_slug_not_null",
   "./0095_projects_image_template",
   "./0096_projects_image_template_not_null",
+  "./0097_eth_events",
   // ...
 ];
 
