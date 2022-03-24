@@ -9,7 +9,6 @@ async function up({ client }) {
     (SELECT count(1) FROM artblocks_tokens) AS actual
     `);
   const { expected, actual } = res.rows[0];
-  console.log(expected, actual);
   if (expected != actual) {
     throw new Error("not all tokens are migrated!");
   }
