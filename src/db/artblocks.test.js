@@ -328,19 +328,12 @@ describe("db/artblocks", () => {
       async function getFetchTime(tokenId) {
         const res = await client.query(
           `
-          SELECT
-            (SELECT fetch_time FROM tokens WHERE token_id = $1) AS f1,
-            (SELECT fetch_time FROM artblocks_tokens WHERE token_id = $1) AS f2
+          SELECT fetch_time AS "fetchTime" FROM artblocks_tokens
+          WHERE token_id = $1
           `,
           [tokenId]
         );
-        const row = res.rows[0];
-        if (+row.f1 !== +row.f2) {
-          throw new Error(
-            `inconsistent fetch times for ${tokenId}: ${+row.f1} / ${+row.f2}`
-          );
-        }
-        return row.f1;
+        return res.rows[0].fetchTime;
       }
       const data0 = await dataWithFeatures({ Color: "Red", Number: "7" });
       const tokenId = await artblocks.addToken({

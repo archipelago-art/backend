@@ -199,13 +199,12 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
       project_id,
       token_index,
       token_contract,
-      on_chain_token_id,
-      fetch_time
+      on_chain_token_id
     )
     VALUES (
       $1, $2, $3,
       (SELECT token_contract FROM projects WHERE project_id = $2::projectid),
-      $4, now()
+      $4
     )
     `,
     [tokenId, projectId, artblocksTokenId % PROJECT_STRIDE, artblocksTokenId]
@@ -306,30 +305,22 @@ async function updateTokenData({ client, tokenId, rawTokenData }) {
     throw new Error("can't update token data to become missing");
   }
   await client.query("BEGIN");
-  const updateRes1 = await client.query(
-    `
-    UPDATE tokens
-    SET fetch_time = now()
-    WHERE token_id = $1
-    RETURNING project_id AS "projectId"
-    `,
-    [tokenId]
-  );
-  const updateRes2 = await client.query(
+  const updateRes = await client.query(
     `
     UPDATE artblocks_tokens
     SET token_data = $2, fetch_time = now()
     WHERE token_id = $1
+    RETURNING (SELECT project_id FROM tokens WHERE token_id = $1) AS "projectId"
     `,
     [tokenId, rawTokenData]
   );
-  if (updateRes1.rowCount !== 1) {
-    throw new Error("no token with ID " + tokenId);
-  }
-  if (updateRes2.rowCount !== 1) {
+  if (updateRes.rowCount !== 1) {
     throw new Error("issue updating artblocks_tokens for ID " + tokenId);
   }
-  const projectId = updateRes1.rows[0].projectId;
+  const projectId = updateRes.rows[0].projectId;
+  if (projectId == null) {
+    throw new Error("no token with ID " + tokenId);
+  }
   await client.query(
     `
     DELETE FROM trait_members

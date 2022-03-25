@@ -48,15 +48,13 @@ async function addAutoglyphs({ client }) {
       project_id,
       token_index,
       token_contract,
-      on_chain_token_id,
-      fetch_time
+      on_chain_token_id
     ) VALUES (
       unnest($1::tokenid[]),
       $2,
       generate_series(1, 512),
       $3,
-      generate_series(1, 512),
-      now()
+      generate_series(1, 512)
     )
     `,
     [tokenIds, projectId, hexToBuf(contractAddress)]
