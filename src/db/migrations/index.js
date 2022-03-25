@@ -99,6 +99,7 @@ const migrationModules = [
   "./0088_traits_value_text",
   "./0089_ab_concept_migrations",
   "./0090_ab_concept_cleanup",
+  "./0091_ab_fetch_time",
   // ...
 ];
 
