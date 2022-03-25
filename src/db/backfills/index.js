@@ -2,7 +2,6 @@ const backfillModules = [
   "./artblocksFetchTime",
   "./blocks",
   "./nonStringTraits",
-  "./projectSlugs",
   "./openseaEventTypes",
   "./populateOpenseaIngestionQueue",
   "./openseaInvalidateAsksWithSubsequentSale",
