@@ -102,6 +102,7 @@ const migrationModules = [
   "./0091_ab_fetch_time",
   "./0092_tokens_fetch_time_nullable",
   "./0093_tokens_drop_fetch_time",
+  "./0094_projects_slug_not_null",
   // ...
 ];
 
