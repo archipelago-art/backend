@@ -1,4 +1,5 @@
 const backfillModules = [
+  "./artblocksFetchTime",
   "./blocks",
   "./nonStringTraits",
   "./projectSlugs",
