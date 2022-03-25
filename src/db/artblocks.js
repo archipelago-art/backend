@@ -214,8 +214,9 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
     `
     INSERT INTO artblocks_tokens (
       token_id,
-      token_data
-    ) VALUES ($1, $2)
+      token_data,
+      fetch_time
+    ) VALUES ($1, $2, now())
     `,
     [tokenId, rawTokenData]
   );
@@ -317,7 +318,7 @@ async function updateTokenData({ client, tokenId, rawTokenData }) {
   const updateRes2 = await client.query(
     `
     UPDATE artblocks_tokens
-    SET token_data = $2
+    SET token_data = $2, fetch_time = now()
     WHERE token_id = $1
     `,
     [tokenId, rawTokenData]
