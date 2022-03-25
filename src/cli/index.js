@@ -2,6 +2,7 @@ const commands = [
   ["init", require("./init")],
   ["migrate", require("./migrate")],
   ["backfill", require("./backfill")],
+  ["set-project-slug", require("./setProjectSlug")],
   ["add-project", require("./addProject")],
   ["add-autoglyphs", require("./addAutoglyphs")],
   ["add-token", require("./addToken")],
