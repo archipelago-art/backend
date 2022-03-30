@@ -22,7 +22,7 @@ const AUTOGLYPH_CONTRACT = {
   startBlock: 7510386,
 };
 
-const MAINNET_CONTRACTS = [
+const CONTRACTS = [
   { address: artblocks.CONTRACT_ARTBLOCKS_LEGACY, startBlock: 11341469 },
   { address: artblocks.CONTRACT_ARTBLOCKS_STANDARD, startBlock: 11438389 },
   AUTOGLYPH_CONTRACT,
@@ -34,9 +34,6 @@ const TESTNET_AUTOGLYPH_CONTRACT = {
 };
 
 const TESTNET_CONTRACTS = [TESTNET_AUTOGLYPH_CONTRACT];
-
-const CONTRACTS =
-  process.env.TESTNET === "rinkeby" ? TESTNET_CONTRACTS : MAINNET_CONTRACTS;
 
 function makeProvider() {
   const apiKey = process.env.ALCHEMY_API_KEY;
@@ -74,8 +71,10 @@ async function retryEthers(cb) {
 
 async function ingestTransfersLive({ pool }) {
   const provider = makeProvider();
+  const contracts =
+    process.env.TESTNET === "rinkeby" ? TESTNET_CONTRACTS : CONTRACTS;
   await Promise.all(
-    CONTRACTS.map((contract) =>
+    contracts.map((contract) =>
       ingestTransfersLiveForContract({ pool, provider, contract })
     )
   );
