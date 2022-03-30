@@ -22,16 +22,27 @@ const AUTOGLYPH_CONTRACT = {
   startBlock: 7510386,
 };
 
-const CONTRACTS = [
+const MAINNET_CONTRACTS = [
   { address: artblocks.CONTRACT_ARTBLOCKS_LEGACY, startBlock: 11341469 },
   { address: artblocks.CONTRACT_ARTBLOCKS_STANDARD, startBlock: 11438389 },
   AUTOGLYPH_CONTRACT,
 ];
 
+const TESTNET_AUTOGLYPH_CONTRACT = {
+  address: "0xa9e6b6DF4FaE40a505bBb66a9B7E440acda5C371",
+  startBlock: 10418112,
+};
+
+const TESTNET_CONTRACTS = [TESTNET_AUTOGLYPH_CONTRACT];
+
+const CONTRACTS =
+  process.env.TESTNET === "rinkeby" ? TESTNET_CONTRACTS : MAINNET_CONTRACTS;
+
 function makeProvider() {
   const apiKey = process.env.ALCHEMY_API_KEY;
   if (apiKey == null) throw new Error("missing ALCHEMY_API_KEY");
-  return new ethers.providers.AlchemyProvider(null, apiKey);
+  const network = process.env.TESTNET === "rinkeby" ? "rinkeby" : "homestead";
+  return new ethers.providers.AlchemyProvider(network, apiKey);
 }
 
 const retryableCodes = [
