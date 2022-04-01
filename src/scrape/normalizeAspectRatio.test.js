@@ -1,7 +1,7 @@
 const normalizeAspectRatio = require("./normalizeAspectRatio");
 
 describe("scrape/normalizeAspectRatio", () => {
-  it("gives reasonable answers for the data from projects 0 through 163", () => {
+  it("gives reasonable answers for the data from projects 0 through 291", () => {
     const cases = [
       [0.833333, 0.833333],
       [1, 1],
@@ -10,6 +10,7 @@ describe("scrape/normalizeAspectRatio", () => {
       ["0.8", 0.8],
       ["0.833333", 0.833333],
       ["0.8333333333333334", 0.8333333333333334],
+      [".9", 0.9],
       ["1", 1],
       ["1.0", 1.0],
       ["1.1", 1.1],

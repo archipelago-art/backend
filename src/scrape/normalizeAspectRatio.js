@@ -1,5 +1,5 @@
 const RE_RATIO = /^(0|[1-9][0-9]*)\/(0|[1-9][0-9]*)$/;
-const RE_DECIMAL = /^(0|[1-9][0-9]*)(?:\.([0-9]+))?$/;
+const RE_DECIMAL = /^(0|[1-9][0-9]*)?(?:\.([0-9]+))?$/;
 
 function normalizeAspectRatio(ar) {
   if (ar == null) throw new Error("nullish aspect ratio: " + ar);
