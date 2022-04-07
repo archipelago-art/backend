@@ -11,6 +11,7 @@ const wellKnownCurrencies = require("../db/wellKnownCurrencies");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const addAutoglyphs = require("../db/autoglyphs");
+const addCryptoadz = require("../db/cryptoadz");
 
 describe("api", () => {
   const withTestDb = testDbProvider();
@@ -643,6 +644,28 @@ describe("api", () => {
         aspectRatio: 1,
         numTokens: 512,
         maxInvocations: 512,
+      });
+    })
+  );
+
+  it(
+    "generates appropriate urls for cryptoadz",
+    withTestDb(async ({ client }) => {
+      const projectId = await addCryptoadz({ client });
+      const res = await api.collection({ client, slug: "cryptoadz" });
+      expect(res).toEqual({
+        projectId,
+        slug: "cryptoadz",
+        artblocksProjectIndex: null,
+        imageUrlTemplate: expect.stringContaining("/cryptoadz/img/"),
+        name: "CrypToadz",
+        artistName: "GREMPLIN",
+        description: expect.stringContaining(
+          "amphibious creatures trying to escape"
+        ),
+        aspectRatio: 1,
+        numTokens: 6969,
+        maxInvocations: 6969,
       });
     })
   );

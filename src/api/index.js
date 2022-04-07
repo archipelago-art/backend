@@ -80,16 +80,23 @@ async function _collections({ client, projectId }) {
     `,
     [projectId]
   );
+  const getImageTemplate = (row) => {
+    if (row.slug === "autoglyphs") {
+      return `${IMAGE_BASE_URL}/autoglyphs/svg/${PARAM_INDEX_LOW}`;
+    }
+    if (row.slug === "cryptoadz") {
+      return `${IMAGE_BASE_URL}/cryptoadz/img/${PARAM_INDEX_HIGH}/${PARAM_INDEX_LOW}`;
+    }
+    if (row.artblocksProjectIndex != null) {
+      return artblocksImageUrlTemplate(row.artblocksProjectIndex);
+    }
+    return null;
+  };
   return res.rows.map((row) => ({
     projectId: row.id,
     slug: row.slug,
     artblocksProjectIndex: row.artblocksProjectIndex,
-    imageUrlTemplate:
-      row.slug === "autoglyphs"
-        ? `${IMAGE_BASE_URL}/autoglyphs/svg/${PARAM_INDEX_LOW}`
-        : row.artblocksProjectIndex != null
-        ? artblocksImageUrlTemplate(row.artblocksProjectIndex)
-        : null,
+    imageUrlTemplate: getImageTemplate(row),
     name: row.name,
     artistName: row.artistName,
     description: row.description,
