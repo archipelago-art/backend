@@ -22,10 +22,16 @@ const AUTOGLYPH_CONTRACT = {
   startBlock: 7510386,
 };
 
+const CRYPTOADZ_CONTRACT = {
+  address: "0x1cb1a5e65610aeff2551a50f76a87a7d3fb649c6",
+  startBlock: 13186834,
+};
+
 const CONTRACTS = [
   { address: artblocks.CONTRACT_ARTBLOCKS_LEGACY, startBlock: 11341469 },
   { address: artblocks.CONTRACT_ARTBLOCKS_STANDARD, startBlock: 11438389 },
   AUTOGLYPH_CONTRACT,
+  CRYPTOADZ_CONTRACT,
 ];
 
 const TESTNET_AUTOGLYPH_CONTRACT = {
