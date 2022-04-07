@@ -5,6 +5,7 @@ const commands = [
   ["set-project-slug", require("./setProjectSlug")],
   ["add-project", require("./addProject")],
   ["add-autoglyphs", require("./addAutoglyphs")],
+  ["add-cryptoadz", require("./addCryptoadz")],
   ["add-token", require("./addToken")],
   ["add-project-tokens", require("./addProjectTokens")],
   ["follow-chain-tokens", require("./followChainTokens")],
