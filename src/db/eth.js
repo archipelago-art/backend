@@ -55,7 +55,7 @@ async function blockExists({ client, blockHash }) {
     `
     SELECT 1 FROM eth_blocks2 WHERE block_hash = $1::bytes32
     `,
-    [blockHash]
+    [hexToBuf(blockHash)]
   );
   return res.rowCount > 0;
 }

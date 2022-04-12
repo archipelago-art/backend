@@ -20,6 +20,7 @@ const commands = [
   ["alchemy-poke-transfers", require("./alchemyPokeTransfers")],
   ["alchemy-undefer-transfers", require("./alchemyUndeferTransfers")],
   ["opensea", require("./opensea")],
+  ["follow-chain", require("./followChain")],
 ];
 
 module.exports = commands;
