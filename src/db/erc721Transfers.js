@@ -1,12 +1,11 @@
 const ethers = require("ethers");
 
 const log = require("../util/log")(__filename);
-const events = require("./events");
+const channels = require("./channels");
 const { ObjectType, newIds } = require("./id");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 
-// Event payloads are JSON `{ tokenContract: address, onChainTokenId: string }`.
-const deferralsChannel = events.channel("erc721_transfers_deferred");
+const deferralsChannel = channels.deferrals;
 
 function logAddressToBuf(hexString) {
   const address = ethers.utils.hexDataSlice(hexString, 12);

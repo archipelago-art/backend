@@ -1,8 +1,11 @@
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const slug = require("../util/slugify");
-const events = require("./events");
+const channels = require("./channels");
 const { ObjectType, newId, newIds } = require("./id");
 const { hexToBuf, bufToAddress } = require("./util");
+
+const newTokensChannel = channels.newTokens;
+const imageProgresChannel = channels.imageProgress;
 
 const PROJECT_STRIDE = 1e6;
 
@@ -17,12 +20,6 @@ function artblocksContractAddress(projectId) {
     ? CONTRACT_ARTBLOCKS_LEGACY
     : CONTRACT_ARTBLOCKS_STANDARD;
 }
-
-// Event payloads are JSON `{ projectId: string, tokenId: string }`.
-const newTokensChannel = events.channel("new_tokens");
-
-// Event payloads are JSON `{ projectId: string, completedThroughTokenIndex: number }`.
-const imageProgressChannel = events.channel("image_progress");
 
 function tokenBounds(projectId) {
   const minTokenId = projectId * PROJECT_STRIDE;
