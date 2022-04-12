@@ -5,7 +5,7 @@ const { ObjectType, newId, newIds } = require("./id");
 const { hexToBuf, bufToAddress } = require("./util");
 
 const newTokensChannel = channels.newTokens;
-const imageProgresChannel = channels.imageProgress;
+const imageProgressChannel = channels.imageProgress;
 
 const PROJECT_STRIDE = 1e6;
 
@@ -167,10 +167,12 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
   }
   await client.query("BEGIN");
   const tokenId = newId(ObjectType.TOKEN);
+  const tokenIndex = artblocksTokenId % PROJECT_STRIDE;
   const artblocksProjectIndex = Math.floor(artblocksTokenId / PROJECT_STRIDE);
   const projectIdRes = await client.query(
     `
-    SELECT project_id AS id FROM artblocks_projects
+    SELECT project_id AS "projectId", slug AS "slug"
+    FROM artblocks_projects JOIN projects USING (project_id)
     WHERE artblocks_project_index = $1
     `,
     [artblocksProjectIndex]
@@ -180,7 +182,7 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
       `expected project ${artblocksProjectIndex} to exist for token ${artblocksTokenId}`
     );
   }
-  const projectId = projectIdRes.rows[0].id;
+  const { projectId, slug } = projectIdRes.rows[0];
   const updateProjectsRes = await client.query(
     `
     UPDATE projects
@@ -204,7 +206,7 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
       $4
     )
     `,
-    [tokenId, projectId, artblocksTokenId % PROJECT_STRIDE, artblocksTokenId]
+    [tokenId, projectId, tokenIndex, artblocksTokenId]
   );
   await client.query(
     `
@@ -222,7 +224,7 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
     projectId,
     rawTokenData,
   });
-  await newTokensChannel.send(client, { projectId, tokenId });
+  await newTokensChannel.send(client, { projectId, tokenId, slug, tokenIndex });
   await client.query("COMMIT");
   return tokenId;
 }

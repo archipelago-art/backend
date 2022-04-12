@@ -1,6 +1,6 @@
 const events = require("./events");
 
-// Event payloads are JSON `{ projectId: string, tokenId: string }`.
+// Event payloads are JSON `{ projectId: string, tokenId: string, slug: string, tokenIndex: number }`.
 const newTokens = events.channel("new_tokens");
 
 // Event payloads are JSON `{ projectId: string, completedThroughTokenIndex: number }`.
