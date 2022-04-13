@@ -1,8 +1,11 @@
-const { bufToHex, hexToBuf } = require("../util");
+const ethers = require("ethers");
+
+const { acqrel, bufToHex, hexToBuf } = require("../util");
+const adHocPromise = require("../../util/adHocPromise");
 const {
+  marketEventsChannel,
   addRawEvents,
   ingestEvents,
-  deactivateExpiredAsks,
 } = require("./ingestEvents");
 const artblocks = require("../artblocks");
 const { testDbProvider } = require("../testUtil");
@@ -416,22 +419,49 @@ describe("db/opensea/ingestEvents", () => {
 
     it(
       "will ingest an ask",
-      withTestDb(async ({ client }) => {
+      withTestDb(async ({ pool, client }) => {
         const { projectId, tokenId } = await exampleProjectAndToken({ client });
         const ev = ask();
-        await addAndIngest(client, [ev]);
-        expect(await getAsk(client, ev.id)).toEqual({
-          id: ev.id,
-          projectId,
-          tokenId,
-          listingTime: utcDateFromString(ev.listing_time),
-          sellerAddress: ev.seller.address,
-          price: ev.starting_price,
-          currencyId: wellKnownCurrencies.eth.currencyId,
-          expirationTime: null,
-          active: true,
+        await acqrel(pool, async (listenClient) => {
+          const postgresEvent = adHocPromise();
+          listenClient.on("notification", (n) => {
+            if (n.channel === marketEventsChannel.name) {
+              postgresEvent.resolve(n.payload);
+            } else {
+              postgresEvent.reject("unexpected channel: " + n.channel);
+            }
+          });
+          await marketEventsChannel.listen(listenClient);
+
+          await addAndIngest(client, [ev]);
+          expect(await getAsk(client, ev.id)).toEqual({
+            id: ev.id,
+            projectId,
+            tokenId,
+            listingTime: utcDateFromString(ev.listing_time),
+            sellerAddress: ev.seller.address,
+            price: ev.starting_price,
+            currencyId: wellKnownCurrencies.eth.currencyId,
+            expirationTime: null,
+            active: true,
+          });
+          const eventValue = await postgresEvent.promise;
+          expect(JSON.parse(eventValue)).toEqual({
+            type: "ASK_PLACED",
+            orderId: "opensea:" + String(ev.id),
+            projectId,
+            tokenId,
+            slug: "archetype",
+            tokenIndex: 250,
+            venue: "OPENSEA",
+            seller: ethers.utils.getAddress(wchargin),
+            currency: "ETH",
+            price: ev.starting_price,
+            timestamp: "2021-03-01T00:00:00.000Z",
+            expirationTime: null,
+          });
+          expect(await unconsumedIds(client)).toEqual([]);
         });
-        expect(await unconsumedIds(client)).toEqual([]);
       })
     );
 

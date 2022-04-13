@@ -1,7 +1,11 @@
-const { ObjectType, newIds } = require("../id");
-const { hexToBuf } = require("../util");
 const ethers = require("ethers");
+
 const log = require("../../util/log")(__filename);
+const channels = require("../channels");
+const { ObjectType, newIds } = require("../id");
+const { bufToAddress, hexToBuf } = require("../util");
+
+const marketEventsChannel = channels.marketEvents;
 
 // events is an array of JSON objects from the Opensea API
 async function addRawEvents({ client, events }) {
@@ -276,7 +280,7 @@ async function asksToSkip(client, events) {
 async function ingestAsks(client, askIds) {
   const result = await client.query(
     `
-    INSERT INTO opensea_asks (
+    INSERT INTO opensea_asks AS oa (
       event_id,
       project_id,
       token_id,
@@ -324,10 +328,35 @@ async function ingestAsks(client, askIds) {
       hexaddr(opensea_events_raw.json->'payment_token'->>'address') = currencies.address
     )
     WHERE event_id = ANY($1::text[])
-    RETURNING event_id AS id
+    RETURNING
+      event_id AS "id",
+      project_id AS "projectId",
+      token_id AS "tokenId",
+      (SELECT slug FROM projects p WHERE p.project_id = oa.project_id) AS "slug",
+      (SELECT token_index FROM tokens t WHERE t.token_id = oa.token_id) AS "tokenIndex",
+      seller_address AS "seller",
+      price AS "price",
+      listing_time AS "timestamp",
+      expiration_time AS "expirationTime"
     `,
     [askIds]
   );
+
+  const notifications = result.rows.map((r) => ({
+    type: "ASK_PLACED",
+    orderId: `opensea:${r.id}`,
+    projectId: r.projectId,
+    tokenId: r.tokenId,
+    slug: r.slug,
+    tokenIndex: r.tokenIndex,
+    venue: "OPENSEA",
+    seller: bufToAddress(r.seller),
+    currency: "ETH",
+    price: r.price,
+    timestamp: r.timestamp.toISOString(),
+    expirationTime: r.expirationTime && r.expirationTime.toISOString(),
+  }));
+  await marketEventsChannel.sendMany(client, notifications);
 
   return result.rows.map((x) => x.id);
 }
@@ -447,6 +476,7 @@ async function deactivateExpiredAsks({ client }) {
 }
 
 module.exports = {
+  marketEventsChannel,
   addRawEvents,
   ingestEvents,
 };
