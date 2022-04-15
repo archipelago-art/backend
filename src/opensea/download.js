@@ -10,7 +10,7 @@ const { fetchEvents } = require("./fetch");
 
 async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
   for (const { contract, onChainTokenId, slug, tokenIndex } of tokenSpecs) {
-    const events = await fetchEvents({
+    const { events } = await fetchEvents({
       source: { contract },
       apiKey,
       tokenId: onChainTokenId,
@@ -44,7 +44,7 @@ async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
 
 async function syncProject({ client, slug, projectId, apiKey }) {
   const lastUpdated = await getLastUpdated({ client, slug, projectId });
-  const events = await fetchEvents({
+  const { events, updateTimestamp } = await fetchEvents({
     source: { slug },
     apiKey,
     since: lastUpdated,
@@ -67,7 +67,7 @@ async function syncProject({ client, slug, projectId, apiKey }) {
     await setLastUpdated({
       client,
       slug,
-      until: new Date(events[0].created_date),
+      until: updateTimestamp,
       projectId,
     });
   } else {

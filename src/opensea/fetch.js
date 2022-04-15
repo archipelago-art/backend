@@ -40,6 +40,7 @@ async function fetchEventPage({
   cursor,
   apiKey,
   tokenId,
+  eventType,
 }) {
   const params = {
     only_opensea: false,
@@ -56,6 +57,9 @@ async function fetchEventPage({
   }
   if (tokenId != null) {
     params.token_id = tokenId;
+  }
+  if (eventType != null) {
+    params.event_type = eventType;
   }
 
   const json = await fetchUrl(EVENTS_URL, new URLSearchParams(params), apiKey);
@@ -77,7 +81,14 @@ async function fetchEventPage({
  * Args: `source` should be either `{ contract }` or `{ slug }`; since should be a
  * JS Date, or null
  */
-async function fetchEvents({ source, pageSize = 300, apiKey, tokenId, since }) {
+async function _fetchEvents({
+  source,
+  pageSize = 300,
+  apiKey,
+  tokenId,
+  since,
+  eventType,
+}) {
   const results = [];
   let cursor = null;
   while (true) {
@@ -87,6 +98,7 @@ async function fetchEvents({ source, pageSize = 300, apiKey, tokenId, since }) {
       cursor,
       apiKey,
       tokenId,
+      eventType,
     });
     results.push(...events);
     if (nextCursor == null) {
@@ -104,8 +116,46 @@ async function fetchEvents({ source, pageSize = 300, apiKey, tokenId, since }) {
       }
     }
   }
-
   return results;
+}
+
+/**
+ * Fetch events of the created, successful, and cancelled types.
+ * This avoids fetching bids, which is important due to the massive spamminess
+ * of OS bids. We return the events along with the time when we started the
+ * fetch. Since we do three separate fetches, we might get some events from
+ * after the start time, but we should treat the fetch start time as the last
+ * update time, lest we risk missing some events for the first fetch to finish.
+ */
+async function fetchEvents({ source, pageSize = 300, apiKey, tokenId, since }) {
+  const updateTimestamp = new Date();
+  const created = await _fetchEvents({
+    source,
+    pageSize,
+    apiKey,
+    tokenId,
+    since,
+    eventType: "created",
+  });
+  const successful = await _fetchEvents({
+    source,
+    pageSize,
+    apiKey,
+    tokenId,
+    since,
+    eventType: "successful",
+  });
+  const cancelled = await _fetchEvents({
+    source,
+    pageSize,
+    apiKey,
+    tokenId,
+    since,
+    eventType: "cancelled",
+  });
+  const events = [...created, ...successful, ...cancelled];
+  events.sort((a, b) => +new Date(b.created_date) - +new Date(a.created_date));
+  return { events, updateTimestamp };
 }
 
 const ASSETS_URL = "https://api.opensea.io/api/v1/assets";
