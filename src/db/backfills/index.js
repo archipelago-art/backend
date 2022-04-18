@@ -7,6 +7,7 @@ const backfillModules = [
   "./openseaInvalidateAsksWithSubsequentSale",
   "./openseaSkipPrivateAsks",
   "./abConceptMigrations",
+  "./projectsImageTemplate",
   // ...
 ];
 
