@@ -24,7 +24,8 @@ async function addAutoglyphs({ client }) {
       aspect_ratio,
       num_tokens,
       slug,
-      token_contract
+      token_contract,
+      image_template
     ) VALUES (
       $1,
       'Autoglyphs',
@@ -34,7 +35,8 @@ async function addAutoglyphs({ client }) {
       1,
       512,
       'autoglyphs',
-      $3
+      $3,
+      '{baseUrl}/autoglyphs/svg/{lo}'
     )
     `,
     [projectId, description, hexToBuf(contractAddress)]

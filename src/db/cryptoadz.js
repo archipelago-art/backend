@@ -62,7 +62,8 @@ This project is in the public domain. Feel free to use the toadz in any way you 
       aspect_ratio,
       num_tokens,
       slug,
-      token_contract
+      token_contract,
+      image_template
     ) VALUES (
       $1,
       'CrypToadz',
@@ -72,7 +73,8 @@ This project is in the public domain. Feel free to use the toadz in any way you 
       1,
       6969,
       'cryptoadz',
-      $3
+      $3,
+      '{baseUrl}/cryptoadz/img/{hi}/{lo}'
     )
     `,
     [projectId, description, hexToBuf(contractAddress)]

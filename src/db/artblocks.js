@@ -59,13 +59,14 @@ async function addProject({ client, project, slugOverride }) {
       aspect_ratio,
       num_tokens,
       slug,
-      token_contract
+      token_contract,
+      image_template
     )
     SELECT
       $1::projectid,
       $2, $3, $4, $5, $6,
       0,  -- no tokens to start: tokens must be added after project
-      $7, $8
+      $7, $8, $9
     ON CONFLICT (project_id) DO UPDATE SET
       name = $2,
       max_invocations = $3,
@@ -73,7 +74,8 @@ async function addProject({ client, project, slugOverride }) {
       description = $5,
       aspect_ratio = $6,
       slug = $7,
-      token_contract = $8
+      token_contract = $8,
+      image_template = $9
     `,
     [
       projectId,
@@ -84,6 +86,7 @@ async function addProject({ client, project, slugOverride }) {
       aspectRatio,
       slugOverride ?? slug(project.name),
       hexToBuf(artblocksContractAddress(project.projectId)),
+      `{baseUrl}/artblocks/{sz}/${project.projectId}/{hi}/{lo}`,
     ]
   );
   await client.query(
