@@ -115,7 +115,7 @@ async function withPool(callback) {
     pool.on("connect", (client) => setDbRole(client));
     return await callback(pool);
   } catch (e) {
-    log.error`withPool callback failed: ${e}`;
+    log.error`withPool callback failed: ${e}: ${new Error().stack}`;
     throw e;
   } finally {
     await pool.end();
