@@ -10,7 +10,7 @@ const openseaIngest = require("../db/opensea/ingestEvents");
 const wellKnownCurrencies = require("../db/wellKnownCurrencies");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
-const addAutoglyphs = require("../db/autoglyphs");
+const { addAutoglyphs } = require("../db/autoglyphs");
 const addCryptoadz = require("../db/cryptoadz");
 
 describe("api", () => {

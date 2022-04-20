@@ -1,4 +1,4 @@
-const addAutoglyphs = require("../db/autoglyphs");
+const { addAutoglyphs } = require("../db/autoglyphs");
 const { withClient } = require("../db/util");
 const log = require("../util/log")(__filename);
 

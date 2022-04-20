@@ -5,6 +5,7 @@ const { hexToBuf } = require("./util");
 const { newTokensChannel } = require("./artblocks");
 
 const MIGRATIONS_TO_DO = ["move newTokensChannel (+ others?) to common module"];
+const CONTRACT_ADDRESS = "0xd4e4078ca3495de5b1d4db434bebc5a986197782";
 
 async function addAutoglyphs({ client }) {
   await client.query("BEGIN");
@@ -12,7 +13,6 @@ async function addAutoglyphs({ client }) {
 
   const description =
     "Autoglyphs are the first “on-chain” generative art on the Ethereum blockchain. They are a completely self-contained mechanism for the creation and ownership of an artwork.";
-  const contractAddress = "0xd4e4078ca3495de5b1d4db434bebc5a986197782";
   await client.query(
     `
     INSERT INTO projects (
@@ -39,7 +39,7 @@ async function addAutoglyphs({ client }) {
       '{baseUrl}/autoglyphs/svg/{lo}'
     )
     `,
-    [projectId, description, hexToBuf(contractAddress)]
+    [projectId, description, hexToBuf(CONTRACT_ADDRESS)]
   );
 
   const tokenIds = newIds(512, ObjectType.TOKEN);
@@ -59,7 +59,7 @@ async function addAutoglyphs({ client }) {
       generate_series(1, 512)
     )
     `,
-    [tokenIds, projectId, hexToBuf(contractAddress)]
+    [tokenIds, projectId, hexToBuf(CONTRACT_ADDRESS)]
   );
 
   await newTokensChannel.sendMany(
@@ -136,4 +136,4 @@ const schemes = [
   6, 1, 1, 3, 4, 2, 7, 2, 6, 5, 5, 2, 2, 2, 2, 1, 2, 1, 2, 6,
 ];
 
-module.exports = addAutoglyphs;
+module.exports = { addAutoglyphs, CONTRACT_ADDRESS };
