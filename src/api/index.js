@@ -15,6 +15,7 @@ function artblocksProjectIdToCollectionName(id) {
 }
 const RE_ARTBLOCKS_COLLECTION = /^ab-(0|[1-9][0-9]*)$/;
 
+const PARAM_BASE_URL = "{baseUrl}";
 const PARAM_SIZE = "{sz}";
 const PARAM_INDEX_LOW = "{lo}";
 const PARAM_INDEX_HIGH = "{hi}";
@@ -70,7 +71,8 @@ async function _collections({ client, projectId }) {
       description AS "description",
       aspect_ratio AS "aspectRatio",
       num_tokens AS "numTokens",
-      max_invocations AS "maxInvocations"
+      max_invocations AS "maxInvocations",
+      image_template AS "imageTemplate"
     FROM projects
     LEFT OUTER JOIN artblocks_projects USING (project_id)
     WHERE project_id = $1 OR $1 IS NULL
@@ -80,23 +82,11 @@ async function _collections({ client, projectId }) {
     `,
     [projectId]
   );
-  const getImageTemplate = (row) => {
-    if (row.slug === "autoglyphs") {
-      return `${IMAGE_BASE_URL}/autoglyphs/svg/${PARAM_INDEX_LOW}`;
-    }
-    if (row.slug === "cryptoadz") {
-      return `${IMAGE_BASE_URL}/cryptoadz/img/${PARAM_INDEX_HIGH}/${PARAM_INDEX_LOW}`;
-    }
-    if (row.artblocksProjectIndex != null) {
-      return artblocksImageUrlTemplate(row.artblocksProjectIndex);
-    }
-    return null;
-  };
   return res.rows.map((row) => ({
     projectId: row.id,
     slug: row.slug,
     artblocksProjectIndex: row.artblocksProjectIndex,
-    imageUrlTemplate: getImageTemplate(row),
+    imageUrlTemplate: row.imageTemplate.replace(PARAM_BASE_URL, IMAGE_BASE_URL),
     name: row.name,
     artistName: row.artistName,
     description: row.description,
