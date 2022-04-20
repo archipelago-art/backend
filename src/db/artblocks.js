@@ -617,31 +617,6 @@ async function getTokenChainData({ client, tokenId }) {
   };
 }
 
-async function getTokenSummaries({ client, tokens }) {
-  const res = await client.query(
-    `
-    SELECT
-      token_id AS "tokenId",
-      name,
-      artist_name AS "artistName",
-      slug,
-      artblocks_project_index AS "artblocksProjectIndex",
-      token_index AS "tokenIndex",
-      aspect_ratio AS "aspectRatio"
-    FROM tokens
-    JOIN
-      unnest($1::address[], $2::uint256[])
-      AS needles(token_contract, on_chain_token_id)
-      USING (token_contract, on_chain_token_id)
-    JOIN projects USING (project_id)
-    LEFT OUTER JOIN artblocks_projects USING (project_id)
-    ORDER BY tokens.token_contract, tokens.on_chain_token_id
-    `,
-    [tokens.map((t) => hexToBuf(t.address)), tokens.map((t) => t.tokenId)]
-  );
-  return res.rows;
-}
-
 async function getProjectScript({ client, projectId }) {
   const res = await client.query(
     `
@@ -785,7 +760,6 @@ module.exports = {
   getUnfetchedTokens,
   getTokenImageData,
   getTokenChainData,
-  getTokenSummaries,
   getProjectScript,
   getAllProjectScripts,
   getTokenHash,

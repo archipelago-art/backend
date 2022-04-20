@@ -757,48 +757,6 @@ describe("db/artblocks", () => {
   );
 
   it(
-    "supports getTokenSummaries",
-    withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
-      const tokenId1 = snapshots.ARCH_TRIPTYCH_1;
-      const tokenId2 = snapshots.ARCH_TRIPTYCH_2;
-      const tokenId3 = snapshots.ARCH_TRIPTYCH_3;
-      const addTokensResult = await addTokens(client, [
-        tokenId1,
-        tokenId2,
-        tokenId3,
-      ]);
-      const res = await artblocks.getTokenSummaries({
-        client,
-        tokens: [
-          { address: artblocks.CONTRACT_ARTBLOCKS_STANDARD, tokenId: tokenId1 },
-          { address: artblocks.CONTRACT_ARTBLOCKS_STANDARD, tokenId: tokenId2 },
-        ],
-      });
-      expect(res).toEqual([
-        {
-          tokenId: addTokensResult[0].id,
-          name: "Archetype",
-          artistName: "Kjetil Golid",
-          slug: "archetype",
-          artblocksProjectIndex: snapshots.ARCHETYPE,
-          tokenIndex: 36,
-          aspectRatio: 1,
-        },
-        {
-          tokenId: addTokensResult[1].id,
-          name: "Archetype",
-          artistName: "Kjetil Golid",
-          slug: "archetype",
-          artblocksProjectIndex: snapshots.ARCHETYPE,
-          tokenIndex: 45,
-          aspectRatio: 1,
-        },
-      ]);
-    })
-  );
-
-  it(
     "notifies for image progress",
     withTestDb(async ({ pool, client }) => {
       const addProjectsRes = await addProjects(client, [
