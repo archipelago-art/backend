@@ -6,6 +6,7 @@ const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const slugify = require("../util/slugify");
 const { sortAsciinumeric } = require("../util/sortAsciinumeric");
 const openseaApi = require("../db/opensea/api");
+const dbTokens = require("../db/tokens");
 
 const PROJECT_STRIDE = 1e6;
 
@@ -165,6 +166,14 @@ async function tokenChainData({ client, tokenId }) {
 
 // `tokens` should be a list of `{ address, tokenId }` pairs, where `address`
 // is a "0x..." string and `tokenId` is a numeric string.
+// type TokenSummary = {
+//   name: string, // e.g. "Chromie Squiggle"
+//   slug: string, // e.g. "chromie-squiggle"
+//   imageUrlTemplate: string, // e.g. "https://img.archipelago.art/artbocks/{sz}/0/001/337"
+//   tokenIndex: number, // e.g. 7583
+//   artistName: string, // e.g. "Snowfro"
+//   aspectRatio: number, // e.g. 1.5
+// }
 async function tokenSummariesByOnChainId({ client, tokens }) {
   if (
     !Array.isArray(tokens) ||
@@ -176,16 +185,18 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
       "tokenSummariesByOnChainId: must pass array of token addresses and IDs"
     );
   }
-  const res = await artblocks.getTokenSummaries({ client, tokens });
-  for (const row of res) {
-    const { artblocksProjectIndex } = row;
-    if (artblocksProjectIndex == null) continue;
-    row.imageUrlTemplate = formatImageUrl({
-      template: artblocksImageUrlTemplate(artblocksProjectIndex),
-      tokenIndex: row.tokenIndex,
-    });
-  }
-  return res;
+  const res = await dbTokens.tokenSummariesByOnChainId({ client, tokens });
+  return res.map((x) => ({
+    name: x.name,
+    slug: x.slug,
+    imageUrlTemplate: formatImageUrl({
+      template: x.imageTemplate,
+      tokenIndex: x.tokenIndex,
+    }),
+    tokenIndex: x.tokenIndex,
+    artistName: x.artistName,
+    aspectRatio: x.aspectRatio,
+  }));
 }
 
 async function tokenHistory({ client, tokenId }) {
@@ -263,6 +274,7 @@ function artblocksImageUrlTemplate(artblocksProjectIndex) {
 
 function formatImageUrl({ template, size, tokenIndex }) {
   let result = template;
+  result = result.replace(PARAM_BASE_URL, IMAGE_BASE_URL);
   if (size != null) {
     result = result.replace(PARAM_SIZE, size);
   }

@@ -4,6 +4,7 @@ const { testDbProvider } = require("../db/testUtil");
 
 const api = require(".");
 const artblocks = require("../db/artblocks");
+const autoglyphs = require("../db/autoglyphs");
 const emails = require("../db/emails");
 const erc721Transfers = require("../db/erc721Transfers");
 const openseaIngest = require("../db/opensea/ingestEvents");
@@ -294,6 +295,7 @@ describe("api", () => {
         const project = parseProjectData(id, await sc.project(id));
         await artblocks.addProject({ client, project });
       }
+      await autoglyphs.addAutoglyphs({ client });
       const ids = new Map();
       for (const artblocksTokenId of [
         snapshots.THE_CUBE,
@@ -315,30 +317,27 @@ describe("api", () => {
             tokenId: String(snapshots.PERFECT_CHROMATIC),
           },
           {
-            address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-            tokenId: String(snapshots.THE_CUBE),
+            address: autoglyphs.CONTRACT_ADDRESS,
+            tokenId: "293",
           },
         ],
       });
       expect(result).toEqual([
         {
-          tokenId: ids.get(snapshots.PERFECT_CHROMATIC),
           name: "Chromie Squiggle",
           slug: "chromie-squiggle",
-          artblocksProjectIndex: 0,
-          imageUrlTemplate: expect.stringContaining("/0/007/583"),
+          imageUrlTemplate:
+            "https://img.archipelago.art/artblocks/{sz}/0/007/583",
           tokenIndex: 7583,
           artistName: "Snowfro",
           aspectRatio: 1.5,
         },
         {
-          tokenId: ids.get(snapshots.THE_CUBE),
-          name: "Archetype",
-          slug: "archetype",
-          artblocksProjectIndex: 23,
-          imageUrlTemplate: expect.stringContaining("/23/000/250"),
-          tokenIndex: 250,
-          artistName: "Kjetil Golid",
+          name: "Autoglyphs",
+          slug: "autoglyphs",
+          imageUrlTemplate: "https://img.archipelago.art/autoglyphs/svg/293",
+          tokenIndex: 293,
+          artistName: "Larva Labs",
           aspectRatio: 1,
         },
       ]);
