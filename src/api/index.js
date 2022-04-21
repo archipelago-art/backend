@@ -268,10 +268,6 @@ async function addEmailSignup({ client, email }) {
   return emails.addEmailSignup({ client, email });
 }
 
-function artblocksImageUrlTemplate(artblocksProjectIndex) {
-  return `${IMAGE_BASE_URL}/artblocks/${PARAM_SIZE}/${artblocksProjectIndex}/${PARAM_INDEX_HIGH}/${PARAM_INDEX_LOW}`;
-}
-
 function formatImageUrl({ template, size, tokenIndex }) {
   let result = template;
   result = result.replace(PARAM_BASE_URL, IMAGE_BASE_URL);
