@@ -54,7 +54,7 @@ async function deleteLastUpdated({ client, projectId }) {
   return res.rowCount > 0;
 }
 
-async function getProgress({ client }) {
+async function getProgress({ client, projectId }) {
   const res = await client.query(
     `
     SELECT
@@ -62,7 +62,9 @@ async function getProgress({ client }) {
       project_id AS "projectId",
       opensea_slug AS slug
     FROM opensea_progress
-    `
+    WHERE ($1::projectid) IS NULL OR project_id=($1::projectid)
+    `,
+    [projectId]
   );
   return res.rows;
 }

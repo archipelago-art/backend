@@ -43,7 +43,7 @@ async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
 }
 
 async function syncProject({ client, slug, projectId, apiKey }) {
-  const lastUpdated = await getLastUpdated({ client, slug, projectId });
+  const lastUpdated = await getLastUpdated({ client, projectId });
   const { events, updateTimestamp } = await fetchEvents({
     source: { slug },
     apiKey,

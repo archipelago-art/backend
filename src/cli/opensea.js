@@ -3,6 +3,7 @@ const {
   downloadCollection,
   downloadAllCollections,
   downloadEventsForTokens,
+  syncProject,
 } = require("../opensea/download");
 const {
   floorAsksByProject,
@@ -11,7 +12,11 @@ const {
 const log = require("../util/log")(__filename);
 const { ingestEvents } = require("../db/opensea/ingestEvents");
 const { syncLoop } = require("../opensea/sync");
-const { deleteLastUpdated, setLastUpdated } = require("../db/opensea/progress");
+const {
+  deleteLastUpdated,
+  setLastUpdated,
+  getProgress,
+} = require("../db/opensea/progress");
 const { projectIdForSlug } = require("../db/projects");
 
 const ONE_DAY_MS = 1000 * 60 * 60 * 24;
@@ -204,6 +209,28 @@ async function cliSync(args) {
   });
 }
 
+async function cliSyncProject(args) {
+  if (args.length !== 1) {
+    throw new Error("usage: sync-project project-slug");
+  }
+  const apiKey = process.env.OPENSEA_API_KEY;
+  const projectSlug = args[0];
+  await withClient(async (client) => {
+    const projectId = await projectIdForSlug({ client, slug: projectSlug });
+    if (projectId == null) {
+      throw new Error(`can't find projectId for slug: ${projectSlug}`);
+    }
+    const progress = (await getProgress({ client, projectId }))[0];
+
+    if (progress == null) {
+      throw new Error(`can't find opensea slug for projectId ${projectId}`);
+    }
+    const { slug } = progress;
+    log.info`starting sync for projectId ${projectId}, opensea slug ${slug}`;
+    await syncProject({ apiKey, projectId, slug, client });
+  });
+}
+
 async function cli(outerArgs, self) {
   const [arg0, ...args] = outerArgs;
   const commands = [
@@ -216,6 +243,7 @@ async function cli(outerArgs, self) {
     ["deactivate-legacy-listings", cliDeactivateLegacyListings],
     ["fix-floors", cliFixFloors],
     ["sync", cliSync],
+    ["sync-project", cliSyncProject],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
