@@ -40,8 +40,8 @@ describe("db/opensea/api", () => {
   const dandelion = "0xE03a5189dAC8182085e4aDF66281F679fFf2291D";
   const wchargin = "0xEfa7bDD92B5e9CD9dE9b54AC0e3dc60623F1C989";
   const ijd = "0xBAaF7C84dEb0184FfBF7Fc1655cb38264a29296f";
-  const listed = "2021-03-01T00:00:00.123456";
-  const sold = "2021-03-03T12:34:56.123456";
+  const listed = "2023-03-01T00:00:00.123456";
+  const sold = "2023-03-03T12:34:56.123456";
 
   function sale({
     id = "2",
@@ -258,7 +258,13 @@ describe("db/opensea/api", () => {
       "ignores expired asks, even if still marked active in db",
       withTestDb(async ({ client }) => {
         const { archetypeTokenId1 } = await exampleProjectAndToken({ client });
-        const a = ask({ id: "1", price: "1000", duration: 100 });
+        const listingTime = "2022-03-01T00:00:00.123456";
+        const a = ask({
+          id: "1",
+          price: "1000",
+          duration: 1,
+          listingTime,
+        });
         await addAndIngest(client, [a]);
 
         // not active because it's expired
@@ -400,7 +406,8 @@ describe("db/opensea/api", () => {
         const { archetypeId, squigglesId } = await exampleProjectAndToken({
           client,
         });
-        const a = ask({ id: "1", price: "1000", duration: 100 });
+        const listingTime = "2022-03-01T00:00:00.123456";
+        const a = ask({ id: "1", price: "1000", duration: 100, listingTime });
         const t = transfer();
         await addTransfers({ client, transfers: [t] });
         await addAndIngest(client, [a]);
@@ -477,7 +484,8 @@ describe("db/opensea/api", () => {
         const { archetypeId } = await exampleProjectAndToken({
           client,
         });
-        const a = ask({ id: "1", price: "1000", duration: 100 });
+        const listingTime = "2022-03-01T00:00:00.123456";
+        const a = ask({ id: "1", price: "1000", duration: 100, listingTime });
         await addAndIngest(client, [a]);
         const t = transfer();
         await addTransfers({ client, transfers: [t] });
@@ -506,20 +514,20 @@ describe("db/opensea/api", () => {
           id: "1",
           price: "500",
           tokenId: snapshots.THE_CUBE,
-          listingTime: dateToOpenseaString(new Date("2021-01-01")),
+          listingTime: dateToOpenseaString(new Date("2023-01-01")),
         });
         const a2 = ask({
           id: "2",
           price: "1000",
           tokenId: snapshots.ARCH_TRIPTYCH_1,
           sellerAddress: dandelion, // wrong owner
-          listingTime: dateToOpenseaString(new Date("2021-02-02")),
+          listingTime: dateToOpenseaString(new Date("2023-02-02")),
         });
         const a3 = ask({
           id: "3",
           price: "900",
           tokenId: snapshots.ARCH_TRIPTYCH_2,
-          listingTime: dateToOpenseaString(new Date("2021-03-03")),
+          listingTime: dateToOpenseaString(new Date("2023-03-03")),
         });
         await addAndIngest(client, [a1, a2, a3]);
         const t1 = transfer({ tokenId: snapshots.THE_CUBE, blockNumber: 7 });
@@ -541,11 +549,11 @@ describe("db/opensea/api", () => {
         expect(result).toEqual({
           [archetypeTokenId1]: {
             priceWei: "500",
-            listingTime: new Date("2021-01-01"),
+            listingTime: new Date("2023-01-01"),
           },
           [archetypeTokenId3]: {
             priceWei: "900",
-            listingTime: new Date("2021-03-03"),
+            listingTime: new Date("2023-03-03"),
           },
         });
       })
@@ -559,17 +567,17 @@ describe("db/opensea/api", () => {
         const a1 = ask({
           id: "1",
           price: "5000",
-          listingTime: dateToOpenseaString(new Date("2021-01-01")),
+          listingTime: dateToOpenseaString(new Date("2023-01-01")),
         });
         const a2 = ask({
           id: "2",
           price: "100",
-          listingTime: dateToOpenseaString(new Date("2021-02-02")),
+          listingTime: dateToOpenseaString(new Date("2023-02-02")),
         });
         const a3 = ask({
           id: "3",
           price: "1000",
-          listingTime: dateToOpenseaString(new Date("2021-03-03")),
+          listingTime: dateToOpenseaString(new Date("2023-03-03")),
         });
         await addAndIngest(client, [a1, a2, a3]);
         const t = transfer();
@@ -582,7 +590,7 @@ describe("db/opensea/api", () => {
         expect(result).toEqual({
           [archetypeTokenId1]: {
             priceWei: "100",
-            listingTime: new Date("2021-02-02"),
+            listingTime: new Date("2023-02-02"),
           },
         });
       })
@@ -667,13 +675,13 @@ describe("db/opensea/api", () => {
           tokenId: snapshots.ARCH_TRIPTYCH_1,
           price: "500",
           currency: wellKnownCurrencies.weth9,
-          transactionTimestamp: "2021-02-02",
+          transactionTimestamp: "2023-02-02",
         });
         await addAndIngest(client, [s1, s2]);
         expect(
           await aggregateSalesByProject({
             client,
-            afterDate: new Date("2021-01-01"),
+            afterDate: new Date("2023-01-01"),
           })
         ).toEqual([{ projectId: archetypeId, totalEthSales: "500" }]);
       })
@@ -731,21 +739,21 @@ describe("db/opensea/api", () => {
           id: "1",
           tokenId: snapshots.THE_CUBE,
           price: "1000",
-          transactionTimestamp: dateToOpenseaString(new Date("2021-01-01")),
+          transactionTimestamp: dateToOpenseaString(new Date("2023-01-01")),
           currency: wellKnownCurrencies.eth,
         });
         const s2 = sale({
           id: "2",
           tokenId: snapshots.THE_CUBE,
           price: "1200",
-          transactionTimestamp: dateToOpenseaString(new Date("2021-01-02")),
+          transactionTimestamp: dateToOpenseaString(new Date("2023-01-02")),
           currency: wellKnownCurrencies.weth9,
         });
         const s3 = sale({
           id: "3",
           tokenId: snapshots.ARCH_TRIPTYCH_1,
           price: "800",
-          transactionTimestamp: dateToOpenseaString(new Date("2021-01-03")),
+          transactionTimestamp: dateToOpenseaString(new Date("2023-01-03")),
           currency: wellKnownCurrencies.eth,
         });
         // Irrelevant sale (wrong currency).
@@ -753,7 +761,7 @@ describe("db/opensea/api", () => {
           id: "4",
           tokenId: snapshots.ARCH_TRIPTYCH_1,
           price: "11111",
-          transactionTimestamp: dateToOpenseaString(new Date("2021-01-04")),
+          transactionTimestamp: dateToOpenseaString(new Date("2023-01-04")),
           currency: wellKnownCurrencies.usdc, // sale will be ignored
         });
         // Irrelevant sale (wrong currency). This token has no relevant sales.
@@ -761,7 +769,7 @@ describe("db/opensea/api", () => {
           id: "5",
           tokenId: snapshots.ARCH_TRIPTYCH_2,
           price: "22222",
-          transactionTimestamp: dateToOpenseaString(new Date("2021-01-05")),
+          transactionTimestamp: dateToOpenseaString(new Date("2023-01-05")),
           currency: wellKnownCurrencies.usdc,
         });
         // Irrelevant sale (wrong project).
@@ -769,7 +777,7 @@ describe("db/opensea/api", () => {
           id: "6",
           tokenId: snapshots.PERFECT_CHROMATIC,
           price: "75837583",
-          transactionTimestamp: dateToOpenseaString(new Date("2021-01-06")),
+          transactionTimestamp: dateToOpenseaString(new Date("2023-01-06")),
           currency: wellKnownCurrencies.eth,
         });
         await addAndIngest(client, [s1, s2, s3, s4, s5]);
@@ -781,12 +789,12 @@ describe("db/opensea/api", () => {
         ).toEqual([
           {
             tokenId: archetypeTokenId1,
-            saleTime: new Date("2021-01-02"),
+            saleTime: new Date("2023-01-02"),
             priceWei: "1200",
           },
           {
             tokenId: archetypeTokenId2,
-            saleTime: new Date("2021-01-03"),
+            saleTime: new Date("2023-01-03"),
             priceWei: "800",
           },
         ]);

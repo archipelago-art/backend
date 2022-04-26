@@ -33,11 +33,11 @@ describe("db/opensea/ingestEvents", () => {
     id = "2",
     address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
     tokenId = snapshots.THE_CUBE,
-    listingTime = "2021-03-01T00:00:00.123456",
+    listingTime = "2022-03-01T00:00:00.123456",
     toAddress = dandelion,
     fromAddress = wchargin,
     totalPrice = "1000000000000000000",
-    transactionTimestamp = "2021-03-03T12:34:56.123456",
+    transactionTimestamp = "2022-03-03T12:34:56.123456",
     transactionHash = "0xef7e95ce1c085611cb5186a55cec026cd3f2f266c1f581bb6a9e9258cf3019f4",
     currency = wellKnownCurrencies.eth,
   } = {}) {
@@ -90,7 +90,7 @@ describe("db/opensea/ingestEvents", () => {
     id = "3",
     address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
     tokenId = snapshots.THE_CUBE,
-    listingTime = "2021-03-01T00:00:00",
+    listingTime = "2022-03-01T00:00:00",
     duration = null,
     sellerAddress = wchargin,
     startingPrice = "1000000000000000000",
@@ -144,7 +144,7 @@ describe("db/opensea/ingestEvents", () => {
     address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
     tokenId = snapshots.THE_CUBE,
     price = "1000000000000000000",
-    transactionTimestamp = "2021-03-03T12:34:56.123456",
+    transactionTimestamp = "2022-03-03T12:34:56.123456",
     transactionHash = "0xef7e95ce1c085611cb5186a55cec026cd3f2f266c1f581bb6a9e9258cf3019f4",
   } = {}) {
     return {
@@ -458,7 +458,7 @@ describe("db/opensea/ingestEvents", () => {
             seller: ethers.utils.getAddress(wchargin),
             currency: "ETH",
             price: ev.starting_price,
-            timestamp: "2021-03-01T00:00:00.000Z",
+            timestamp: "2022-03-01T00:00:00.000Z",
             expirationTime: null,
           });
           expect(await unconsumedIds(client)).toEqual([]);
@@ -487,17 +487,17 @@ describe("db/opensea/ingestEvents", () => {
         const a1 = ask({
           id: "1",
           startingPrice: "1000",
-          listingTime: "2021-03-01",
+          listingTime: "2022-03-01",
         });
         const a2 = ask({
           id: "2",
           startingPrice: "2000",
-          listingTime: "2021-03-01",
+          listingTime: "2022-03-01",
         });
         const c3 = cancellation({
           id: "3",
           price: "1000",
-          transactionTimestamp: "2021-04-01",
+          transactionTimestamp: "2022-04-01",
         });
         const c4 = cancellation({
           id: "4",
@@ -520,17 +520,17 @@ describe("db/opensea/ingestEvents", () => {
         const a1 = ask({
           id: "1",
           startingPrice: "1000",
-          listingTime: "2021-03-01",
+          listingTime: "2022-03-01",
         });
         const a2 = ask({
           id: "2",
           startingPrice: "2000",
-          listingTime: "2021-03-01",
+          listingTime: "2022-03-01",
         });
         const c3 = cancellation({
           id: "3",
           price: "1000",
-          transactionTimestamp: "2021-04-01",
+          transactionTimestamp: "2022-04-01",
         });
         const c4 = cancellation({
           id: "4",
@@ -562,10 +562,29 @@ describe("db/opensea/ingestEvents", () => {
         expect((await getAsk(client, "4")).active).toBe(false);
       })
     );
+    it(
+      "asks from before 2022-02-01 are auto cancelled",
+      withTestDb(async ({ client }) => {
+        const { projectId } = await exampleProjectAndToken({ client });
+        const a1 = ask({
+          id: "1",
+          startingPrice: "1000",
+          listingTime: "2022-01-01",
+        });
+        const a2 = ask({
+          id: "2",
+          startingPrice: "2000",
+          listingTime: "2022-03-01",
+        });
+        await addAndIngest(client, [a1, a2]);
+        expect((await getAsk(client, "1")).active).toBe(false);
+        expect((await getAsk(client, "2")).active).toBe(true);
+      })
+    );
   });
 
   describe("ask<->sale interactions", () => {
-    const listingTime = "2021-03-01T00:00:00.123456";
+    const listingTime = "2022-03-01T00:00:00.123456";
     it(
       "successful asks are not active (ask first)",
       withTestDb(async ({ client }) => {
@@ -611,10 +630,10 @@ describe("db/opensea/ingestEvents", () => {
     it(
       "a sale cancels all older asks (asks ingested first)",
       withTestDb(async ({ client }) => {
-        const a1 = ask({ id: "1", listingTime: "2020-01-01" });
-        const a2 = ask({ id: "2", listingTime: "2020-01-02" });
-        const a3 = ask({ id: "3", listingTime: "2020-01-03" });
-        const s = sale({ id: "4", transactionTimestamp: "2020-01-02" });
+        const a1 = ask({ id: "1", listingTime: "2023-01-01" });
+        const a2 = ask({ id: "2", listingTime: "2023-01-02" });
+        const a3 = ask({ id: "3", listingTime: "2023-01-03" });
+        const s = sale({ id: "4", transactionTimestamp: "2023-01-02" });
         const { projectId } = await exampleProjectAndToken({ client });
         await addAndIngest(client, [a1, a2, a3]);
         await addAndIngest(client, [s]);
@@ -626,10 +645,10 @@ describe("db/opensea/ingestEvents", () => {
     it(
       "a sale cancels all older asks (sale ingested first)",
       withTestDb(async ({ client }) => {
-        const a1 = ask({ id: "1", listingTime: "2020-01-01" });
-        const a2 = ask({ id: "2", listingTime: "2020-01-02" });
-        const a3 = ask({ id: "3", listingTime: "2020-01-03" });
-        const s = sale({ id: "4", transactionTimestamp: "2020-01-02" });
+        const a1 = ask({ id: "1", listingTime: "2023-01-01" });
+        const a2 = ask({ id: "2", listingTime: "2023-01-02" });
+        const a3 = ask({ id: "3", listingTime: "2023-01-03" });
+        const s = sale({ id: "4", transactionTimestamp: "2023-01-02" });
         const { projectId } = await exampleProjectAndToken({ client });
         await addAndIngest(client, [s]);
         await addAndIngest(client, [a1, a2, a3]);
@@ -724,7 +743,7 @@ describe("db/opensea/ingestEvents", () => {
   it(
     "will mark expired asks as not active",
     withTestDb(async ({ client }) => {
-      const listingTime = "2021-03-01T00:00:00.123456";
+      const listingTime = "2022-03-01T00:00:00.123456";
       const year = 365 * 24 * 60 * 60;
       await exampleProjectAndToken({ client });
       const a1 = ask({ id: "1", listingTime, duration: 1 });

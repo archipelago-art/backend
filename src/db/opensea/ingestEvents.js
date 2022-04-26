@@ -318,7 +318,9 @@ async function ingestAsks(client, askIds) {
           WHERE opensea_sales.token_id = tokens.token_id AND
           transaction_timestamp >= (json->>'listing_time')::timestamp AT TIME ZONE 'UTC'
           )
-        )
+        ) AND
+        -- opensea deployed the wyvern v2 contract on this date
+        (json->>'listing_time')::timestamp AT TIME ZONE 'UTC' > '2022-02-01'
       )
     FROM opensea_events_raw
     JOIN tokens ON (
