@@ -8,6 +8,7 @@ const backfillModules = [
   "./openseaSkipPrivateAsks",
   "./abConceptMigrations",
   "./projectsImageTemplate",
+  "./openseaReingestCancellations",
   // ...
 ];
 
