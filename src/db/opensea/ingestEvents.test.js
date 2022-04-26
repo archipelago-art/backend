@@ -143,14 +143,15 @@ describe("db/opensea/ingestEvents", () => {
     id = "4",
     address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
     tokenId = snapshots.THE_CUBE,
-    listingTime = "2021-03-01T00:00:00",
+    price = "1000000000000000000",
     transactionTimestamp = "2021-03-03T12:34:56.123456",
     transactionHash = "0xef7e95ce1c085611cb5186a55cec026cd3f2f266c1f581bb6a9e9258cf3019f4",
   } = {}) {
     return {
       asset: { address, token_id: String(tokenId) },
       id,
-      listing_time: listingTime,
+      listing_time: null,
+      total_price: price,
       transaction: {
         timestamp: transactionTimestamp,
         transaction_hash: transactionHash,
@@ -167,7 +168,7 @@ describe("db/opensea/ingestEvents", () => {
             token_id AS "tokenId",
             transaction_timestamp AS "transactionTimestamp",
             transaction_hash AS "transactionHash",
-            listing_time AS "listingTime"
+            price
           FROM opensea_ask_cancellations
           WHERE event_id = $1
           `,
@@ -409,7 +410,7 @@ describe("db/opensea/ingestEvents", () => {
           id: ev.id,
           projectId,
           tokenId,
-          listingTime: utcDateFromString(ev.listing_time),
+          price: ev.total_price,
           transactionTimestamp: utcDateFromString(ev.transaction.timestamp),
           transactionHash: ev.transaction.transaction_hash,
         });
@@ -479,39 +480,78 @@ describe("db/opensea/ingestEvents", () => {
   });
 
   describe("ask<->cancellation interactions", () => {
-    const listingTime = "2021-03-01T00:00:00.123456";
     it(
       "cancelled asks are not active (ask first)",
       withTestDb(async ({ client }) => {
         const { projectId } = await exampleProjectAndToken({ client });
-        const a = ask({ id: "1", listingTime });
-        const c = cancellation({ id: "2", listingTime });
-        await addAndIngest(client, [a]);
+        const a1 = ask({
+          id: "1",
+          startingPrice: "1000",
+          listingTime: "2021-03-01",
+        });
+        const a2 = ask({
+          id: "2",
+          startingPrice: "2000",
+          listingTime: "2021-03-01",
+        });
+        const c3 = cancellation({
+          id: "3",
+          price: "1000",
+          transactionTimestamp: "2021-04-01",
+        });
+        const c4 = cancellation({
+          id: "4",
+          price: "2000",
+          transactionTimestamp: "2020-03-03",
+        });
+        await addAndIngest(client, [a1, a2]);
         expect((await getAsk(client, "1")).active).toBe(true);
-        await addAndIngest(client, [c]);
+        expect((await getAsk(client, "2")).active).toBe(true);
+        await addAndIngest(client, [c3, c4]);
         expect((await getAsk(client, "1")).active).toBe(false);
+        // ask 2 is still active, because the cancellation's transaction timestamp is too early.
+        expect((await getAsk(client, "2")).active).toBe(true);
       })
     );
     it(
       "cancelled asks are not active (cancellation first)",
       withTestDb(async ({ client }) => {
         const { projectId } = await exampleProjectAndToken({ client });
-        const a = ask({ id: "1", listingTime });
-        const c = cancellation({ id: "2", listingTime });
-        await addAndIngest(client, [c]);
-        await addAndIngest(client, [a]);
+        const a1 = ask({
+          id: "1",
+          startingPrice: "1000",
+          listingTime: "2021-03-01",
+        });
+        const a2 = ask({
+          id: "2",
+          startingPrice: "2000",
+          listingTime: "2021-03-01",
+        });
+        const c3 = cancellation({
+          id: "3",
+          price: "1000",
+          transactionTimestamp: "2021-04-01",
+        });
+        const c4 = cancellation({
+          id: "4",
+          price: "2000",
+          transactionTimestamp: "2020-03-03",
+        });
+        await addAndIngest(client, [c3, c4]);
+        await addAndIngest(client, [a1, a2]);
         expect((await getAsk(client, "1")).active).toBe(false);
+        // ask 2 is still active, because the cancellation's transaction timestamp is too early.
+        expect((await getAsk(client, "2")).active).toBe(true);
       })
     );
     it(
       "can mark multiple asks as cancelled from one cancellation",
       withTestDb(async ({ client }) => {
         const { projectId } = await exampleProjectAndToken({ client });
-        const c = cancellation({ id: "0", listingTime });
+        const c = cancellation({ id: "0" });
         const ax = (x) =>
           ask({
             id: x,
-            listingTime,
           });
         await addAndIngest(client, [ax("1"), ax("2")]);
         await addAndIngest(client, [c]);

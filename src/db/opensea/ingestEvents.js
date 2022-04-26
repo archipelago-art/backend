@@ -307,7 +307,8 @@ async function ingestAsks(client, askIds) {
           SELECT 1
           FROM opensea_ask_cancellations
           WHERE opensea_ask_cancellations.token_id = tokens.token_id AND
-          listing_time = (json->>'listing_time')::timestamp AT TIME ZONE 'UTC'
+          price = (json->>'starting_price')::uint256 AND
+          transaction_timestamp >= (json->>'listing_time')::timestamp AT TIME ZONE 'UTC'
           )
         ) AND
         (SELECT NOT EXISTS (
@@ -367,7 +368,7 @@ async function cancellationsToSkip(client, events) {
     `
     SELECT event_id AS id FROM opensea_events_raw
     WHERE event_id = ANY($1::text[])
-    AND json->>'listing_time' IS NULL
+    AND json->>'total_price' IS NULL
     `,
     [ids]
   );
@@ -383,7 +384,7 @@ async function ingestCancellations(client, cancellationIds) {
       token_id,
       transaction_timestamp,
       transaction_hash,
-      listing_time
+      price
     )
     SELECT
       event_id,
@@ -391,7 +392,7 @@ async function ingestCancellations(client, cancellationIds) {
       tokens.token_id,
       (json->'transaction'->>'timestamp')::timestamp AT TIME ZONE 'UTC' AS transaction_timestamp,
       json->'transaction'->>'transaction_hash' AS transaction_hash,
-      (json->>'listing_time')::timestamp AT TIME ZONE 'UTC' AS listing_time
+      (json->>'total_price')::uint256 AS price
     FROM opensea_events_raw
     JOIN tokens
       ON hexaddr(json->'asset'->>'address') = token_contract
@@ -408,8 +409,10 @@ async function ingestCancellations(client, cancellationIds) {
     SET active = false
     WHERE event_id IN (
       SELECT opensea_asks.event_id
-      FROM opensea_asks JOIN opensea_ask_cancellations USING (token_id, listing_time)
+      FROM opensea_asks JOIN opensea_ask_cancellations USING (token_id)
       WHERE opensea_ask_cancellations.event_id = ANY($1::text[])
+        AND opensea_asks.price = opensea_ask_cancellations.price
+        AND opensea_asks.listing_time <= opensea_ask_cancellations.transaction_timestamp
     )
     `,
     [insertedCancellations]
