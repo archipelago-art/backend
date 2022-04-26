@@ -151,6 +151,7 @@ async function ingestEventPage(client, limit) {
       (json->'asset'->>'token_id')::uint256
     FROM opensea_events_raw
     WHERE event_id = ANY($1::text[])
+    ON CONFLICT (event_id) DO NOTHING
     `,
     [[...idsToDefer]]
   );
