@@ -16,7 +16,10 @@ async function up({ client }) {
       -- This token is included with each email and can be used to unsubscribe
       -- the account.
       unsubscribe_token uuid NOT NULL,
-      preferences jsonb NOT NULL
+      preferences jsonb NOT NULL,
+      CONSTRAINT preferences_is_object CHECK (
+        jsonb_typeof(preferences) = 'object'
+      )
     );
 
     -- Records that we've recently sent a "please confirm your email address"

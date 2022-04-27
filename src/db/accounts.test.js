@@ -1,0 +1,177 @@
+const ethers = require("ethers");
+
+const { testDbProvider } = require("./testUtil");
+const { hexToBuf } = require("./util");
+
+const accounts = require("./accounts");
+
+describe("db/accounts", () => {
+  const withTestDb = testDbProvider();
+
+  function makeWallet(nonce) {
+    const privateKey = ethers.utils.id(String(nonce));
+    return new ethers.Wallet(privateKey);
+  }
+  let wallet1;
+  beforeAll(() => {
+    wallet1 = makeWallet(1);
+  });
+
+  async function getPendingConfirmationNonces({ client, account }) {
+    const res = await client.query(
+      `
+      SELECT nonce FROM pending_email_confirmations
+      WHERE account = $1::address
+      `,
+      [hexToBuf(account)]
+    );
+    return res.rows.map((r) => r.nonce);
+  }
+
+  it("signs and verifies a login message", async () => {
+    const signer = wallet1;
+    const timestamp = 1651003500;
+    const signature = await accounts.signLoginRequest({ signer, timestamp });
+    expect(ethers.utils.arrayify(signature)).toHaveLength(65);
+    const verifiedAddress = await accounts.verifyLoginRequest({
+      timestamp,
+      signature,
+    });
+    expect(verifiedAddress).toEqual(await signer.getAddress());
+  });
+
+  it(
+    "gets user details only if a valid auth token is presented",
+    withTestDb(async ({ client }) => {
+      const signer = wallet1;
+      const timestamp = 1651003500;
+      const signature = await accounts.signLoginRequest({ signer, timestamp });
+      // TODO: validate that timestamp is roughly current
+
+      const authToken = await accounts.signIn({ client, timestamp, signature });
+      expect(await accounts.getUserDetails({ client, authToken })).toEqual({
+        email: null,
+        preferences: null,
+      });
+
+      await accounts.signOut({ client, authToken });
+      await expect(
+        accounts.getUserDetails({ client, authToken })
+      ).rejects.toThrow("unknown auth token");
+    })
+  );
+
+  it(
+    "sets, confirms, and clears an email address",
+    withTestDb(async ({ client }) => {
+      const signer = wallet1;
+      const account = await signer.getAddress();
+      const timestamp = 1651003500;
+      const signature = await accounts.signLoginRequest({ signer, timestamp });
+      const authToken = await accounts.signIn({ client, timestamp, signature });
+
+      const getDetails = () => accounts.getUserDetails({ client, authToken });
+      expect(await getDetails()).toEqual({ email: null, preferences: null });
+
+      // Setting email should go through a confirmation flow.
+      const email = "alice@example.com";
+      await accounts.setEmailUnconfirmed({ client, authToken, email });
+      expect(await getDetails()).toEqual({ email: null, preferences: null });
+      const nonce = await (async () => {
+        const nonces = await getPendingConfirmationNonces({ client, account });
+        expect(nonces).toEqual([expect.any(String)]);
+        return nonces[0];
+      })();
+
+      const confirmRes = await accounts.confirmEmail({
+        client,
+        authToken,
+        nonce,
+      });
+      expect(confirmRes).toEqual(authToken);
+      expect(await getDetails()).toEqual({ email, preferences: {} });
+      {
+        const nonces = await getPendingConfirmationNonces({ client, account });
+        expect(nonces).toEqual([]);
+      }
+
+      // Clearing email should update immediately.
+      await accounts.setEmailUnconfirmed({ client, authToken, email: null });
+      expect(await getDetails()).toEqual({ email: null, preferences: null });
+      {
+        const nonces = await getPendingConfirmationNonces({ client, account });
+        expect(nonces).toEqual([]);
+      }
+    })
+  );
+
+  it(
+    "retains the old email while a new one is being confirmed",
+    withTestDb(async ({ client }) => {
+      const signer = wallet1;
+      const account = await signer.getAddress();
+      const timestamp = 1651003500;
+      const signature = await accounts.signLoginRequest({ signer, timestamp });
+      const authToken = await accounts.signIn({ client, timestamp, signature });
+
+      const getDetails = () => accounts.getUserDetails({ client, authToken });
+      expect(await getDetails()).toEqual({ email: null, preferences: null });
+
+      const getUniqueNonce = async () => {
+        const nonces = await getPendingConfirmationNonces({ client, account });
+        expect(nonces).toEqual([expect.any(String)]);
+        return nonces[0];
+      };
+
+      const email1 = "alice.one@example.com";
+      await accounts.setEmailUnconfirmed({ client, authToken, email: email1 });
+      expect(await getDetails()).toEqual({ email: null, preferences: null });
+      const nonce1 = await getUniqueNonce();
+      await accounts.confirmEmail({ client, authToken, nonce: nonce1 });
+      expect(await getDetails()).toEqual({ email: email1, preferences: {} });
+
+      const email2 = "alice.two@example.com";
+      await accounts.setEmailUnconfirmed({ client, authToken, email: email2 });
+      // Neither yet changed nor cleared.
+      expect(await getDetails()).toEqual({ email: email1, preferences: {} });
+
+      const nonce2 = await getUniqueNonce();
+      await accounts.confirmEmail({ client, authToken, nonce: nonce2 });
+      expect(await getDetails()).toEqual({ email: email2, preferences: {} });
+    })
+  );
+
+  it(
+    "mints a new auth token at email confirmation if none is provided",
+    withTestDb(async ({ client }) => {
+      const signer = wallet1;
+      const account = await signer.getAddress();
+      const timestamp = 1651003500;
+      const signature = await accounts.signLoginRequest({ signer, timestamp });
+      const authToken = await accounts.signIn({ client, timestamp, signature });
+
+      const getDetails = () => accounts.getUserDetails({ client, authToken });
+      expect(await getDetails()).toEqual({ email: null, preferences: null });
+
+      const email = "alice@example.com";
+      await accounts.setEmailUnconfirmed({ client, authToken, email });
+      expect(await getDetails()).toEqual({ email: null, preferences: null });
+      const nonce = await (async () => {
+        const nonces = await getPendingConfirmationNonces({ client, account });
+        expect(nonces).toEqual([expect.any(String)]);
+        return nonces[0];
+      })();
+
+      const confirmRes = await accounts.confirmEmail({
+        client,
+        authToken: null,
+        nonce,
+      });
+      expect(confirmRes).toEqual(expect.any(String));
+      expect(confirmRes).not.toEqual(authToken);
+      expect(
+        await accounts.getUserDetails({ client, authToken: confirmRes })
+      ).toEqual({ email, preferences: {} });
+    })
+  );
+});
