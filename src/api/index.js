@@ -1,3 +1,4 @@
+const accounts = require("../db/accounts");
 const artblocks = require("../db/artblocks");
 const emails = require("../db/emails");
 const erc721Transfers = require("../db/erc721Transfers");
@@ -298,5 +299,7 @@ module.exports = {
   transferCount,
   addEmailSignup,
   formatImageUrl,
+
   opensea: openseaApi,
+  accounts,
 };
