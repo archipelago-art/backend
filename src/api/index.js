@@ -2,6 +2,7 @@ const accounts = require("../db/accounts");
 const artblocks = require("../db/artblocks");
 const emails = require("../db/emails");
 const erc721Transfers = require("../db/erc721Transfers");
+const orderbook = require("../db/orderbook");
 const { bufToAddress } = require("../db/util");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const slugify = require("../util/slugify");
@@ -302,4 +303,5 @@ module.exports = {
 
   opensea: openseaApi,
   accounts,
+  orderbook,
 };
