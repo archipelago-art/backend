@@ -214,6 +214,7 @@ async function generateRollupSql() {
     }
     await client.query(`ALTER DATABASE ${database} SET timezone TO 'UTC'`);
     await apply({ client, migrations: migrationsInRollup, verbose: true });
+    await canonicalizeMigrationLog({ client });
     const res = await util.promisify(child_process.execFile)("pg_dump", [
       // Omit `ALTER my_table OWNER TO my_role` on every object; this dump
       // should be cluster-agnostic.
@@ -238,10 +239,47 @@ async function generateRollupSql() {
   })();
 }
 
+// Canonicalize nondeterministic data in the migration log (if it exists).
+async function canonicalizeMigrationLog({ client }) {
+  try {
+    await client.query(
+      `
+      UPDATE migration_log
+      SET
+        migration_id = updates.new_migration_id,
+        timestamp = updates.new_timestamp
+      FROM (
+        SELECT
+          migration_id AS old_migration_id,
+          (
+            'x0' ||
+            substring(sha256((row_number() OVER win)::text::bytea)::text from 3)
+          )::bit(64)::int8 AS new_migration_id,
+          (
+            '2001-01-01T00:00:00Z'::timestamptz
+              + make_interval(secs => row_number() OVER win)
+          ) AS new_timestamp
+        FROM migration_log
+        WINDOW win AS (ORDER BY timestamp, name)
+      ) AS updates
+      WHERE migration_id = updates.old_migration_id
+      `
+    );
+  } catch (e) {
+    if (e.code === "42P01") {
+      // undefined_table: migration log not yet applied.
+      return;
+    } else {
+      throw e;
+    }
+  }
+}
+
 Object.assign(module.exports, {
   ROLLUP_SQL_PATH,
   migrations,
   apply,
   applyAll,
   generateRollupSql,
+  canonicalizeMigrationLog,
 });

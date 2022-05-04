@@ -1,6 +1,7 @@
 const child_process = require("child_process");
 const util = require("util");
 
+const { acqrel } = require("../util");
 const { testDbProvider } = require("../testUtil");
 
 const migrations = require(".");
@@ -44,43 +45,12 @@ describe("db/migrations", () => {
         );
         return res.stdout;
       }
-
-      async function canonicalizeMigrationLog({ pool }) {
-        try {
-          await pool.query(
-            `
-            UPDATE migration_log
-            SET
-              migration_id = updates.new_migration_id,
-              timestamp = updates.new_timestamp
-            FROM (
-              SELECT
-                migration_id AS old_migration_id,
-                row_number() OVER win AS new_migration_id,
-                (
-                  '2001-01-01T00:00:00Z'::timestamptz
-                    + make_interval(secs => row_number() OVER win)
-                ) AS new_timestamp
-              FROM migration_log
-              WINDOW win AS (ORDER BY timestamp, name)
-            ) AS updates
-            WHERE migration_id = updates.old_migration_id
-            `
-          );
-        } catch (e) {
-          if (e.code === "42P01") {
-            // undefined_table: migration log not yet applied.
-            return;
-          } else {
-            throw e;
-          }
-        }
-      }
-
       async function migrationState({ fromScratch }) {
         return await withTestDb(async ({ database, pool }) => {
           await migrations.applyAll({ pool, verbose: false, fromScratch });
-          await canonicalizeMigrationLog({ pool });
+          await acqrel(pool, (client) =>
+            migrations.canonicalizeMigrationLog({ client })
+          );
           return await pgDump(database);
         })();
       }

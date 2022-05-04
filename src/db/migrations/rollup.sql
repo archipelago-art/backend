@@ -1,5 +1,5 @@
 --- Archipelago SQL schema rollup
---- Generated: 2022-03-03T19:35:17.746Z
+--- Generated: 2022-05-04T05:42:16.539Z
 --- Scope: 88 migrations, through 0088_traits_value_text
 
 --
@@ -475,19 +475,19 @@ INSERT INTO public.currencies VALUES (1544284093318430723, '\x6b175474e89094c44d
 -- Data for Name: migration_log; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public.migration_log VALUES (6973631281252960413, '0076_migration_log', '2022-03-03 19:35:17.426715+00', '\x89b198ebdeb9688d7e2de5095fcb1f57a3436a06');
-INSERT INTO public.migration_log VALUES (1226227404513290043, '0077_bytes32', '2022-03-03 19:35:17.435105+00', '\x6286c706654028706d39ae1a2dc8f1c3cd62eb64');
-INSERT INTO public.migration_log VALUES (3273654926737514864, '0078_hexbytes', '2022-03-03 19:35:17.437958+00', '\xc871f55646d1c4ec105e7ffc761f03e4e80d9892');
-INSERT INTO public.migration_log VALUES (2381239075625614522, '0079_eth_blocks', '2022-03-03 19:35:17.441109+00', '\x15598a9826bdd0dc24f4294e17ad0ef090695a14');
-INSERT INTO public.migration_log VALUES (7068501132130239659, '0080_transfers_block_hash_bytes', '2022-03-03 19:35:17.44897+00', '\xbbdf3a24c2cda8f2bd16cf44a43ec0022a763140');
-INSERT INTO public.migration_log VALUES (7799071206917761117, '0081_transfers_block_hash_nullable', '2022-03-03 19:35:17.460862+00', '\x42f4fc8db89dee7ee4bfeac303fdf037f537e75c');
-INSERT INTO public.migration_log VALUES (7337047061840843962, '0082_transfers_block_hash_bytes32', '2022-03-03 19:35:17.464205+00', '\xe1f8785d6eb8e0a3dda2c69bb0cdf0f6cfdc7f81');
-INSERT INTO public.migration_log VALUES (5509224402551441234, '0083_transfers_block_hash_bytes_nullable', '2022-03-03 19:35:17.488819+00', '\x2f2293ed1ae934e7884282802e486a90dea5e9c9');
-INSERT INTO public.migration_log VALUES (4085441403200029630, '0084_transfers_drop_block_hash_bytes', '2022-03-03 19:35:17.493729+00', '\x1fda15a8569b028c67bf29fb4d5c3dac08795645');
-INSERT INTO public.migration_log VALUES (6755063896407854951, '0085_signature_type', '2022-03-03 19:35:17.500161+00', '\xa54f764abd66c54322e78ff75371693842f53193');
-INSERT INTO public.migration_log VALUES (7233322038945992631, '0086_index_erc_721_transfers_hom', '2022-03-03 19:35:17.504989+00', '\xc42fda5150dfd4a5600a767caf5f638cc369d715');
-INSERT INTO public.migration_log VALUES (8594804028573061088, '0087_traits_value_json_text', '2022-03-03 19:35:17.515076+00', '\x3c3a424930ac57be0d529fc64091bb8b89eb3c1d');
-INSERT INTO public.migration_log VALUES (3082145786441843676, '0088_traits_value_text', '2022-03-03 19:35:17.519935+00', '\x61d6a8b4031ed225d34e4e888220f75e62fcfed2');
+INSERT INTO public.migration_log VALUES (484254776263135182, '0076_migration_log', '2001-01-01 00:00:01+00', '\x89b198ebdeb9688d7e2de5095fcb1f57a3436a06');
+INSERT INTO public.migration_log VALUES (956792697637953902, '0077_bytes32', '2001-01-01 00:00:02+00', '\x6286c706654028706d39ae1a2dc8f1c3cd62eb64');
+INSERT INTO public.migration_log VALUES (351408350089178552, '0078_hexbytes', '2001-01-01 00:00:03+00', '\xc871f55646d1c4ec105e7ffc761f03e4e80d9892');
+INSERT INTO public.migration_log VALUES (338376316163052028, '0079_eth_blocks', '2001-01-01 00:00:04+00', '\x15598a9826bdd0dc24f4294e17ad0ef090695a14');
+INSERT INTO public.migration_log VALUES (1077153230057093442, '0080_transfers_block_hash_bytes', '2001-01-01 00:00:05+00', '\xbbdf3a24c2cda8f2bd16cf44a43ec0022a763140');
+INSERT INTO public.migration_log VALUES (1044672390517680347, '0081_transfers_block_hash_nullable', '2001-01-01 00:00:06+00', '\x42f4fc8db89dee7ee4bfeac303fdf037f537e75c');
+INSERT INTO public.migration_log VALUES (544977996675729576, '0082_transfers_block_hash_bytes32', '2001-01-01 00:00:07+00', '\xe1f8785d6eb8e0a3dda2c69bb0cdf0f6cfdc7f81');
+INSERT INTO public.migration_log VALUES (199886966959710743, '0083_transfers_block_hash_bytes_nullable', '2001-01-01 00:00:08+00', '\x2f2293ed1ae934e7884282802e486a90dea5e9c9');
+INSERT INTO public.migration_log VALUES (114140175342751440, '0084_transfers_drop_block_hash_bytes', '2001-01-01 00:00:09+00', '\x1fda15a8569b028c67bf29fb4d5c3dac08795645');
+INSERT INTO public.migration_log VALUES (334477765055357002, '0085_signature_type', '2001-01-01 00:00:10+00', '\xa54f764abd66c54322e78ff75371693842f53193');
+INSERT INTO public.migration_log VALUES (359305773092484221, '0086_index_erc_721_transfers_hom', '2001-01-01 00:00:11+00', '\xc42fda5150dfd4a5600a767caf5f638cc369d715');
+INSERT INTO public.migration_log VALUES (483324709114861553, '0087_traits_value_json_text', '2001-01-01 00:00:12+00', '\x3c3a424930ac57be0d529fc64091bb8b89eb3c1d');
+INSERT INTO public.migration_log VALUES (287590692049242308, '0088_traits_value_text', '2001-01-01 00:00:13+00', '\x61d6a8b4031ed225d34e4e888220f75e62fcfed2');
 
 
 --
