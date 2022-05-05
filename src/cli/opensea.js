@@ -1,10 +1,5 @@
 const { withClient, bufToHex } = require("../db/util");
-const {
-  downloadCollection,
-  downloadAllCollections,
-  downloadEventsForTokens,
-  syncProject,
-} = require("../opensea/download");
+const { downloadEventsForTokens, syncProject } = require("../opensea/download");
 const {
   floorAsksByProject,
   deactivateLegacyListings,
@@ -20,42 +15,6 @@ const {
 const { projectIdForSlug } = require("../db/projects");
 
 const ONE_DAY_MS = 1000 * 60 * 60 * 24;
-
-async function cliDownloadCollection(args) {
-  if (args.length !== 2) {
-    throw new Error(
-      "usage: opensea-download-collection <collection-slug> <window-duration-days>"
-    );
-  }
-  const apiKey = process.env.OPENSEA_API_KEY;
-  const slug = args[0];
-  const windowDurationMs = ONE_DAY_MS * +args[1];
-  await withClient(async (client) => {
-    await downloadCollection({
-      client,
-      slug,
-      apiKey,
-      windowDurationMs,
-    });
-  });
-}
-
-async function cliDownloadAllCollections(args) {
-  if (args.length !== 0) {
-    throw new Error("usage: opensea-download-all-collections");
-  }
-  const apiKey = process.env.OPENSEA_API_KEY;
-  const slug = args[0];
-  const windowDurationMs = ONE_DAY_MS * 30;
-  await withClient(async (client) => {
-    await downloadAllCollections({
-      client,
-      slug,
-      apiKey,
-      windowDurationMs,
-    });
-  });
-}
 
 /**
  * re-download events for tokens in a given collection.
@@ -234,8 +193,6 @@ async function cliSyncProject(args) {
 async function cli(outerArgs, self) {
   const [arg0, ...args] = outerArgs;
   const commands = [
-    ["download-collection", cliDownloadCollection],
-    ["download-all-collections", cliDownloadAllCollections],
     ["ingest-events", cliIngestEvents],
     ["download-tokens", cliDownloadTokens],
     ["clear-progress", cliClearProgress],
