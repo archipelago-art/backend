@@ -77,7 +77,7 @@ async function syncProject({ client, slug, projectId, apiKey }) {
   log.info`fast sync: ${numAdded} events for ${slug} (of ${events.length} raw events)`;
 }
 
-async function syncAllProjects({ client, apiKey, windowDurationMs }) {
+async function syncAllProjects({ client, apiKey }) {
   await initializeArtblocksProgress({ client, apiKey });
   const progress = await getProgress({ client });
   for (const { slug, projectId } of progress) {

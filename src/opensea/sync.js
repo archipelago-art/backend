@@ -10,11 +10,11 @@ async function sleepMs(ms) {
   await new Promise((res) => void setTimeout(res, ms));
 }
 
-async function syncLoop({ apiKey, client, windowDurationMs, sleepDurationMs }) {
-  log.info`opensea-sync: starting loop (sleepDurationMs: ${sleepDurationMs}, windowDurationMs=${windowDurationMs})`;
+async function syncLoop({ apiKey, client, sleepDurationMs }) {
+  log.info`opensea-sync: starting loop (sleepDurationMs: ${sleepDurationMs})`;
   while (true) {
     log.info`opensea-sync: downloading events for all collections`;
-    await syncAllProjects({ client, apiKey, windowDurationMs });
+    await syncAllProjects({ client, apiKey });
     log.info`opensea-sync: ingesting events`;
     await ingestEvents({ client });
     log.info`opensea-sync: sleeping ${sleepDurationMs} ms`;
