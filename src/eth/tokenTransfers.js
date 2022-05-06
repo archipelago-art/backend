@@ -11,7 +11,7 @@ const { acqrel } = require("../db/util");
 const adHocPromise = require("../util/adHocPromise");
 const log = require("../util/log")(__filename);
 const parmap = require("../util/parmap");
-const retry = require("../util/retry");
+const retryEthers = require("../util/retryEthers");
 const erc721Abi = require("./erc721Abi");
 
 const BLOCK_CONCURRENCY = 16; // how many concurrent calls to `getBlock`?
@@ -46,33 +46,6 @@ function makeProvider() {
   if (apiKey == null) throw new Error("missing ALCHEMY_API_KEY");
   const network = process.env.TESTNET === "rinkeby" ? "rinkeby" : "homestead";
   return new ethers.providers.AlchemyProvider(network, apiKey);
-}
-
-const retryableCodes = [
-  ethers.errors.SERVER_ERROR,
-  ethers.errors.NETWORK_ERROR,
-  ethers.errors.TIMEOUT,
-];
-
-async function retryEthers(cb) {
-  async function attempt() {
-    try {
-      const value = await cb();
-      return { type: "DONE", value };
-    } catch (e) {
-      if (e.code != null && retryableCodes.includes(e.code)) {
-        log.debug`retrying Ethers operation due to ${e.code}: ${e}`;
-        return { type: "RETRY", err: e };
-      }
-      return { type: "FATAL", err: e };
-    }
-  }
-  const res = await retry(attempt);
-  if (res.type === "DONE") {
-    return res.value;
-  } else {
-    throw res.err;
-  }
 }
 
 async function ingestTransfersLive({ pool }) {
