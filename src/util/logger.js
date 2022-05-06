@@ -91,6 +91,13 @@ class Logger {
     this.error = this._makeLogHandler(LEVELS.ERROR);
   }
 
+  child(subContext) {
+    const newContext = `${this._context}::${subContext}`;
+    const result = new Logger(newContext);
+    result._cachedThreshold = this._cachedThreshold;
+    return result;
+  }
+
   _threshold() {
     let result = this._cachedThreshold;
     if (result == null) {
