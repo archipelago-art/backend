@@ -22,6 +22,7 @@ const commands = [
   ["alchemy-undefer-transfers", require("./alchemyUndeferTransfers")],
   ["watch-cnf-queue", require("./watchCnfQueue")],
   ["opensea", require("./opensea")],
+  ["follow-chain", require("./followChain")],
   ["autorestart", require("./autorestart")],
 ];
 
