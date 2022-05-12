@@ -8,6 +8,7 @@ const {
 } = require("./ingestEvents");
 const {
   askForToken,
+  asksForToken,
   floorAskByProject,
   aggregateSalesByProject,
   lastSalesByProject,
@@ -201,7 +202,7 @@ describe("db/opensea/api", () => {
     return res.rows[0].active;
   }
 
-  describe("askForToken", () => {
+  describe("askForToken / asksForToken", () => {
     it(
       "returns null if there are no asks",
       withTestDb(async ({ client }) => {
@@ -236,6 +237,41 @@ describe("db/opensea/api", () => {
           sellerAddress: wchargin,
           tokenId: archetypeTokenId1,
         });
+      })
+    );
+    it(
+      "returns multiple lowest asks as expected",
+      withTestDb(async ({ client }) => {
+        const { archetypeTokenId1 } = await exampleProjectAndToken({ client });
+        const a1 = ask({ id: "1", price: "1000" });
+        const a2 = ask({ id: "2", price: "950" });
+        const a3 = ask({ id: "3", price: "975" });
+        await addAndIngest(client, [a1, a2, a3]);
+
+        const t = transfer();
+        await addTransfers({ client, transfers: [t] });
+
+        const result = await asksForToken({
+          client,
+          tokenId: archetypeTokenId1,
+          limit: 2,
+        });
+        expect(result).toEqual([
+          {
+            expirationTime: null,
+            listingTime: utcDateFromString(listed),
+            price: "950",
+            sellerAddress: wchargin,
+            tokenId: archetypeTokenId1,
+          },
+          {
+            expirationTime: null,
+            listingTime: utcDateFromString(listed),
+            price: "975",
+            sellerAddress: wchargin,
+            tokenId: archetypeTokenId1,
+          },
+        ]);
       })
     );
     it(

@@ -36,11 +36,11 @@ async function _findOwners({ client, projectIds, tokenIds }) {
 }
 
 /**
- * Gets the lowest-priced active ask for the specified token.
- * Returns null if there is no ask.
- * Only considers asks priced in ETH.
+ * Gets the `k` lowest-priced active asks for the specified token, ordered by
+ * price ascending. Returns an empty lists if there is no ask. Only considers
+ * asks priced in ETH.
  */
-async function askForToken({ client, tokenId }) {
+async function asksForToken({ client, tokenId, limit }) {
   const res = await client.query(
     `
     SELECT
@@ -62,18 +62,25 @@ async function askForToken({ client, tokenId }) {
         LIMIT 1
       )
     ORDER BY price ASC
-    LIMIT 1
+    LIMIT $3
     `,
-    [tokenId, wellKnownCurrencies.eth.currencyId]
+    [tokenId, wellKnownCurrencies.eth.currencyId, limit]
   );
-  if (res.rows.length === 0) {
-    return null;
-  }
-  const x = res.rows[0];
-  return {
-    ...x,
-    sellerAddress: bufToAddress(x.sellerAddress),
-  };
+  return res.rows.map((r) => ({
+    ...r,
+    sellerAddress: bufToAddress(r.sellerAddress),
+  }));
+}
+
+/**
+ * Gets the lowest-priced active ask for the specified token.
+ * Returns null if there is no ask.
+ * Only considers asks priced in ETH.
+ */
+async function askForToken({ client, tokenId }) {
+  const asks = await asksForToken({ client, tokenId, limit: 1 });
+  if (asks.length === 0) return null;
+  return asks[0];
 }
 
 /**
@@ -248,6 +255,7 @@ async function salesByToken({ client, tokenId }) {
 module.exports = {
   _findOwners,
   askForToken,
+  asksForToken,
   floorAskByProject,
   aggregateSalesByProject,
   lastSalesByProject,
