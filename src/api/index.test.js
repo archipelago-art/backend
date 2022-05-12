@@ -52,6 +52,24 @@ describe("api", () => {
           aspectRatio: 1.5,
           numTokens: 0,
           maxInvocations: 10000,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
+          fees: [
+            {
+              micros: 5000,
+              static: true,
+              target: "0x1212121212121212121212121212121212121212",
+            },
+            {
+              micros: 5000,
+              static: true,
+              target: "0x3434343434343434343434343434343434343434",
+            },
+            {
+              micros: 75000,
+              static: false,
+              target: "0x5656565656565656565656565656565656565656",
+            },
+          ],
         },
         {
           projectId: id23,
@@ -64,6 +82,24 @@ describe("api", () => {
           aspectRatio: 1,
           numTokens: 1,
           maxInvocations: 600,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+          fees: [
+            {
+              micros: 5000,
+              static: true,
+              target: "0x1212121212121212121212121212121212121212",
+            },
+            {
+              micros: 5000,
+              static: true,
+              target: "0x3434343434343434343434343434343434343434",
+            },
+            {
+              micros: 75000,
+              static: false,
+              target: "0x5656565656565656565656565656565656565656",
+            },
+          ],
         },
       ]);
       expect(
@@ -110,6 +146,12 @@ describe("api", () => {
         aspectRatio: 1,
         numTokens: 1,
         maxInvocations: 600,
+        tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+        fees: expect.arrayContaining([
+          expect.objectContaining({
+            target: "0x1212121212121212121212121212121212121212",
+          }),
+        ]),
       });
     })
   );
@@ -626,7 +668,7 @@ describe("api", () => {
   );
 
   it(
-    "generates appropriate urls for autoglyphs",
+    "generates appropriate collection info for autoglyphs",
     withTestDb(async ({ client }) => {
       const projectId = await addAutoglyphs({ client });
       const res = await api.collection({ client, slug: "autoglyphs" });
@@ -643,12 +685,25 @@ describe("api", () => {
         aspectRatio: 1,
         numTokens: 512,
         maxInvocations: 512,
+        tokenContract: "0xd4e4078ca3495DE5B1d4dB434BEbc5a986197782",
+        fees: [
+          {
+            micros: 5000,
+            static: true,
+            target: "0x1212121212121212121212121212121212121212",
+          },
+          {
+            micros: 5000,
+            static: true,
+            target: "0x3434343434343434343434343434343434343434",
+          },
+        ],
       });
     })
   );
 
   it(
-    "generates appropriate urls for cryptoadz",
+    "generates appropriate collection info for cryptoadz",
     withTestDb(async ({ client }) => {
       const projectId = await addCryptoadz({ client });
       const res = await api.collection({ client, slug: "cryptoadz" });
@@ -665,6 +720,24 @@ describe("api", () => {
         aspectRatio: 1,
         numTokens: 6969,
         maxInvocations: 6969,
+        tokenContract: "0x1CB1A5e65610AEFF2551A50f76a87a7d3fB649C6",
+        fees: [
+          {
+            micros: 5000,
+            static: true,
+            target: "0x1212121212121212121212121212121212121212",
+          },
+          {
+            micros: 5000,
+            static: true,
+            target: "0x3434343434343434343434343434343434343434",
+          },
+          {
+            micros: 25000,
+            static: true,
+            target: "0x7878787878787878787878787878787878787878",
+          },
+        ],
       });
     })
   );

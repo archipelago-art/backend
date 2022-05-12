@@ -75,7 +75,8 @@ async function _collections({ client, projectId }) {
       aspect_ratio AS "aspectRatio",
       num_tokens AS "numTokens",
       max_invocations AS "maxInvocations",
-      image_template AS "imageTemplate"
+      image_template AS "imageTemplate",
+      token_contract AS "tokenContract"
     FROM projects
     LEFT OUTER JOIN artblocks_projects USING (project_id)
     WHERE project_id = $1 OR $1 IS NULL
@@ -96,6 +97,19 @@ async function _collections({ client, projectId }) {
     aspectRatio: row.aspectRatio,
     numTokens: row.numTokens,
     maxInvocations: row.maxInvocations,
+    tokenContract: bufToAddress(row.tokenContract),
+    fees: (() => {
+      if (row.slug === "cryptoadz") return feesForCollection("CRYPTOADZ");
+      if (row.slug === "autoglyphs") return feesForCollection("AUTOGLYPHS");
+      const addr = bufToAddress(row.tokenContract);
+      if (
+        addr === artblocks.CONTRACT_ARTBLOCKS_LEGACY ||
+        addr === artblocks.CONTRACT_ARTBLOCKS_STANDARD
+      ) {
+        return feesForCollection("ARTBLOCKS");
+      }
+      throw new Error("can't get fees; unrecognized collection " + row.slug);
+    })(),
   }));
 }
 
@@ -108,6 +122,39 @@ async function collection({ client, slug }) {
   if (projectId == null) return null;
   const res = await _collections({ client, projectId });
   return res[0] ?? null;
+}
+
+function feesForCollection(
+  type /*: "ARTBLOCKS" | "CRYPTOADZ" | "AUTOGLYPHS" */
+) {
+  const ARCHIPELAGO_PROTOCOL_PAYEE =
+    "0x1212121212121212121212121212121212121212";
+  const ARCHIPELAGO_FRONTEND_PAYEE =
+    "0x3434343434343434343434343434343434343434";
+  const ARTBLOCKS_ROYALTY_ORACLE = "0x5656565656565656565656565656565656565656";
+  const CRYPTOADZ_PAYEE = "0x7878787878787878787878787878787878787878";
+
+  const fees = [
+    { target: ARCHIPELAGO_PROTOCOL_PAYEE, micros: 5000, static: true }, // slight lie
+    { target: ARCHIPELAGO_FRONTEND_PAYEE, micros: 5000, static: true },
+  ];
+  switch (type) {
+    case "ARTBLOCKS":
+      fees.push({
+        target: ARTBLOCKS_ROYALTY_ORACLE,
+        micros: 75000,
+        static: false,
+      });
+      break;
+    case "CRYPTOADZ":
+      fees.push({ target: CRYPTOADZ_PAYEE, micros: 25000, static: true });
+      break;
+    case "AUTOGLYPHS":
+      break;
+    default:
+      throw new Error("unknown collection type: " + type);
+  }
+  return fees;
 }
 
 async function collectionTokens({ client, slug }) {
