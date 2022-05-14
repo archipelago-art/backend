@@ -7,40 +7,143 @@ const toadzTraits = require("./cryptoadzTraits.json");
 
 function processToadzData(tokenIds) {
   // feature name to feature id
-  const nameToId = new Map();
+  const featureToId = new Map();
   // Map-of-maps; feature id to a map from trait values to trait ids
-  const featureIdToValuesToIds = new Map();
-  const features = []; // {featureId, name}
-  const traits = []; // {featureId, traitId, value}
+  const featureIdToTraitsToIds = new Map();
+  const features = []; // {featureId, feature}
+  const traits = []; // {featureId, traitId, trait}
   const traitMembers = []; // {tokenId, traitId}
   for (let i = 0; i < 6969; i++) {
+    const toad = toadzTraits[i];
+    if (toad.tokenId !== i + 1) {
+      throw new Error(`tokenId mismatch: ${i + 1} vs ${toad.tokenId}`);
+    }
     const tokenId = tokenIds[i];
-    const traitData = Object.entries(toadzTraits[i]).filter(
-      (x) => x[0] !== "tokenId"
-    );
-    // Some data sources include this, OpenSea has it, and it *is* an interesting property
-    // to bid against, etc.
-    traitData.push(["# Traits", traitData.length]);
+    const attributes = toad.attributes;
 
-    for (const [name, value] of traitData) {
-      let featureId = nameToId.get(name);
+    for (const { feature, trait } of attributes) {
+      let featureId = featureToId.get(feature);
       if (featureId == null) {
         featureId = newId(ObjectType.FEATURE);
-        nameToId.set(name, featureId);
-        features.push({ featureId, name });
-        featureIdToValuesToIds.set(featureId, new Map());
+        featureToId.set(feature, featureId);
+        features.push({ featureId, feature });
+        featureIdToTraitsToIds.set(featureId, new Map());
       }
-      const valueToId = featureIdToValuesToIds.get(featureId);
-      let traitId = valueToId.get(value);
+      const traitToId = featureIdToTraitsToIds.get(featureId);
+      let traitId = traitToId.get(trait);
       if (traitId == null) {
         traitId = newId(ObjectType.TRAIT);
-        valueToId.set(value, traitId);
-        traits.push({ traitId, featureId, value });
+        traitToId.set(trait, traitId);
+        traits.push({ traitId, featureId, trait });
       }
       traitMembers.push({ tokenId, traitId });
     }
   }
   return { features, traits, traitMembers };
+}
+
+async function fixCryptoadz({ client, testMode }) {
+  console.log("start");
+  await client.query("BEGIN");
+  const projectIdRes = await client.query(
+    `
+    SELECT project_id AS "projectId"
+    FROM projects
+    WHERE slug='cryptoadz';
+    `
+  );
+  const projectId = projectIdRes.rows[0].projectId;
+  const toadzIdsRes = await client.query(
+    `SELECT token_id AS "tokenId", on_chain_token_id AS "onChainId"
+    FROM tokens
+    WHERE project_id=$1
+    ORDER BY on_chain_token_id ASC`,
+    [projectId]
+  );
+  const toadzIds = toadzIdsRes.rows;
+  for (let i = 1; i <= 6969; i++) {
+    if (toadzIds[i - 1].onChainId !== String(i)) {
+      throw new Error(`toadz mismatch on ${i}`);
+    }
+  }
+  const toadzTokenIds = toadzIds.map((x) => x.tokenId);
+
+  const removeTraitMembers = await client.query(
+    `
+    DELETE FROM trait_members
+    WHERE token_id = ANY($1::tokenid[])
+    `,
+    [toadzTokenIds]
+  );
+  console.log("trait_members removed: " + removeTraitMembers.rowCount);
+  const featuresToRemoveRes = await client.query(
+    `
+    SELECT feature_id AS "featureId"
+    FROM features
+    WHERE project_id = $1
+    `,
+    [projectId]
+  );
+  const featuresToRemove = featuresToRemoveRes.rows.map((x) => x.featureId);
+  const removeTraits = await client.query(
+    `
+    DELETE FROM traits
+    WHERE feature_id = ANY($1::featureid[])
+    `,
+    [featuresToRemove]
+  );
+  console.log("traits removed: " + removeTraits.rowCount);
+  const removeFeatures = await client.query(
+    `
+    DELETE FROM features
+    WHERE project_id = $1
+    `,
+    [projectId]
+  );
+  console.log("features removed: " + removeFeatures.rowCount);
+  await addCryptoadzTraitsAndFeatures({
+    client,
+    tokenIds: toadzTokenIds,
+    projectId,
+  });
+  await client.query("COMMIT");
+}
+
+async function addCryptoadzTraitsAndFeatures({ client, tokenIds, projectId }) {
+  const { features, traits, traitMembers } = processToadzData(tokenIds);
+  const pluck = (xs, k) => xs.map((x) => x[k]);
+  const featuresAdded = await client.query(
+    `
+    INSERT INTO features (project_id, feature_id, name)
+    VALUES ($1::projectid, unnest($2::featureid[]), unnest($3::text[]))
+    `,
+    [projectId, pluck(features, "featureId"), pluck(features, "feature")]
+  );
+  console.log("features added: " + featuresAdded.rowCount);
+  const traitsAdded = await client.query(
+    `
+    INSERT INTO traits (feature_id, trait_id, value)
+    VALUES (
+      unnest($1::featureid[]),
+      unnest($2::traitid[]),
+      unnest($3::text[])
+    )
+    `,
+    [
+      pluck(traits, "featureId"),
+      pluck(traits, "traitId"),
+      pluck(traits, "trait"),
+    ]
+  );
+  console.log("traits added: " + traitsAdded.rowCount);
+  const membersAdded = await client.query(
+    `
+    INSERT INTO trait_members (trait_id, token_id)
+    VALUES (unnest($1::traitid[]), unnest($2::tokenid[]))
+    `,
+    [pluck(traitMembers, "traitId"), pluck(traitMembers, "tokenId")]
+  );
+  console.log("members added: " + membersAdded.rowCount);
 }
 
 async function addCryptoadz({ client, testMode }) {
@@ -105,40 +208,10 @@ This project is in the public domain. Feel free to use the toadz in any way you 
     tokenIds.map((tokenId) => ({ projectId, tokenId }))
   );
 
-  const { features, traits, traitMembers } = processToadzData(tokenIds);
-  const pluck = (xs, k) => xs.map((x) => x[k]);
-  await client.query(
-    `
-    INSERT INTO features (project_id, feature_id, name)
-    VALUES ($1::projectid, unnest($2::featureid[]), unnest($3::text[]))
-    `,
-    [projectId, pluck(features, "featureId"), pluck(features, "name")]
-  );
-  await client.query(
-    `
-    INSERT INTO traits (feature_id, trait_id, value)
-    VALUES (
-      unnest($1::featureid[]),
-      unnest($2::traitid[]),
-      unnest($3::text[])
-    )
-    `,
-    [
-      pluck(traits, "featureId"),
-      pluck(traits, "traitId"),
-      pluck(traits, "value"),
-    ]
-  );
-  await client.query(
-    `
-    INSERT INTO trait_members (trait_id, token_id)
-    VALUES (unnest($1::traitid[]), unnest($2::tokenid[]))
-    `,
-    [pluck(traitMembers, "traitId"), pluck(traitMembers, "tokenId")]
-  );
+  await addCryptoadzTraitsAndFeatures({ client, projectId, tokenIds });
 
   await client.query("COMMIT");
   return projectId;
 }
 
-module.exports = addCryptoadz;
+module.exports = { addCryptoadz, fixCryptoadz };

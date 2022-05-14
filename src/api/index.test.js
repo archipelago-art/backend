@@ -12,7 +12,7 @@ const wellKnownCurrencies = require("../db/wellKnownCurrencies");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const { addAutoglyphs } = require("../db/autoglyphs");
-const addCryptoadz = require("../db/cryptoadz");
+const { addCryptoadz } = require("../db/cryptoadz");
 
 describe("api", () => {
   const withTestDb = testDbProvider();
