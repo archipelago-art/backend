@@ -110,6 +110,7 @@ const migrationModules = [
   "./0099_archipelago_orderbook",
   "./0100_bidscopes_forwarding_table",
   "./0101_bids_scope_fkey",
+  "./0102_traits_features_foreign_key",
   // ...
 ];
 
