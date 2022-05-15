@@ -21,6 +21,7 @@ const commands = [
   ["alchemy-undefer-transfers", require("./alchemyUndeferTransfers")],
   ["watch-cnf-queue", require("./watchCnfQueue")],
   ["opensea", require("./opensea")],
+  ["autorestart", require("./autorestart")],
 ];
 
 module.exports = commands;
