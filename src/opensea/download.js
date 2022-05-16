@@ -71,7 +71,7 @@ async function syncProject({ client, slug, projectId, apiKey }) {
       projectId,
     });
   } else {
-    log.warn(`got 0 events??? ${slug}`);
+    log.warn`got 0 events??? ${slug}`;
   }
 
   log.info`fast sync: ${numAdded} events for ${slug} (of ${events.length} raw events)`;
