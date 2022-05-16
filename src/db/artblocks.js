@@ -502,6 +502,20 @@ async function pruneEmptyFeaturesAndTraits({ client }) {
   return { traits: res[0].rowCount, features: res[1].rowCount };
 }
 
+async function getProjectTokens({ client, projectId }) {
+  if (projectId == null) {
+    throw new Error("must filter by project ID");
+  }
+  const res = await client.query(
+    `
+    SELECT token_id AS "id" FROM tokens
+    WHERE project_id = $1
+    `,
+    [projectId]
+  );
+  return res.rows.map((r) => r.id);
+}
+
 async function getTokenFeaturesAndTraits({
   client,
   tokenId,
@@ -768,6 +782,7 @@ module.exports = {
   findSuspiciousTraitlessTokens,
   getArtblocksTokenIds,
   pruneEmptyFeaturesAndTraits,
+  getProjectTokens,
   getTokenFeaturesAndTraits,
   getUnfetchedTokens,
   getTokenImageData,

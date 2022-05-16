@@ -8,6 +8,7 @@ const commands = [
   ["add-cryptoadz", require("./addCryptoadz")],
   ["add-token", require("./addToken")],
   ["add-project-tokens", require("./addProjectTokens")],
+  ["reingest-project", require("./reingestProject")],
   ["follow-chain-tokens", require("./followChainTokens")],
   ["update-suspicious-tokens", require("./updateSuspiciousTokens")],
   ["prune-empty-traits", require("./pruneEmptyTraits")],
