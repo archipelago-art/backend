@@ -1,5 +1,6 @@
 const { spawn } = require("node:child_process");
 const { stderr, stdout } = require("node:process");
+const log = require("../util/log")(__filename);
 
 async function sleepUntil(timestamp) {
   const ms = timestamp - Date.now();
@@ -10,14 +11,12 @@ async function sleepUntil(timestamp) {
 // restartDurationMs without emitting anything to stdout or stderr.
 async function runWithAutoRestarts({ cmd, args, restartDurationMs }) {
   let process;
-  let lastMessageTimestamp = Date.now();
+  let lastMessageTimestamp;
   function start() {
-    if (process != null) {
-      process.kill();
-    }
+    lastMessageTimestamp = Date.now();
     process = spawn(cmd, args);
     process.stdout.on("data", (data) => {
-      stdout.write(String(data));
+      stdout.write(data);
       lastMessageTimestamp = Date.now();
     });
     process.stderr.on("data", (data) => {
@@ -29,8 +28,8 @@ async function runWithAutoRestarts({ cmd, args, restartDurationMs }) {
   while (true) {
     await sleepUntil(lastMessageTimestamp + restartDurationMs);
     if (Date.now() - lastMessageTimestamp >= restartDurationMs) {
-      console.log("restarting...");
-      lastMessageTimestamp = Date.now();
+      log.warn`restarting due to job timeout`;
+      process.kill();
       start();
     }
   }
