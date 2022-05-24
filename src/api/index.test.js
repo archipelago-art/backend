@@ -13,6 +13,7 @@ const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const { addAutoglyphs } = require("../db/autoglyphs");
 const { addCryptoadz } = require("../db/cryptoadz");
+const Cmp = require("../util/cmp");
 
 describe("api", () => {
   const withTestDb = testDbProvider();
@@ -211,6 +212,64 @@ describe("api", () => {
           tokenIndex: abid % 1e6,
         }))
       );
+    })
+  );
+
+  it(
+    "resolves specific feature/trait IDs",
+    withTestDb(async ({ client }) => {
+      for (const projectId of snapshots.PROJECTS) {
+        const project = parseProjectData(
+          projectId,
+          await sc.project(projectId)
+        );
+        await artblocks.addProject({ client, project });
+      }
+      const ids = new Map();
+      for (const tokenId of snapshots.TOKENS) {
+        const rawTokenData = await sc.token(tokenId);
+        const id = await artblocks.addToken({
+          client,
+          artblocksTokenId: tokenId,
+          rawTokenData,
+        });
+        ids.set(tokenId, id);
+      }
+      const archetype = await api.resolveProjectId({
+        client,
+        slug: "archetype",
+      });
+      const res = await api.resolveTraitIds({
+        client,
+        projectId: archetype,
+        keys: [
+          { featureName: "Coloring strategy", traitValue: "Single" },
+          { featureName: "Coloring strategy", traitValue: "Random" },
+          // not requesting "Coloring strategy: Group"
+          { featureName: "Coloring strategy", traitValue: "No such trait" },
+          { featureName: "Palette", traitValue: "Paddle" },
+          { featureName: "Palette", traitValue: "Nightlife" },
+          { featureName: "No such feature", traitValue: "Wat" },
+        ],
+      });
+      expect(res).toHaveLength(4);
+      const anyIds = {
+        featureId: expect.any(String),
+        traitId: expect.any(String),
+      };
+      expect(
+        res.sort(
+          Cmp.first([
+            Cmp.comparing((r) => r.featureName),
+            Cmp.comparing((r) => r.traitValue),
+          ])
+        )
+      ).toEqual([
+        { ...anyIds, featureName: "Coloring strategy", traitValue: "Random" },
+        { ...anyIds, featureName: "Coloring strategy", traitValue: "Single" },
+        { ...anyIds, featureName: "Palette", traitValue: "Nightlife" },
+        { ...anyIds, featureName: "Palette", traitValue: "Paddle" },
+      ]);
     })
   );
 

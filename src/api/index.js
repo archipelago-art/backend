@@ -62,6 +62,30 @@ async function resolveProjectId({ client, slug }) {
   return res.rows[0].id;
 }
 
+async function resolveTraitIds({
+  client,
+  projectId,
+  keys /*: Array<{featureName: string, traitValue: string}> */,
+}) {
+  const res = await client.query(
+    `
+    SELECT
+      feature_id AS "featureId",
+      trait_id AS "traitId",
+      features.name AS "featureName",
+      traits.value AS "traitValue"
+    FROM
+      features
+      JOIN traits USING (feature_id)
+      JOIN unnest($2::text[], $3::text[]) AS keys(name, value) USING (name, value)
+    WHERE project_id = $1::projectid
+    ORDER BY feature_id, trait_id
+    `,
+    [projectId, keys.map((k) => k.featureName), keys.map((k) => k.traitValue)]
+  );
+  return res.rows;
+}
+
 async function _collections({ client, projectId }) {
   const res = await client.query(
     `
@@ -336,6 +360,7 @@ module.exports = {
   collectionNameToArtblocksProjectId,
   tokenIdBySlugAndIndex,
   resolveProjectId,
+  resolveTraitIds,
   collections,
   collection,
   collectionTokens,
