@@ -54,14 +54,15 @@ describe("db/eth", () => {
         await eth.findBlockHeadersSince({ client, minBlockNumber: 1 })
       ).toEqual([]);
 
-      await Promise.all(
-        hashes.map((hash, number) => {
+      await eth.addBlocks({
+        client,
+        blocks: hashes.map((hash, number) => {
           const parentHash = hashes[number - 1] || ethers.constants.HashZero;
           const timestamp = timestamps[number];
           const block = { hash, parentHash, number, timestamp };
-          return eth.addBlock({ client, block });
-        })
-      );
+          return block;
+        }),
+      });
 
       expect(await eth.blockExists({ client, blockHash: h0 })).toEqual(true);
       expect(await eth.blockExists({ client, blockHash: h2 })).toEqual(true);

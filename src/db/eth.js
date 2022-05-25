@@ -37,7 +37,7 @@ async function updateJobProgress({ client, jobId, lastBlockNumber }) {
 }
 
 /**
- * `block` should have:
+ * `blocks` should be an array of objects with:
  *
  *    hash: bytes32
  *    parentHash: bytes32
@@ -47,20 +47,24 @@ async function updateJobProgress({ client, jobId, lastBlockNumber }) {
  * where each `bytes32` is represented as a 0x... string and each `uint256` can
  * be parsed with `BigNumber.from`.
  */
-async function addBlock({ client, block }) {
+async function addBlocks({ client, blocks }) {
   await client.query(
     `
     INSERT INTO eth_blocks (block_hash, parent_hash, block_number, block_timestamp)
-    VALUES ($1::bytes32, $2::bytes32, $3::int, $4::timestamptz)
+    VALUES (unnest($1::bytes32[]), unnest($2::bytes32[]), unnest($3::int[]), unnest($4::timestamptz[]))
     ON CONFLICT (block_hash) DO NOTHING
     `,
     [
-      hexToBuf(block.hash),
-      hexToBuf(block.parentHash),
-      ethers.BigNumber.from(block.number).toNumber(),
-      new Date(ethers.BigNumber.from(block.timestamp) * 1000),
+      blocks.map((b) => hexToBuf(b.hash)),
+      blocks.map((b) => hexToBuf(b.parentHash)),
+      blocks.map((b) => ethers.BigNumber.from(b.number).toNumber()),
+      blocks.map((b) => new Date(ethers.BigNumber.from(b.timestamp) * 1000)),
     ]
   );
+}
+
+async function addBlock({ client, block }) {
+  return await addBlocks({ client, blocks: [block] });
 }
 
 async function latestBlockHeader({ client }) {
@@ -131,6 +135,7 @@ module.exports = {
   addJob,
   updateJobProgress,
   addBlock,
+  addBlocks,
   latestBlockHeader,
   blockExists,
   findBlockHeadersSince,
