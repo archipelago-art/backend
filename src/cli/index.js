@@ -23,6 +23,7 @@ const commands = [
   ["watch-cnf-queue", require("./watchCnfQueue")],
   ["opensea", require("./opensea")],
   ["follow-chain", require("./followChain")],
+  ["add-historical-blocks", require("./addHistoricalBlocks")],
   ["autorestart", require("./autorestart")],
 ];
 
