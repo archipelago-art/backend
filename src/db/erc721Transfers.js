@@ -3,9 +3,17 @@ const ethers = require("ethers");
 const log = require("../util/log")(__filename);
 const channels = require("./channels");
 const { ObjectType, newIds } = require("./id");
+const { tableExists } = require("./introspection");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 
 const deferralsChannel = channels.deferrals;
+
+// Returns a SQL-safe identifier representing the name of the table containing
+// Ethereum block data.
+async function ethBlocksTableName({ client }) {
+  const hasEthBlocks1 = await tableExists({ client, table: "eth_blocks1" });
+  return hasEthBlocks1 ? "eth_blocks1" : "eth_blocks";
+}
 
 function logAddressToBuf(hexString) {
   const address = ethers.utils.hexDataSlice(hexString, 12);
@@ -23,9 +31,10 @@ function logAddressToBuf(hexString) {
  * newly added.
  */
 async function addBlocks({ client, blocks }) {
+  const table = await ethBlocksTableName({ client });
   const res = await client.query(
     `
-    INSERT INTO eth_blocks (block_hash, block_number, timestamp)
+    INSERT INTO ${table} (block_hash, block_number, timestamp)
     VALUES (unnest($1::bytes32[]), unnest($2::int[]), unnest($3::timestamptz[]))
     ON CONFLICT (block_hash) DO NOTHING
     `,
@@ -194,6 +203,7 @@ async function getLastBlockNumber({ client, contractAddress }) {
 }
 
 async function getTransfersForToken({ client, tokenId }) {
+  const table = await ethBlocksTableName({ client });
   const res = await client.query(
     `
     SELECT
@@ -202,8 +212,8 @@ async function getTransfersForToken({ client, tokenId }) {
       transaction_hash AS "transactionHash",
       block_hash AS "blockHash",
       (
-        SELECT timestamp FROM eth_blocks
-        WHERE eth_blocks.block_hash = erc_721_transfers.block_hash
+        SELECT timestamp FROM ${table}
+        WHERE ${table}.block_hash = erc_721_transfers.block_hash
       ) AS "timestamp",
       from_address AS "from",
       to_address AS "to"
@@ -261,6 +271,7 @@ async function getTransferCount({ client, fromAddress, toAddress }) {
 
 module.exports = {
   deferralsChannel,
+  ethBlocksTableName,
   addBlocks,
   addTransfers,
   getLastBlockNumber,
