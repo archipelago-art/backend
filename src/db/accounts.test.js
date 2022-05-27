@@ -44,12 +44,14 @@ describe("db/accounts", () => {
     "gets user details only if a valid auth token is presented",
     withTestDb(async ({ client }) => {
       const signer = wallet1;
+      const account = await signer.getAddress();
       const timestamp = 1651003500;
       const signature = await accounts.signLoginRequest({ signer, timestamp });
       // TODO: validate that timestamp is roughly current
 
       const authToken = await accounts.signIn({ client, timestamp, signature });
       expect(await accounts.getUserDetails({ client, authToken })).toEqual({
+        account,
         email: null,
         preferences: null,
       });
@@ -71,12 +73,20 @@ describe("db/accounts", () => {
       const authToken = await accounts.signIn({ client, timestamp, signature });
 
       const getDetails = () => accounts.getUserDetails({ client, authToken });
-      expect(await getDetails()).toEqual({ email: null, preferences: null });
+      expect(await getDetails()).toEqual({
+        account,
+        email: null,
+        preferences: null,
+      });
 
       // Setting email should go through a confirmation flow.
       const email = "alice@example.com";
       await accounts.setEmailUnconfirmed({ client, authToken, email });
-      expect(await getDetails()).toEqual({ email: null, preferences: null });
+      expect(await getDetails()).toEqual({
+        account,
+        email: null,
+        preferences: null,
+      });
       const nonce = await (async () => {
         const nonces = await getPendingConfirmationNonces({ client, account });
         expect(nonces).toEqual([expect.any(String)]);
@@ -89,7 +99,7 @@ describe("db/accounts", () => {
         nonce,
       });
       expect(confirmRes).toEqual(authToken);
-      expect(await getDetails()).toEqual({ email, preferences: {} });
+      expect(await getDetails()).toEqual({ account, email, preferences: {} });
       {
         const nonces = await getPendingConfirmationNonces({ client, account });
         expect(nonces).toEqual([]);
@@ -97,7 +107,11 @@ describe("db/accounts", () => {
 
       // Clearing email should update immediately.
       await accounts.setEmailUnconfirmed({ client, authToken, email: null });
-      expect(await getDetails()).toEqual({ email: null, preferences: null });
+      expect(await getDetails()).toEqual({
+        account,
+        email: null,
+        preferences: null,
+      });
       {
         const nonces = await getPendingConfirmationNonces({ client, account });
         expect(nonces).toEqual([]);
@@ -115,7 +129,11 @@ describe("db/accounts", () => {
       const authToken = await accounts.signIn({ client, timestamp, signature });
 
       const getDetails = () => accounts.getUserDetails({ client, authToken });
-      expect(await getDetails()).toEqual({ email: null, preferences: null });
+      expect(await getDetails()).toEqual({
+        account,
+        email: null,
+        preferences: null,
+      });
 
       const getUniqueNonce = async () => {
         const nonces = await getPendingConfirmationNonces({ client, account });
@@ -125,19 +143,35 @@ describe("db/accounts", () => {
 
       const email1 = "alice.one@example.com";
       await accounts.setEmailUnconfirmed({ client, authToken, email: email1 });
-      expect(await getDetails()).toEqual({ email: null, preferences: null });
+      expect(await getDetails()).toEqual({
+        account,
+        email: null,
+        preferences: null,
+      });
       const nonce1 = await getUniqueNonce();
       await accounts.confirmEmail({ client, authToken, nonce: nonce1 });
-      expect(await getDetails()).toEqual({ email: email1, preferences: {} });
+      expect(await getDetails()).toEqual({
+        account,
+        email: email1,
+        preferences: {},
+      });
 
       const email2 = "alice.two@example.com";
       await accounts.setEmailUnconfirmed({ client, authToken, email: email2 });
       // Neither yet changed nor cleared.
-      expect(await getDetails()).toEqual({ email: email1, preferences: {} });
+      expect(await getDetails()).toEqual({
+        account,
+        email: email1,
+        preferences: {},
+      });
 
       const nonce2 = await getUniqueNonce();
       await accounts.confirmEmail({ client, authToken, nonce: nonce2 });
-      expect(await getDetails()).toEqual({ email: email2, preferences: {} });
+      expect(await getDetails()).toEqual({
+        account,
+        email: email2,
+        preferences: {},
+      });
     })
   );
 
@@ -151,11 +185,19 @@ describe("db/accounts", () => {
       const authToken = await accounts.signIn({ client, timestamp, signature });
 
       const getDetails = () => accounts.getUserDetails({ client, authToken });
-      expect(await getDetails()).toEqual({ email: null, preferences: null });
+      expect(await getDetails()).toEqual({
+        account,
+        email: null,
+        preferences: null,
+      });
 
       const email = "alice@example.com";
       await accounts.setEmailUnconfirmed({ client, authToken, email });
-      expect(await getDetails()).toEqual({ email: null, preferences: null });
+      expect(await getDetails()).toEqual({
+        account,
+        email: null,
+        preferences: null,
+      });
       const nonce = await (async () => {
         const nonces = await getPendingConfirmationNonces({ client, account });
         expect(nonces).toEqual([expect.any(String)]);
@@ -171,7 +213,7 @@ describe("db/accounts", () => {
       expect(confirmRes).not.toEqual(authToken);
       expect(
         await accounts.getUserDetails({ client, authToken: confirmRes })
-      ).toEqual({ email, preferences: {} });
+      ).toEqual({ account, email, preferences: {} });
     })
   );
 });

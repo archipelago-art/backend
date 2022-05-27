@@ -2,7 +2,7 @@ const crypto = require("crypto");
 
 const ethers = require("ethers");
 
-const { bufToHex, hexToBuf } = require("./util");
+const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 
 const LoginRequest = [{ type: "uint256", name: "timestamp" }];
 const domainSeparator = {
@@ -56,14 +56,19 @@ async function signOut({ client, authToken }) {
 async function getUserDetails({ client, authToken }) {
   const res = await client.query(
     `
-    SELECT email, preferences
+    SELECT account, email, preferences
     FROM auth_tokens LEFT OUTER JOIN account_emails USING (account)
     WHERE auth_token = $1::uuid
     `,
     [authToken]
   );
-  if (res.rows.length === 0) throw new Error("unknown auth token");
-  return res.rows[0];
+  const row = res.rows[0];
+  if (row == null) throw new Error("unknown auth token");
+  return {
+    account: bufToAddress(row.account),
+    email: row.email,
+    preferences: row.preferences,
+  };
 }
 
 // Authenticated method. Creates a new pending email confirmation.
