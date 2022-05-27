@@ -5,7 +5,7 @@ const { acqrel, withPool } = require("../db/util");
 const log = require("../util/log")(__filename);
 const retryEthers = require("../util/retryEthers");
 const signal = require("../util/signal");
-const getJob = require("./jobs");
+const { getJob } = require("./jobs");
 
 function childLog(prefix) {
   return log.child(prefix);

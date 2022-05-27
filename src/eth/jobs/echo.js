@@ -5,6 +5,10 @@ class EchoJob {
     return "echo";
   }
 
+  initialLastBlockNumber() {
+    return -1;
+  }
+
   async up({ client, provider, minBlock, maxBlock }) {
     log.info`echo-up(${minBlock}..=${maxBlock})`;
   }

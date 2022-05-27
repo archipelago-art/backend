@@ -24,6 +24,7 @@ const commands = [
   ["opensea", require("./opensea")],
   ["follow-chain", require("./followChain")],
   ["add-historical-blocks", require("./addHistoricalBlocks")],
+  ["add-new-jobs", require("./addNewJobs")],
   ["autorestart", require("./autorestart")],
 ];
 

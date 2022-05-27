@@ -11,4 +11,8 @@ function getJob(index) {
   return job;
 }
 
-module.exports = getJob;
+function getAllJobs() {
+  return JOBS.slice();
+}
+
+module.exports = { getJob, getAllJobs };
