@@ -111,6 +111,7 @@ const migrationModules = [
   "./0100_bidscopes_forwarding_table",
   "./0101_bids_scope_fkey",
   "./0102_traits_features_foreign_key",
+  "./0103_eth_blocks_rename_to_eth_blocks1",
   // ...
 ];
 
