@@ -9,6 +9,10 @@ class EchoJob {
     return -1;
   }
 
+  blockBatchSize() {
+    return 1e6;
+  }
+
   async up({ client, provider, minBlock, maxBlock }) {
     log.info`echo-up(${minBlock}..=${maxBlock})`;
   }

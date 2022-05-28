@@ -273,8 +273,9 @@ async function applyJobs({ pool, provider }) {
       log.warn`job #${jobId} is at ${lastBlockNumber} ahead of local head ${localHead.blockNumber}; skipping`;
       continue;
     }
+    const job = getJob(jobId);
     const minBlock = lastBlockNumber + 1;
-    const maxLength = 2000;
+    const maxLength = job.blockBatchSize();
     let maxBlock /* inclusive */ = localHead.blockNumber;
     if (maxBlock > minBlock + maxLength - 1) {
       maxBlock = minBlock + maxLength - 1;
@@ -283,6 +284,7 @@ async function applyJobs({ pool, provider }) {
     const res = await rollForwardJobForRange({
       pool,
       provider,
+      job,
       jobId,
       minBlock,
       maxBlock,
@@ -329,12 +331,12 @@ async function findMergeBase({ pool, provider, block, maxDepth }) {
 async function rollForwardJobForRange({
   pool,
   provider,
+  job,
   jobId,
   minBlock,
   maxBlock,
 }) {
   try {
-    const job = getJob(jobId);
     log.info`job ${jobId}:${job.name()}: applying to ${minBlock}..=${maxBlock}`;
     await acqrel(pool, async (client) => {
       await client.query("BEGIN");
