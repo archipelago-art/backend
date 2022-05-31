@@ -240,13 +240,15 @@ async function addNewHeaders({ pool, provider }) {
   log.debug`fetched ${blocks.length} blocks; adding headers`;
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
-    const expectedParentHash =
-      i === 0
-        ? localHead == null
-          ? null
-          : localHead.hash
-        : blocks[i - 1].hash;
+    let expectedParentHash = null;
+    if (i > 0) {
+      expectedParentHash = blocks[i - 1].hash;
+    } else if (localHead != null) {
+      expectedParentHash = localHead.hash;
+    }
     if (expectedParentHash != null && block.parentHash !== expectedParentHash) {
+      // This can happen if a reorg occurs between the times that we fetch
+      // blocks `i - 1` and `i`.
       log.info`parent hash mismatch: remote#${block.number}.parentHash = ${block.parentHash}, expected ${expectedParentHash}`;
       return { type: "RETRY" };
     } else {
