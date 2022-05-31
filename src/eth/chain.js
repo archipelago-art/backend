@@ -247,7 +247,7 @@ async function addNewHeaders({ pool, provider }) {
           : localHead.hash
         : blocks[i - 1].hash;
     if (expectedParentHash != null && block.parentHash !== expectedParentHash) {
-      log.info`parent hash mismatch: remote#${block.number}.parentHash = ${block.parentHash}, expected ${expectedparentHash}`;
+      log.info`parent hash mismatch: remote#${block.number}.parentHash = ${block.parentHash}, expected ${expectedParentHash}`;
       return { type: "RETRY" };
     } else {
       log.debug`adding block #${block.number} with hash ${block.hash}, parent ${block.parentHash}`;
