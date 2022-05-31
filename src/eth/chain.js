@@ -153,6 +153,7 @@ async function unrollReorgs({ pool, provider }) {
   });
   switch (mergeBase.type) {
     case "CONVERGES": {
+      log.info`merge-base is #${mergeBase.base.number} (${mergeBase.base.hash}); reorg depth is ${mergeBase.newBlocks.length}`;
       if (mergeBase.newBlocks.length === 0) {
         // Could happen if the remote chain reorgs to once again be ahead of
         // our local chain, between the "still canonical" check and the
@@ -300,7 +301,7 @@ async function applyJobs({ pool, provider }) {
   else return { type: "RETRY" };
 }
 
-async function findMergeBase({ pool, provider, block, maxDepth }) {
+async function findMergeBase({ pool, provider, /* mut */ block, maxDepth }) {
   const newBlocks = [];
   for (let i = 0; i < maxDepth; i++) {
     const exists = await acqrel(pool, (client) =>
@@ -308,7 +309,7 @@ async function findMergeBase({ pool, provider, block, maxDepth }) {
     );
     if (exists) {
       newBlocks.reverse(); // now in oldest-first order
-      return { type: "CONVERGES", newBlocks };
+      return { type: "CONVERGES", newBlocks, base: block };
     } else {
       newBlocks.push(block);
       const parentHash = block.parentHash;
