@@ -18,7 +18,7 @@ async function followChain(args) {
     for (let i = 0; i < allJobs.length; i++) {
       if (existingJobs.has(i)) continue;
       const job = allJobs[i];
-      const lastBlockNumber = job.initialLastBlockNumber();
+      const lastBlockNumber = job.startBlock() - 1;
       log.info`adding job #${i} at block ${lastBlockNumber}`;
       await addJob({ client, jobId: i, lastBlockNumber });
     }

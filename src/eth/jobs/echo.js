@@ -5,8 +5,8 @@ class EchoJob {
     return "echo";
   }
 
-  initialLastBlockNumber() {
-    return -1;
+  startBlock() {
+    return 0;
   }
 
   blockBatchSize() {
