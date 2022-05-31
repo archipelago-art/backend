@@ -48,18 +48,38 @@ async function updateJobProgress({ client, jobId, lastBlockNumber }) {
  * be parsed with `BigNumber.from`.
  */
 async function addBlocks({ client, blocks }) {
+  const hashes = Array(blocks.length);
+  const parentHashes = Array(blocks.length);
+  const numbers = Array(blocks.length);
+  const timestamps = Array(blocks.length);
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    hashes[i] = hexToBuf(b.hash);
+    parentHashes[i] = hexToBuf(b.parentHash);
+    numbers[i] = ethers.BigNumber.from(b.number).toNumber();
+    timestamps[i] = new Date(ethers.BigNumber.from(b.timestamp) * 1000);
+
+    if (numbers[i] === 0) {
+      // Check that parent is `bytes32(0)`.
+      const actual = bufToHex(parentHashes[i]);
+      const expected = ethers.constants.HashZero;
+      if (actual !== expected) {
+        throw new Error(
+          `genesis block parent hash should be ${expected}, but is ${actual}`
+        );
+      }
+      // Set parent hash to null so that it's not subject to foreign key
+      // constraint (since the pregenesis "block" doesn't actually exist).
+      parentHashes[i] = null;
+    }
+  }
   await client.query(
     `
     INSERT INTO eth_blocks (block_hash, parent_hash, block_number, block_timestamp)
     VALUES (unnest($1::bytes32[]), unnest($2::bytes32[]), unnest($3::int[]), unnest($4::timestamptz[]))
     ON CONFLICT (block_hash) DO NOTHING
     `,
-    [
-      blocks.map((b) => hexToBuf(b.hash)),
-      blocks.map((b) => hexToBuf(b.parentHash)),
-      blocks.map((b) => ethers.BigNumber.from(b.number).toNumber()),
-      blocks.map((b) => new Date(ethers.BigNumber.from(b.timestamp) * 1000)),
-    ]
+    [hashes, parentHashes, numbers, timestamps]
   );
 }
 
@@ -84,7 +104,10 @@ async function latestBlockHeader({ client }) {
   if (row == null) return null;
   return {
     blockHash: bufToHex(row.blockHash),
-    parentHash: bufToHex(row.parentHash),
+    parentHash:
+      row.parentHash == null
+        ? ethers.constants.HashZero
+        : bufToHex(row.parentHash),
     blockNumber: row.blockNumber,
     blockTimestamp: row.blockTimestamp,
   };

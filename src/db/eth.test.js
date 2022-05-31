@@ -34,7 +34,7 @@ describe("db/eth", () => {
 
   it(
     "manipulates and describes block headers",
-    withTestDb(async ({ pool, client }) => {
+    withTestDb(async ({ client }) => {
       const h0 =
         "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
       const h1 =
@@ -90,6 +90,53 @@ describe("db/eth", () => {
       expect(
         await eth.findBlockHeadersSince({ client, minBlockNumber: 1 })
       ).toEqual([{ blockHash: h1, blockNumber: 1 }]);
+    })
+  );
+
+  it(
+    "handles parent hash null/zeroness",
+    withTestDb(async ({ pool }) => {
+      const hash =
+        "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
+      const nonzeroGenesisParent = {
+        hash,
+        parentHash: ethers.utils.id("not the zero hash"),
+        number: 0,
+        timestamp: 0,
+      };
+      await expect(
+        acqrel(pool, (client) =>
+          eth.addBlocks({ client, blocks: [nonzeroGenesisParent] })
+        )
+      ).rejects.toThrow("genesis block parent hash should be");
+
+      const explicitlyNullParent = {
+        hash,
+        parentHash: null,
+        number: 0,
+        timestamp: 0,
+      };
+      await expect(
+        acqrel(pool, (client) =>
+          eth.addBlocks({ client, blocks: [explicitlyNullParent] })
+        )
+      ).rejects.toThrow("expected 0x-string; got: null");
+
+      const properGenesis = {
+        hash,
+        parentHash: ethers.constants.HashZero,
+        number: 0,
+        timestamp: 0,
+      };
+      await acqrel(pool, async (client) => {
+        await eth.addBlocks({ client, blocks: [properGenesis] });
+        expect(await eth.latestBlockHeader({ client })).toEqual({
+          blockHash: hash,
+          parentHash: ethers.constants.HashZero,
+          blockNumber: 0,
+          blockTimestamp: new Date(0),
+        });
+      });
     })
   );
 });
