@@ -1,6 +1,7 @@
 const ethers = require("ethers");
 const { ObjectType, newId } = require("./id");
 const { hexToBuf, bufToAddress } = require("./util");
+const { marketEvents } = require("./channels");
 
 /**
  * type Scope = ProjectScope | TokenScope | TraitScope | CnfScope;
@@ -21,28 +22,84 @@ async function addBid({
   signature /*: bytes65 */,
 }) {
   await client.query("BEGIN");
-  let projectId, scopeId;
+  let projectId, scopeId, outputScope, slug;
+
+  async function getSlug(projectId) {
+    const slugRes = await client.query(
+      `
+        SELECT slug
+        FROM projects
+        WHERE project_id = $1
+      `,
+      [projectId]
+    );
+
+    return slugRes.rows[0].slug;
+  }
+
   switch (scope.type) {
     case "PROJECT":
       await checkProjectExists(client, scope.projectId);
       projectId = scope.projectId;
       scopeId = projectId;
+      slug = await getSlug(scope.projectId);
+      outputScope = {
+        type: "PROJECT",
+        projectId,
+        slug,
+      };
       break;
     case "TOKEN":
       projectId = await projectForTokenId(client, scope.tokenId);
       scopeId = scope.tokenId;
+      const tokenIndexRes = await client.query(
+        `
+          SELECT token_index as "tokenIndex"
+          FROM tokens
+          WHERE token_id = $1
+        `,
+        [scope.tokenId]
+      );
+      const tokenIndex = tokenIndexRes.rows[0].tokenIndex;
+      outputScope = {
+        type: "TOKEN",
+        tokenId: scope.tokenId,
+        tokenIndex,
+      };
       break;
     case "TRAIT":
       projectId = await projectForTraitId(client, scope.traitId);
       scopeId = scope.traitId;
+      const traitsRes = await client.query(
+        `
+          SELECT features.name, traits.value
+          FROM traits JOIN features USING (feature_id)
+          WHERE trait_id = $1
+        `,
+        [scope.traitId]
+      );
+      const { name: featureName, value: traitValue } = traitsRes.rows[0];
+      outputScope = {
+        type: "TRAIT",
+        traitId: scope.traitId,
+        featureName,
+        traitValue,
+      };
       break;
     case "CNF":
       projectId = await projectForCnfId(client, scope.cnfId);
       scopeId = scope.cnfId;
+      outputScope = {
+        type: "CNF",
+        cnfId: scope.cnfId,
+      };
       break;
     default:
       throw new Error(`Unrecognized scope type: ${scope.type}`);
   }
+
+  slug = slug ?? (await getSlug(projectId));
+
   await client.query(
     `
     INSERT INTO bidscopes(scope) VALUES($1) ON CONFLICT DO NOTHING
@@ -50,7 +107,7 @@ async function addBid({
     [scopeId]
   );
   const bidId = newId(ObjectType.BID);
-  await client.query(
+  const insertRes = await client.query(
     `
     INSERT INTO bids (
       bid_id,
@@ -78,7 +135,7 @@ async function addBid({
       $8::bytea,
       $9::bytea,
       $10::signature
-    )
+    ) RETURNING create_time AS "createTime"
     `,
     [
       bidId,
@@ -93,6 +150,25 @@ async function addBid({
       hexToBuf(signature),
     ]
   );
+
+  const { createTime } = insertRes.rows[0];
+
+  const notification = {
+    type: "BID_PLACED",
+    orderId: bidId,
+    projectId,
+    slug,
+    scope: outputScope,
+    venue: "ARCHIPELAGO",
+    bidder,
+    currency: "ETH",
+    price: String(price),
+    timestamp: createTime.toISOString(),
+    expirationTime: deadline && deadline.toISOString(),
+  };
+
+  await marketEvents.send(client, notification);
+
   await client.query("COMMIT");
   return bidId;
 }

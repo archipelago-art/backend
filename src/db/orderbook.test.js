@@ -1,8 +1,10 @@
 const ethers = require("ethers");
 
+const adHocPromise = require("../util/adHocPromise");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const artblocks = require("./artblocks");
+const { marketEvents } = require("./channels");
 const cnfs = require("./cnfs");
 const {
   addBid,
@@ -15,6 +17,7 @@ const {
   highBidIdsForAllTokensInProject,
 } = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
+const { acqrel } = require("./util");
 
 describe("db/orderbook", () => {
   const withTestDb = testDbProvider();
@@ -92,55 +95,121 @@ describe("db/orderbook", () => {
   describe("addBid", () => {
     it(
       "adds a bid with project scope",
-      withTestDb(async ({ client }) => {
+      withTestDb(async ({ pool, client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
         const price = ethers.BigNumber.from("100");
         const deadline = new Date("2099-01-01");
         const bidder = ethers.constants.AddressZero;
-        const bidId = await addBid({
-          client,
-          scope: { type: "PROJECT", projectId: archetype },
-          price,
-          deadline,
-          bidder,
-          nonce: ethers.BigNumber.from("0xabcd"),
-          agreement: "0x",
-          message: "0x",
-          signature: "0x" + "fe".repeat(65),
+
+        await acqrel(pool, async (listenClient) => {
+          const postgresEvent = adHocPromise();
+          listenClient.on("notification", (n) => {
+            if (n.channel === marketEvents.name) {
+              postgresEvent.resolve(n.payload);
+            } else {
+              postgresEvent.reject("unexpected channel: " + n.channel);
+            }
+          });
+          await marketEvents.listen(listenClient);
+
+          const bidId = await addBid({
+            client,
+            scope: { type: "PROJECT", projectId: archetype },
+            price,
+            deadline,
+            bidder,
+            nonce: ethers.BigNumber.from("0xabcd"),
+            agreement: "0x",
+            message: "0x",
+            signature: "0x" + "fe".repeat(65),
+          });
+
+          const eventValue = await postgresEvent.promise;
+          expect(JSON.parse(eventValue)).toEqual({
+            type: "BID_PLACED",
+            orderId: bidId,
+            projectId: archetype,
+            slug: "archetype",
+            scope: {
+              type: "PROJECT",
+              projectId: archetype,
+              slug: "archetype",
+            },
+            venue: "ARCHIPELAGO",
+            bidder,
+            currency: "ETH",
+            price: String(price),
+            timestamp: expect.any(String),
+            expirationTime: deadline.toISOString(),
+          });
+
+          const bid = { bidId, price, bidder, deadline };
+          expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
         });
-        const bid = { bidId, price, bidder, deadline };
-        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
     it(
       "adds a bid with token scope",
-      withTestDb(async ({ client }) => {
+      withTestDb(async ({ pool, client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
         const price = ethers.BigNumber.from("100");
         const deadline = new Date("2099-01-01");
         const bidder = ethers.constants.AddressZero;
-        const bidId = await addBid({
-          client,
-          scope: { type: "TOKEN", tokenId },
-          price,
-          deadline,
-          bidder,
-          nonce: ethers.BigNumber.from("0xabcd"),
-          agreement: "0x",
-          message: "0x",
-          signature: "0x" + "fe".repeat(65),
+
+        await acqrel(pool, async (listenClient) => {
+          const postgresEvent = adHocPromise();
+          listenClient.on("notification", (n) => {
+            if (n.channel === marketEvents.name) {
+              postgresEvent.resolve(n.payload);
+            } else {
+              postgresEvent.reject("unexpected channel: " + n.channel);
+            }
+          });
+          await marketEvents.listen(listenClient);
+
+          const bidId = await addBid({
+            client,
+            scope: { type: "TOKEN", tokenId },
+            price,
+            deadline,
+            bidder,
+            nonce: ethers.BigNumber.from("0xabcd"),
+            agreement: "0x",
+            message: "0x",
+            signature: "0x" + "fe".repeat(65),
+          });
+
+          const eventValue = await postgresEvent.promise;
+          expect(JSON.parse(eventValue)).toEqual({
+            type: "BID_PLACED",
+            orderId: bidId,
+            projectId: archetype,
+            slug: "archetype",
+            scope: {
+              type: "TOKEN",
+              tokenIndex: 250,
+              tokenId,
+            },
+            venue: "ARCHIPELAGO",
+            bidder,
+            currency: "ETH",
+            price: String(price),
+            timestamp: expect.any(String),
+            expirationTime: deadline.toISOString(),
+          });
+
+          const bid = { bidId, price, bidder, deadline };
+          expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
         });
-        const bid = { bidId, price, bidder, deadline };
-        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
     it(
       "adds a bid with trait scope",
-      withTestDb(async ({ client }) => {
+      withTestDb(async ({ pool, client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
         const price = ethers.BigNumber.from("100");
@@ -165,25 +234,58 @@ describe("db/orderbook", () => {
         const { traitId } = traitData[0].traits.find(
           (t) => t.name === "Palette" && t.value === "Paddle"
         );
-        const bidId = await addBid({
-          client,
-          scope: { type: "TRAIT", traitId },
-          price,
-          deadline,
-          bidder,
-          nonce: ethers.BigNumber.from("0xabcd"),
-          agreement: "0x",
-          message: "0x",
-          signature: "0x" + "fe".repeat(65),
+
+        await acqrel(pool, async (listenClient) => {
+          const postgresEvent = adHocPromise();
+          listenClient.on("notification", (n) => {
+            if (n.channel === marketEvents.name) {
+              postgresEvent.resolve(n.payload);
+            } else {
+              postgresEvent.reject("unexpected channel: " + n.channel);
+            }
+          });
+          await marketEvents.listen(listenClient);
+
+          const bidId = await addBid({
+            client,
+            scope: { type: "TRAIT", traitId },
+            price,
+            deadline,
+            bidder,
+            nonce: ethers.BigNumber.from("0xabcd"),
+            agreement: "0x",
+            message: "0x",
+            signature: "0x" + "fe".repeat(65),
+          });
+
+          const eventValue = await postgresEvent.promise;
+          expect(JSON.parse(eventValue)).toEqual({
+            type: "BID_PLACED",
+            orderId: bidId,
+            projectId: archetype,
+            slug: "archetype",
+            scope: {
+              type: "TRAIT",
+              traitId,
+              featureName: "Palette",
+              traitValue: "Paddle",
+            },
+            venue: "ARCHIPELAGO",
+            bidder,
+            currency: "ETH",
+            price: String(price),
+            timestamp: expect.any(String),
+            expirationTime: deadline.toISOString(),
+          });
+          const bid = { bidId, price, bidder, deadline };
+          expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
         });
-        const bid = { bidId, price, bidder, deadline };
-        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
     it(
       "adds a bid with CNF scope",
-      withTestDb(async ({ client }) => {
+      withTestDb(async ({ pool, client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
 
@@ -203,19 +305,51 @@ describe("db/orderbook", () => {
         const price = ethers.BigNumber.from("100");
         const deadline = new Date("2099-01-01");
         const bidder = ethers.constants.AddressZero;
-        const bidId = await addBid({
-          client,
-          scope: { type: "CNF", cnfId },
-          price: ethers.BigNumber.from("100"),
-          deadline: new Date("2099-01-01"),
-          bidder: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
-          agreement: "0x",
-          message: "0x",
-          signature: "0x" + "fe".repeat(65),
+
+        await acqrel(pool, async (listenClient) => {
+          const postgresEvent = adHocPromise();
+          listenClient.on("notification", (n) => {
+            if (n.channel === marketEvents.name) {
+              postgresEvent.resolve(n.payload);
+            } else {
+              postgresEvent.reject("unexpected channel: " + n.channel);
+            }
+          });
+          await marketEvents.listen(listenClient);
+
+          const bidId = await addBid({
+            client,
+            scope: { type: "CNF", cnfId },
+            price: ethers.BigNumber.from("100"),
+            deadline: new Date("2099-01-01"),
+            bidder: ethers.constants.AddressZero,
+            nonce: ethers.BigNumber.from("0xabcd"),
+            agreement: "0x",
+            message: "0x",
+            signature: "0x" + "fe".repeat(65),
+          });
+
+          const eventValue = await postgresEvent.promise;
+          expect(JSON.parse(eventValue)).toEqual({
+            type: "BID_PLACED",
+            orderId: bidId,
+            projectId: archetype,
+            slug: "archetype",
+            scope: {
+              type: "CNF",
+              cnfId,
+            },
+            venue: "ARCHIPELAGO",
+            bidder,
+            currency: "ETH",
+            price: String(price),
+            timestamp: expect.any(String),
+            expirationTime: deadline.toISOString(),
+          });
+
+          const bid = { bidId, price, bidder, deadline };
+          expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
         });
-        const bid = { bidId, price, bidder, deadline };
-        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
