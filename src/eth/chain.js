@@ -246,7 +246,7 @@ async function addNewHeaders({ pool, provider }) {
       expectedParentHash = blocks[i - 1].hash;
       log.debug`expecting parent hash ${expectedParentHash} based on previous block`;
     } else if (localHead != null) {
-      expectedParentHash = localHead.hash;
+      expectedParentHash = localHead.blockHash;
       log.debug`expecting parent hash ${expectedParentHash} based on local head`;
     } else {
       log.debug`no expected parent hash (this appears to be the first block)`;
