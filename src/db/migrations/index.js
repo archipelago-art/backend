@@ -115,6 +115,7 @@ const migrationModules = [
   "./0104_eth_events",
   "./0105_eth_blocks_semi_nullable_parent_hash",
   "./0106_eth_blocks_parent_hash_self_fkey",
+  "./0107_index_eth_blocks_parent_hash",
   // ...
 ];
 
