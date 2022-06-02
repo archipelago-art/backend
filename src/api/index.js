@@ -1,5 +1,6 @@
 const accounts = require("../db/accounts");
 const artblocks = require("../db/artblocks");
+const cnfs = require("../db/cnfs");
 const emails = require("../db/emails");
 const erc721Transfers = require("../db/erc721Transfers");
 const orderbook = require("../db/orderbook");
@@ -82,6 +83,27 @@ async function resolveTraitIds({
     ORDER BY feature_id, trait_id
     `,
     [projectId, keys.map((k) => k.featureName), keys.map((k) => k.traitValue)]
+  );
+  return res.rows;
+}
+
+async function getCnfTraits({ client, cnfIds }) {
+  return await cnfs.retrieveCnfs({ client, cnfIds });
+}
+
+async function getTraitData({ client, traitIds }) {
+  const res = await client.query(
+    `
+    SELECT
+      feature_id AS "featureId",
+      trait_id AS "traitId",
+      features.name AS "featureName",
+      traits.value AS "traitValue"
+    FROM traits JOIN features USING (feature_id)
+    WHERE trait_id = ANY($1::traitid[])
+    ORDER BY trait_id
+    `,
+    [traitIds]
   );
   return res.rows;
 }
@@ -405,6 +427,9 @@ module.exports = {
   tokenIdBySlugAndIndex,
   resolveProjectId,
   resolveTraitIds,
+  addCnf: cnfs.addCnf,
+  getCnfTraits,
+  getTraitData,
   collections,
   collection,
   collectionTokens,

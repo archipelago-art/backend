@@ -211,20 +211,20 @@ async function regenerateCnfMembersForTokenNontransactionally({
   );
 }
 
-async function retrieveCnfs({ client, cnfId, projectId }) {
-  if ((cnfId == null) === (projectId == null)) {
-    throw new Error("must set cnfId xor projectId");
+async function retrieveCnfs({ client, cnfIds, projectId }) {
+  if ((cnfIds == null) === (projectId == null)) {
+    throw new Error("must set cnfIds xor projectId");
   }
   const res = await client.query(
     `
     SELECT cnf_id AS "cnfId", clause_idx AS "clauseIdx", trait_id AS "traitId"
     FROM cnfs JOIN cnf_clauses USING (cnf_id)
     WHERE true
-      AND (project_id = $1 OR $1 IS NULL)
-      AND (cnf_id = $2 OR $2 IS NULL)
+      AND (project_id = $1::projectid OR $1 IS NULL)
+      AND (cnf_id = ANY($2::cnfid[]) OR $2 IS NULL)
     ORDER BY cnf_id, clause_idx, trait_id
     `,
-    [projectId, cnfId]
+    [projectId, cnfIds]
   );
 
   const results = [];

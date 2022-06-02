@@ -216,7 +216,7 @@ describe("api", () => {
   );
 
   it(
-    "resolves specific feature/trait IDs",
+    "resolves specific feature/trait IDs and gets trait data back",
     withTestDb(async ({ client }) => {
       for (const projectId of snapshots.PROJECTS) {
         const project = parseProjectData(
@@ -253,21 +253,29 @@ describe("api", () => {
         ],
       });
       expect(res).toHaveLength(4);
+      const traitDataComparator = Cmp.first([
+        Cmp.comparing((r) => r.featureName),
+        Cmp.comparing((r) => r.traitValue),
+      ]);
       const anyIds = {
         featureId: expect.any(String),
         traitId: expect.any(String),
       };
-      expect(
-        res.sort(
-          Cmp.first([
-            Cmp.comparing((r) => r.featureName),
-            Cmp.comparing((r) => r.traitValue),
-          ])
-        )
-      ).toEqual([
+      expect(res.sort(traitDataComparator)).toEqual([
         { ...anyIds, featureName: "Coloring strategy", traitValue: "Random" },
         { ...anyIds, featureName: "Coloring strategy", traitValue: "Single" },
         { ...anyIds, featureName: "Palette", traitValue: "Nightlife" },
+        { ...anyIds, featureName: "Palette", traitValue: "Paddle" },
+      ]);
+
+      const traitIdSingle = res[1].traitId;
+      const traitIdPaddle = res[3].traitId;
+      const res2 = await api.getTraitData({
+        client,
+        traitIds: [traitIdSingle, traitIdPaddle],
+      });
+      expect(res2.sort(traitDataComparator)).toEqual([
+        { ...anyIds, featureName: "Coloring strategy", traitValue: "Single" },
         { ...anyIds, featureName: "Palette", traitValue: "Paddle" },
       ]);
     })

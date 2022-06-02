@@ -292,7 +292,10 @@ describe("db/cnfs", () => {
 
         // Check that the full CNF can be reconstructed from the data added to
         // `cnf_clauses`.
-        const retrievedCnfsSingle = await retrieveCnfs({ client, cnfId });
+        const retrievedCnfsSingle = await retrieveCnfs({
+          client,
+          cnfIds: [cnfId],
+        });
         // (and that it does the same thing if we filter by project instead)
         const retrievedCnfsProject = await retrieveCnfs({
           client,
