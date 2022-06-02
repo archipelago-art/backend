@@ -686,6 +686,7 @@ module.exports = {
   artblocksProjectIndicesFromIds,
   setProjectSlug,
   getProjectIdBySlug,
+  addBareToken,
   addToken,
   updateTokenData,
   getProjectFeaturesAndTraits,
