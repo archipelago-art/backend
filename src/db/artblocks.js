@@ -29,6 +29,12 @@ function tokenBounds(projectId) {
   return { minTokenId, maxTokenId };
 }
 
+function splitOnChainTokenId(artblocksTokenId) {
+  const artblocksProjectIndex = Math.floor(artblocksTokenId / PROJECT_STRIDE);
+  const tokenIndex = artblocksTokenId % PROJECT_STRIDE;
+  return { artblocksProjectIndex, tokenIndex };
+}
+
 async function addProject({ client, project, slugOverride }) {
   if (typeof project.scriptJson !== "string") {
     throw new Error(
@@ -173,8 +179,8 @@ async function addBareToken({
 }) {
   if (!alreadyInTransaction) await client.query("BEGIN");
 
-  const tokenIndex = artblocksTokenId % PROJECT_STRIDE;
-  const artblocksProjectIndex = Math.floor(artblocksTokenId / PROJECT_STRIDE);
+  const { tokenIndex, artblocksProjectIndex } =
+    splitOnChainTokenId(artblocksTokenId);
 
   const projectIdRes = await client.query(
     `
@@ -681,6 +687,7 @@ module.exports = {
   newTokensChannel,
   imageProgressChannel,
   traitsUpdatedChannel,
+  splitOnChainTokenId,
   addProject,
   projectIdsFromArtblocksIndices,
   artblocksProjectIndicesFromIds,

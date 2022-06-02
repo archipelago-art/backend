@@ -67,6 +67,17 @@ describe("db/artblocks", () => {
     return row;
   }
 
+  it("splits on-chain token IDs to project and token indices", () => {
+    expect(artblocks.splitOnChainTokenId(7583)).toEqual({
+      artblocksProjectIndex: 0,
+      tokenIndex: 7583,
+    });
+    expect(artblocks.splitOnChainTokenId(23000250)).toEqual({
+      artblocksProjectIndex: 23,
+      tokenIndex: 250,
+    });
+  });
+
   it(
     "writes and reads a project",
     withTestDb(async ({ client }) => {
