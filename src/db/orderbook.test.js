@@ -457,7 +457,7 @@ describe("db/orderbook", () => {
           address: bidder,
         });
         expect(bidIdsCurrent.length).toEqual(1);
-        expect(bidIdsCurrent[0].bidId).toEqual(bidIdCurrent);
+        expect(bidIdsCurrent[0]).toEqual(bidIdCurrent);
 
         const bidIdsAll = await bidIdsForAddress({
           client,
@@ -466,9 +466,7 @@ describe("db/orderbook", () => {
         });
 
         expect(bidIdsAll.length).toEqual(2);
-        expect(
-          bidIdsAll.findIndex((row) => row.bidId === bidIdExpired) >= 0
-        ).toBe(true);
+        expect(bidIdsAll.includes(bidIdExpired)).toBe(true);
       })
     );
   });

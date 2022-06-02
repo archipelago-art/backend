@@ -484,7 +484,7 @@ async function bidIdsForAddress({ client, address, activeOnly = true }) {
     `,
     [hexToBuf(address), deadline]
   );
-  return res.rows;
+  return res.rows.map((row) => row.bidId);
 }
 
 async function bidDetails({ client, bidIds }) {
