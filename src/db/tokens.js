@@ -55,8 +55,21 @@ async function addBareToken({
   const newTokenEvent = { projectId, tokenId, slug, tokenIndex };
   await channels.newTokens.send(client, newTokenEvent);
 
-  if (!alreadyInTransaction) await client.query("COMMIT");
+  // Add the token to the queue of tokens that still need trait data. If we're
+  // `alreadyInTransaction` and the caller sets the traits within the same
+  // transaction, this queue entry may be cleared before the transaction
+  // finishes. This insert shouldn't conflict because we've just added the
+  // token, so the foreign key constraint couldn't have been satisfied until
+  // now.
+  await client.query(
+    `
+    INSERT INTO token_traits_queue (token_id, create_time)
+    VALUES ($1::tokenid, now())
+    `,
+    [tokenId]
+  );
 
+  if (!alreadyInTransaction) await client.query("COMMIT");
   return tokenId;
 }
 
@@ -158,6 +171,25 @@ async function setTokenTraits({
     [tokenId]
   );
   await traitsUpdatedChannel.send(client, {});
+
+  // Remove this from the queue of tokens that still need trait data, taking
+  // some care to not hang if another transaction is doing the same.
+  //
+  // Note: if another transaction (T0) has locked this queue entry for
+  // deletion, and this transaction (T1) updates the trait data and commits but
+  // T0 reverts, then the entry spuriously remain in the queue. This is okay,
+  // because it only results in overprocessing, not missing traits.
+  await client.query(
+    `
+    DELETE FROM token_traits_queue
+    WHERE token_id = (
+      SELECT token_id FROM token_traits_queue
+      WHERE token_id = $1::tokenid
+      FOR UPDATE SKIP LOCKED
+    )
+    `,
+    [tokenId]
+  );
   if (!alreadyInTransaction) await client.query("COMMIT");
 }
 
