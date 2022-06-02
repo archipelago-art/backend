@@ -120,6 +120,7 @@ const migrationModules = [
   "./0109_eth_blocks_remove_nonzero_parent_hash_constraint",
   "./0110_artblocks_tokens_token_id_fkey",
   "./0111_token_traits_queue",
+  "./0112_new_erc721_transfers",
   // ...
 ];
 
