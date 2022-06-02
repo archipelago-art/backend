@@ -98,8 +98,11 @@ async function getTraitData({ client, traitIds }) {
       feature_id AS "featureId",
       trait_id AS "traitId",
       features.name AS "featureName",
-      traits.value AS "traitValue"
-    FROM traits JOIN features USING (feature_id)
+      traits.value AS "traitValue",
+      projects.project_id AS "projectId"
+    FROM traits
+      JOIN features USING (feature_id)
+      JOIN projects USING (project_id)
     WHERE trait_id = ANY($1::traitid[])
     ORDER BY trait_id
     `,

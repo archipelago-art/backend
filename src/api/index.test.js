@@ -275,8 +275,18 @@ describe("api", () => {
         traitIds: [traitIdSingle, traitIdPaddle],
       });
       expect(res2.sort(traitDataComparator)).toEqual([
-        { ...anyIds, featureName: "Coloring strategy", traitValue: "Single" },
-        { ...anyIds, featureName: "Palette", traitValue: "Paddle" },
+        {
+          ...anyIds,
+          featureName: "Coloring strategy",
+          traitValue: "Single",
+          projectId: archetype,
+        },
+        {
+          ...anyIds,
+          featureName: "Palette",
+          traitValue: "Paddle",
+          projectId: archetype,
+        },
       ]);
     })
   );
