@@ -487,6 +487,21 @@ async function bidIdsForAddress({ client, address, activeOnly = true }) {
   return res.rows.map((row) => row.bidId);
 }
 
+async function askIdsForAddress({ client, address, activeOnly = true }) {
+  const deadline = activeOnly ? new Date() : null;
+  const res = await client.query(
+    `
+      SELECT ask_id as "askId"
+      FROM asks
+      WHERE asker = $1
+      AND (deadline > $2 OR $2 IS NULL)
+      ORDER BY create_time ASC
+    `,
+    [hexToBuf(address), deadline]
+  );
+  return res.rows.map((row) => row.askId);
+}
+
 async function bidDetails({ client, bidIds }) {
   const res = await client.query(
     `
@@ -565,6 +580,7 @@ module.exports = {
   floorAsk,
   floorAskIdsForAllTokensInProject,
   floorAskForEveryProject,
+  askIdsForAddress,
   bidIdsForToken,
   bidIdsForAddress,
   bidDetails,

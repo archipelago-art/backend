@@ -15,6 +15,7 @@ const {
   askDetails,
   bidDetailsForToken,
   bidIdsForAddress,
+  askIdsForAddress,
   highBidIdsForAllTokensInProject,
 } = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
@@ -545,6 +546,49 @@ describe("db/orderbook", () => {
         });
         const active = await isAskActive(client, askId);
         expect(active).toBe(true); // for now...
+      })
+    );
+    it.only(
+      "gets all and active ask IDs for an address",
+      withTestDb(async ({ client }) => {
+        const [theCube] = await addTokens(client, [snapshots.THE_CUBE]);
+        const price = ethers.BigNumber.from("100");
+        const asker = ethers.constants.AddressZero;
+        const deadline = new Date("2099-01-01");
+
+        const validAskId = await addAsk({
+          client,
+          tokenId: theCube,
+          price,
+          deadline,
+          asker,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        const expiredAskId = await addAsk({
+          client,
+          tokenId: theCube,
+          price,
+          deadline: new Date("1970-01-01"),
+          asker,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+
+        expect(await askIdsForAddress({ client, address: asker })).toEqual([
+          validAskId,
+        ]);
+        expect(
+          await askIdsForAddress({
+            client,
+            address: asker,
+            activeOnly: false,
+          })
+        ).toEqual([validAskId, expiredAskId]);
       })
     );
   });
