@@ -446,6 +446,124 @@ describe("api", () => {
   );
 
   it(
+    "provides tokens for an account",
+    withTestDb(async ({ client }) => {
+      function dummyBlockHash(blockNumber) {
+        return ethers.utils.id(`block:${blockNumber}`);
+      }
+      function dummyTx(id) {
+        return ethers.utils.id(`tx:${id}`);
+      }
+      function dummyAddress(id) {
+        const hash = ethers.utils.id(`addr:${id}`);
+        return ethers.utils.getAddress(ethers.utils.hexDataSlice(hash, 12));
+      }
+
+      const archetype = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      await artblocks.addProject({ client, project: archetype });
+
+      const theCube = await sc.token(snapshots.THE_CUBE);
+      const tokenId = await artblocks.addToken({
+        client,
+        artblocksTokenId: snapshots.THE_CUBE,
+        rawTokenData: theCube,
+      });
+
+      const nBlocks = await erc721Transfers.addBlocks({
+        client,
+        blocks: [
+          {
+            hash: dummyBlockHash(777),
+            number: ethers.BigNumber.from(777),
+            timestamp: ethers.BigNumber.from(Date.parse("2020-12-30") / 1000),
+          },
+          {
+            hash: dummyBlockHash(888),
+            number: ethers.BigNumber.from(888),
+            timestamp: ethers.BigNumber.from(Date.parse("2021-01-02") / 1000),
+          },
+          {
+            hash: dummyBlockHash(999),
+            number: ethers.BigNumber.from(999),
+            timestamp: ethers.BigNumber.from(Date.parse("2021-02-08") / 1000),
+          },
+        ],
+      });
+      expect(nBlocks).toEqual(3);
+
+      let nextLogIndex = 101;
+      function transfer({
+        contractAddress = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+        tokenId = snapshots.THE_CUBE,
+        to,
+        from = ethers.constants.AddressZero,
+        blockNumber,
+        tx,
+      } = {}) {
+        const eventSignature = "Transfer(address,address,uint256)";
+        const transferTopic = ethers.utils.id(eventSignature);
+        function pad(value, type) {
+          return ethers.utils.defaultAbiCoder.encode([type], [value]);
+        }
+        const blockHash = dummyBlockHash(blockNumber);
+        return {
+          args: [from, to, ethers.BigNumber.from(tokenId)],
+          data: "0x",
+          event: "Transfer",
+          topics: [
+            transferTopic,
+            pad(from, "address"),
+            pad(to, "address"),
+            pad(tokenId, "uint256"),
+          ],
+          address: contractAddress,
+          removed: false,
+          logIndex: nextLogIndex++,
+          blockHash: dummyBlockHash(blockNumber),
+          blockNumber,
+          eventSignature,
+          transactionHash: tx,
+          transactionIndex: 0,
+        };
+      }
+
+      const alice = dummyAddress("alice.eth");
+      const bob = dummyAddress("bob.eth");
+      const cheryl = dummyAddress("cheryl.eth");
+      const cherylsVault = dummyAddress("vault.cheryl.eth");
+
+      const transfers = [
+        transfer({ to: alice, blockNumber: 777, tx: dummyTx(1) }),
+        transfer({ from: alice, to: bob, blockNumber: 888, tx: dummyTx(2) }),
+        transfer({ from: bob, to: cheryl, blockNumber: 999, tx: dummyTx(3) }),
+        transfer({
+          from: cheryl,
+          to: cherylsVault,
+          blockNumber: 999,
+          tx: dummyTx(3), // same tx as previous: manual transfer away
+        }),
+      ];
+
+      await erc721Transfers.addTransfers({ client, transfers });
+
+      if (0)
+        throw await client
+          .query(
+            "SELECT * FROM erc_721_transfers WHERE to_address=$1::address",
+            [require("../db/util").hexToBuf(cheryl)]
+          )
+          .then((r) => r.rows);
+      const tokens = await api.tokenSummariesByAccount({
+        client,
+        account: cherylsVault,
+      });
+    })
+  );
+
+  it(
     "provides a unified history of sales and transfers",
     withTestDb(async ({ client }) => {
       function dummyBlockHash(blockNumber) {

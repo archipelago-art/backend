@@ -48,7 +48,8 @@ async function asksForToken({ client, tokenId, limit }) {
       listing_time AS "listingTime",
       expiration_time AS "expirationTime",
       price,
-      token_id AS "tokenId"
+      token_id AS "tokenId",
+      event_id as "eventId"
     FROM opensea_asks
     WHERE
       active

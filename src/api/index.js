@@ -3,7 +3,7 @@ const artblocks = require("../db/artblocks");
 const emails = require("../db/emails");
 const erc721Transfers = require("../db/erc721Transfers");
 const orderbook = require("../db/orderbook");
-const { bufToAddress } = require("../db/util");
+const { bufToAddress, hexToBuf } = require("../db/util");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const slugify = require("../util/slugify");
 const { sortAsciinumeric } = require("../util/sortAsciinumeric");
@@ -272,6 +272,49 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
   }));
 }
 
+async function tokenSummariesByAccount({ client, account }) {
+  const res = await client.query(
+    `
+      SELECT * FROM (
+        SELECT DISTINCT ON (e.token_id)
+            p.name,
+            p.slug,
+            p.image_template as "imageTemplate",
+            t.token_index AS "tokenIndex",
+            p.artist_name as "artistName",
+            p.aspect_ratio as "aspectRatio",
+            e.token_id AS "tokenId",
+            e.to_address AS "toAddress",
+            t.token_contract AS "contractAddress"
+        FROM erc_721_transfers e
+        JOIN tokens t USING (token_id)
+        JOIN projects p USING (project_id)
+        WHERE e.to_address = $1::address
+        OR e.from_address = $1::address
+        ORDER BY
+          e.token_id,
+          e.block_number desc,
+          e.log_index desc
+        ) q
+        WHERE "toAddress" = $1::address;
+    `,
+    [hexToBuf(account)]
+  );
+
+  return res.rows.map((x) => ({
+    name: x.name,
+    slug: x.slug,
+    imageUrlTemplate: formatImageUrl({
+      template: x.imageTemplate,
+      tokenIndex: x.tokenIndex,
+    }),
+    tokenIndex: x.tokenIndex,
+    artistName: x.artistName,
+    aspectRatio: x.aspectRatio,
+    contractAddress: bufToAddress(x.contractAddress),
+  }));
+}
+
 async function tokenHistory({ client, tokenId }) {
   const transfers = await erc721Transfers.getTransfersForToken({
     client,
@@ -368,6 +411,7 @@ module.exports = {
   tokenFeaturesAndTraits,
   tokenChainData,
   tokenSummariesByOnChainId,
+  tokenSummariesByAccount,
   tokenHistory,
   transferCount,
   addEmailSignup,
