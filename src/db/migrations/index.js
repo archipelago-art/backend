@@ -116,6 +116,7 @@ const migrationModules = [
   "./0105_eth_blocks_semi_nullable_parent_hash",
   "./0106_eth_blocks_parent_hash_self_fkey",
   "./0107_index_eth_blocks_parent_hash",
+  "./0108_index_erc_721_transfers_to_address_from_address",
   // ...
 ];
 
