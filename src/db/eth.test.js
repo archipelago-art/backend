@@ -1,13 +1,42 @@
 const ethers = require("ethers");
 
-const { acqrel } = require("./util");
+const { acqrel, bufToAddress, bufToHex } = require("./util");
 const { testDbProvider } = require("./testUtil");
 
+const { parseProjectData } = require("../scrape/fetchArtblocksProject");
+const snapshots = require("../scrape/snapshots");
 const adHocPromise = require("../util/adHocPromise");
+const artblocks = require("./artblocks");
 const eth = require("./eth");
 
 describe("db/eth", () => {
   const withTestDb = testDbProvider();
+  const sc = new snapshots.SnapshotCache();
+
+  // A few blocks from Ethereum mainnet, for testing.
+  function realBlocks() {
+    const result = [];
+    function pushBlock(hash, timestamp) {
+      const parentHash =
+        result[result.length - 1]?.hash ?? ethers.constants.HashZero;
+      const number = result.length;
+      const block = { hash, parentHash, number, timestamp };
+      result.push(block);
+    }
+    pushBlock(
+      "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3",
+      0
+    );
+    pushBlock(
+      "0x88e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb6",
+      1438269988
+    );
+    pushBlock(
+      "0xb495a1d7e6663152ae92708da4843337b958146015a2802f4193a410044698c9",
+      1438270017
+    );
+    return result;
+  }
 
   it(
     "gets and sets job progress",
@@ -35,18 +64,8 @@ describe("db/eth", () => {
   it(
     "manipulates and describes block headers",
     withTestDb(async ({ client }) => {
-      const h0 =
-        "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
-      const h1 =
-        "0x88e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb6";
-      const h2 =
-        "0xb495a1d7e6663152ae92708da4843337b958146015a2802f4193a410044698c9";
-      const hashes = [h0, h1, h2];
-
-      const t0 = 0;
-      const t1 = 1438269988;
-      const t2 = 1438270017;
-      const timestamps = [t0, t1, t2];
+      const [h0, h1, h2] = realBlocks().map((b) => b.hash);
+      const [t0, t1, t2] = realBlocks().map((b) => b.timestamp);
 
       expect(await eth.blockExists({ client, blockHash: h0 })).toEqual(false);
       expect(await eth.latestBlockHeader({ client })).toEqual(null);
@@ -54,15 +73,7 @@ describe("db/eth", () => {
         await eth.findBlockHeadersSince({ client, minBlockNumber: 1 })
       ).toEqual([]);
 
-      await eth.addBlocks({
-        client,
-        blocks: hashes.map((hash, number) => {
-          const parentHash = hashes[number - 1] || ethers.constants.HashZero;
-          const timestamp = timestamps[number];
-          const block = { hash, parentHash, number, timestamp };
-          return block;
-        }),
-      });
+      await eth.addBlocks({ client, blocks: realBlocks() });
 
       expect(await eth.blockExists({ client, blockHash: h0 })).toEqual(true);
       expect(await eth.blockExists({ client, blockHash: h2 })).toEqual(true);
@@ -160,4 +171,146 @@ describe("db/eth", () => {
       );
     })
   );
+
+  async function addProjects(client, projectIds) {
+    const projects = await Promise.all(
+      projectIds.map(async (id) => parseProjectData(id, await sc.project(id)))
+    );
+    const result = [];
+    for (const project of projects) {
+      const id = await artblocks.addProject({ client, project });
+      result.push(id);
+    }
+    return result;
+  }
+  async function addTokens(client, tokenIds) {
+    const tokens = await Promise.all(
+      tokenIds.map(async (id) => ({
+        artblocksTokenId: id,
+        rawTokenData: await sc.token(id),
+      }))
+    );
+    const result = [];
+    for (const { artblocksTokenId, rawTokenData } of tokens) {
+      const id = await artblocks.addToken({
+        client,
+        artblocksTokenId,
+        rawTokenData,
+      });
+      result.push(id);
+    }
+    return result;
+  }
+
+  describe("erc721_transfers", () => {
+    it(
+      "adds and removes transfers across different blocks",
+      withTestDb(async ({ client }) => {
+        await addProjects(client, [snapshots.SQUIGGLES, snapshots.ARCHETYPE]);
+        const [squiggle, cube] = await addTokens(client, [
+          snapshots.PERFECT_CHROMATIC,
+          snapshots.THE_CUBE,
+        ]);
+
+        const blocks = realBlocks();
+        await eth.addBlocks({ client, blocks });
+
+        function dummyTx(id) {
+          return ethers.utils.id(`tx:${id}`);
+        }
+        function dummyAddress(id) {
+          const hash = ethers.utils.id(`addr:${id}`);
+          return ethers.utils.getAddress(ethers.utils.hexDataSlice(hash, 12));
+        }
+        const zero = ethers.constants.AddressZero;
+        const alice = dummyAddress("alice");
+        const bob = dummyAddress("bob");
+
+        const aliceMintsSquiggle = {
+          tokenId: squiggle,
+          fromAddress: zero,
+          toAddress: alice,
+          blockHash: blocks[0].hash,
+          logIndex: 1,
+          transactionHash: dummyTx(1),
+        };
+        const bobMintsCube = {
+          tokenId: cube,
+          fromAddress: zero,
+          toAddress: bob,
+          blockHash: blocks[0].hash,
+          logIndex: 2,
+          transactionHash: dummyTx(2),
+        };
+        const aliceSendsSquiggle = {
+          tokenId: squiggle,
+          fromAddress: alice,
+          toAddress: bob,
+          blockHash: blocks[0].hash,
+          logIndex: 4,
+          transactionHash: dummyTx(3),
+        };
+        const bobReturnsSquiggleLater = {
+          tokenId: squiggle,
+          fromAddress: bob,
+          toAddress: alice,
+          blockHash: blocks[2].hash,
+          logIndex: 7,
+          transactionHash: dummyTx(3),
+        };
+
+        async function summarizeTransfers() {
+          const res = await client.query(
+            `
+            SELECT
+              token_id AS "tokenId",
+              from_address AS "fromAddress",
+              to_address AS "toAddress",
+              block_hash AS "blockHash",
+              block_number AS "blockNumber",
+              log_index AS "logIndex",
+              transaction_hash AS "transactionHash"
+            FROM erc721_transfers
+            ORDER BY block_number, log_index
+            `
+          );
+          return res.rows.map((r) => ({
+            tokenId: r.tokenId,
+            fromAddress: bufToAddress(r.fromAddress),
+            toAddress: bufToAddress(r.toAddress),
+            blockHash: bufToHex(r.blockHash),
+            blockNumber: r.blockNumber,
+            logIndex: r.logIndex,
+            transactionHash: bufToHex(r.transactionHash),
+          }));
+        }
+
+        expect(await summarizeTransfers()).toEqual([]);
+        await eth.addErc721Transfers({
+          client,
+          transfers: [
+            aliceMintsSquiggle,
+            bobMintsCube,
+            aliceSendsSquiggle,
+            bobReturnsSquiggleLater,
+          ],
+        });
+        expect(await summarizeTransfers()).toEqual([
+          { ...aliceMintsSquiggle, blockNumber: 0 },
+          { ...bobMintsCube, blockNumber: 0 },
+          { ...aliceSendsSquiggle, blockNumber: 0 },
+          { ...bobReturnsSquiggleLater, blockNumber: 2 },
+        ]);
+        await eth.deleteErc721Transfers({
+          client,
+          blockHash: blocks[0].hash,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
+        });
+        expect(await summarizeTransfers()).toEqual([
+          { ...bobMintsCube, blockNumber: 0 }, // different contract address
+          { ...bobReturnsSquiggleLater, blockNumber: 2 }, // different block
+        ]);
+      })
+    );
+  });
 });

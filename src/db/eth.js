@@ -153,6 +153,67 @@ async function deleteBlock({ client, blockHash }) {
   return res.rowCount > 0;
 }
 
+async function addErc721Transfers({ client, transfers }) {
+  const n = transfers.length;
+  const tokenIds = Array(n);
+  const fromAddresses = Array(n);
+  const toAddresses = Array(n);
+  const blockHashes = Array(n);
+  const logIndices = Array(n);
+  const transactionHashes = Array(n);
+  for (let i = 0; i < transfers.length; i++) {
+    const transfer = transfers[i];
+    tokenIds[i] = transfer.tokenId;
+    fromAddresses[i] = hexToBuf(transfer.fromAddress);
+    toAddresses[i] = hexToBuf(transfer.toAddress);
+    blockHashes[i] = hexToBuf(transfer.blockHash);
+    logIndices[i] = transfer.logIndex;
+    transactionHashes[i] = hexToBuf(transfer.transactionHash);
+  }
+
+  const res = await client.query(
+    `
+    INSERT INTO erc721_transfers (
+      token_id, from_address, to_address,
+      block_hash, block_number, log_index,
+      transaction_hash
+    )
+    SELECT
+      i.token_id, i.from_address, i.to_address,
+      i.block_hash, eth_blocks.block_number, i.log_index,
+      i.transaction_hash
+    FROM
+      unnest($1::tokenid[], $2::address[], $3::address[], $4::bytes32[], $5::int[], $6::bytes32[])
+        AS i(token_id, from_address, to_address, block_hash, log_index, transaction_hash)
+      LEFT OUTER JOIN eth_blocks USING (block_hash)
+    `,
+    [
+      tokenIds,
+      fromAddresses,
+      toAddresses,
+      blockHashes,
+      logIndices,
+      transactionHashes,
+    ]
+  );
+}
+
+async function deleteErc721Transfers({ client, blockHash, tokenContract }) {
+  const res = await client.query(
+    `
+    DELETE FROM erc721_transfers
+    WHERE
+      block_hash = $1::bytes32
+      AND (
+        SELECT token_contract FROM tokens t
+        WHERE t.token_id = erc721_transfers.token_id
+      ) = $2::address
+    `,
+    [hexToBuf(blockHash), hexToBuf(tokenContract)]
+  );
+  return res.rowCount;
+}
+
 module.exports = {
   getJobProgress,
   addJob,
@@ -163,4 +224,7 @@ module.exports = {
   blockExists,
   findBlockHeadersSince,
   deleteBlock,
+
+  addErc721Transfers,
+  deleteErc721Transfers,
 };
