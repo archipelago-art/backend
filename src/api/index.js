@@ -444,6 +444,7 @@ module.exports = {
   formatImageUrl,
 
   opensea: openseaApi,
+  tokens: dbTokens,
   accounts,
   orderbook,
 };
