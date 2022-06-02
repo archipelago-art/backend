@@ -1,4 +1,63 @@
+const channels = require("./channels");
 const { hexToBuf } = require("./util");
+const { ObjectType, newId } = require("./id");
+
+const newTokensChannel = channels.newTokens;
+
+/**
+ * Adds a new token to an existing project without populating any traits. This
+ * is collection-agnostic: e.g., it does not do anything Art Blocks-specific.
+ * Returns the new token ID.
+ */
+async function addBareToken({
+  client,
+  projectId,
+  tokenIndex,
+  onChainTokenId,
+  alreadyInTransaction = false,
+}) {
+  if (!alreadyInTransaction) await client.query("BEGIN");
+
+  const updateProjectsRes = await client.query(
+    `
+    UPDATE projects
+    SET num_tokens = num_tokens + 1
+    WHERE project_id = $1
+    RETURNING slug
+    `,
+    [projectId]
+  );
+  if (updateProjectsRes.rowCount === 0) {
+    throw new Error("no such project: " + projectId);
+  }
+  const { slug } = updateProjectsRes.rows[0]; // for new token event
+
+  const tokenId = newId(ObjectType.TOKEN);
+  await client.query(
+    `
+    INSERT INTO tokens (
+      token_id,
+      project_id,
+      token_index,
+      token_contract,
+      on_chain_token_id
+    )
+    VALUES (
+      $1, $2, $3,
+      (SELECT token_contract FROM projects WHERE project_id = $2::projectid),
+      $4
+    )
+    `,
+    [tokenId, projectId, tokenIndex, onChainTokenId]
+  );
+
+  const newTokenEvent = { projectId, tokenId, slug, tokenIndex };
+  await channels.newTokens.send(client, newTokenEvent);
+
+  if (!alreadyInTransaction) await client.query("COMMIT");
+
+  return tokenId;
+}
 
 // tokens is an array of {address, tokenId} objects.
 // type TokenSummary = {
@@ -45,4 +104,8 @@ async function tokenInfoById({ client, tokenIds }) {
   return res.rows;
 }
 
-module.exports = { tokenSummariesByOnChainId, tokenInfoById };
+module.exports = {
+  addBareToken,
+  tokenSummariesByOnChainId,
+  tokenInfoById,
+};

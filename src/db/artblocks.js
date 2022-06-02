@@ -2,6 +2,7 @@ const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const slug = require("../util/slugify");
 const channels = require("./channels");
 const { ObjectType, newId, newIds } = require("./id");
+const dbTokens = require("./tokens");
 const { hexToBuf, bufToAddress } = require("./util");
 
 const newTokensChannel = channels.newTokens;
@@ -165,17 +166,19 @@ async function getProjectIdBySlug({ client, slug }) {
   return res.rows[0].id;
 }
 
-async function addToken({ client, artblocksTokenId, rawTokenData }) {
-  if (rawTokenData == null) {
-    throw new Error("no token data given");
-  }
-  await client.query("BEGIN");
-  const tokenId = newId(ObjectType.TOKEN);
+async function addBareToken({
+  client,
+  artblocksTokenId,
+  alreadyInTransaction = false,
+}) {
+  if (!alreadyInTransaction) await client.query("BEGIN");
+
   const tokenIndex = artblocksTokenId % PROJECT_STRIDE;
   const artblocksProjectIndex = Math.floor(artblocksTokenId / PROJECT_STRIDE);
+
   const projectIdRes = await client.query(
     `
-    SELECT project_id AS "projectId", slug AS "slug"
+    SELECT project_id AS "projectId"
     FROM artblocks_projects JOIN projects USING (project_id)
     WHERE artblocks_project_index = $1
     `,
@@ -186,32 +189,30 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
       `expected project ${artblocksProjectIndex} to exist for token ${artblocksTokenId}`
     );
   }
-  const { projectId, slug } = projectIdRes.rows[0];
-  const updateProjectsRes = await client.query(
-    `
-    UPDATE projects
-    SET num_tokens = num_tokens + 1
-    WHERE project_id = $1
-    `,
-    [projectId]
-  );
-  await client.query(
-    `
-    INSERT INTO tokens (
-      token_id,
-      project_id,
-      token_index,
-      token_contract,
-      on_chain_token_id
-    )
-    VALUES (
-      $1, $2, $3,
-      (SELECT token_contract FROM projects WHERE project_id = $2::projectid),
-      $4
-    )
-    `,
-    [tokenId, projectId, tokenIndex, artblocksTokenId]
-  );
+  const { projectId } = projectIdRes.rows[0];
+  const tokenId = await dbTokens.addBareToken({
+    client,
+    projectId,
+    tokenIndex,
+    onChainTokenId: artblocksTokenId,
+    alreadyInTransaction: true,
+  });
+
+  if (!alreadyInTransaction) await client.query("COMMIT");
+  return { tokenId, projectId, tokenIndex, artblocksProjectIndex };
+}
+
+async function addToken({ client, artblocksTokenId, rawTokenData }) {
+  if (rawTokenData == null) {
+    throw new Error("no token data given");
+  }
+
+  await client.query("BEGIN");
+  const { tokenId, projectId } = await addBareToken({
+    client,
+    artblocksTokenId,
+    alreadyInTransaction: true,
+  });
   await client.query(
     `
     INSERT INTO artblocks_tokens (
@@ -228,7 +229,6 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
     projectId,
     rawTokenData,
   });
-  await newTokensChannel.send(client, { projectId, tokenId, slug, tokenIndex });
   await client.query("COMMIT");
   return tokenId;
 }

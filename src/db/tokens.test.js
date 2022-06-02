@@ -43,6 +43,46 @@ describe("db/tokens", () => {
   }
 
   it(
+    "adds tokens to an existing project",
+    withTestDb(async ({ client }) => {
+      const [{ id: archetype }] = await addProjects(client, [
+        snapshots.ARCHETYPE,
+      ]);
+      async function getTokenCount() {
+        const res = await client.query(
+          `
+          SELECT
+            (SELECT num_tokens FROM projects WHERE project_id = $1::projectid) AS a,
+            (SELECT count(1)::int FROM tokens WHERE project_id = $1::projectid) AS b
+          `,
+          [archetype]
+        );
+        const { a, b } = res.rows[0];
+        if (a !== b) throw new Error(`token count mismatch: ${a} !== ${b}`);
+        return a;
+      }
+      expect(await getTokenCount()).toEqual(0);
+      const tokenId1 = await tokens.addBareToken({
+        client,
+        projectId: archetype,
+        tokenIndex: 250,
+        onChainTokenId: snapshots.THE_CUBE,
+      });
+      expect(tokenId1).toEqual(expect.any(String));
+      expect(await getTokenCount()).toEqual(1);
+      const tokenId2 = await tokens.addBareToken({
+        client,
+        projectId: archetype,
+        tokenIndex: 66,
+        onChainTokenId: snapshots.ARCH_66,
+      });
+      expect(await getTokenCount()).toEqual(2);
+      expect(tokenId2).toEqual(expect.any(String));
+      expect(tokenId1).not.toEqual(tokenId2);
+    })
+  );
+
+  it(
     "supports tokenSummariesByOnChainId",
     withTestDb(async ({ client }) => {
       await addProjects(client, [snapshots.ARCHETYPE]);
