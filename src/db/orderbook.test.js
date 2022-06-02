@@ -1,8 +1,8 @@
 const ethers = require("ethers");
 
-const adHocPromise = require("../util/adHocPromise");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
+const adHocPromise = require("../util/adHocPromise");
 const artblocks = require("./artblocks");
 const { marketEvents } = require("./channels");
 const cnfs = require("./cnfs");

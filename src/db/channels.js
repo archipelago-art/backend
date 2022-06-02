@@ -27,11 +27,11 @@ const traitsUpdated = events.channel("traits_updated");
 //  }
 //  {
 //    type: "BID_PLACED",
-//    scope: { type: 'TOKEN', tokenId: string, tokenIndex: number }
-//           | { type: 'PROJECT', projectId: string, slug: string }
-//           | { type: 'TRAIT', traitId: string, featureName: string,
-//               traitValue: string }
-//           | { type: 'CNF', cnfId: string }
+//    scope:
+//      | { type: "TOKEN", tokenId: string, tokenIndex: number }
+//      | { type: "PROJECT", projectId: string, slug: string }
+//      | { type: "TRAIT", traitId: string, featureName: string, traitValue: string }
+//      | { type: "CNF", cnfId: string }
 //    orderId: string,
 //    projectId: string,
 //    slug: string,

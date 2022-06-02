@@ -27,9 +27,9 @@ async function addBid({
   async function getSlug(projectId) {
     const slugRes = await client.query(
       `
-        SELECT slug
-        FROM projects
-        WHERE project_id = $1
+      SELECT slug
+      FROM projects
+      WHERE project_id = $1
       `,
       [projectId]
     );
@@ -38,36 +38,30 @@ async function addBid({
   }
 
   switch (scope.type) {
-    case "PROJECT":
+    case "PROJECT": {
       await checkProjectExists(client, scope.projectId);
       projectId = scope.projectId;
       scopeId = projectId;
       slug = await getSlug(scope.projectId);
-      outputScope = {
-        type: "PROJECT",
-        projectId,
-        slug,
-      };
+      outputScope = { type: "PROJECT", projectId, slug };
       break;
-    case "TOKEN":
+    }
+    case "TOKEN": {
       projectId = await projectForTokenId(client, scope.tokenId);
       scopeId = scope.tokenId;
       const tokenIndexRes = await client.query(
         `
-          SELECT token_index as "tokenIndex"
-          FROM tokens
-          WHERE token_id = $1
+        SELECT token_index as "tokenIndex"
+        FROM tokens
+        WHERE token_id = $1
         `,
         [scope.tokenId]
       );
       const tokenIndex = tokenIndexRes.rows[0].tokenIndex;
-      outputScope = {
-        type: "TOKEN",
-        tokenId: scope.tokenId,
-        tokenIndex,
-      };
+      outputScope = { type: "TOKEN", tokenId: scope.tokenId, tokenIndex };
       break;
-    case "TRAIT":
+    }
+    case "TRAIT": {
       projectId = await projectForTraitId(client, scope.traitId);
       scopeId = scope.traitId;
       const traitsRes = await client.query(
@@ -86,7 +80,8 @@ async function addBid({
         traitValue,
       };
       break;
-    case "CNF":
+    }
+    case "CNF": {
       projectId = await projectForCnfId(client, scope.cnfId);
       scopeId = scope.cnfId;
       outputScope = {
@@ -94,10 +89,10 @@ async function addBid({
         cnfId: scope.cnfId,
       };
       break;
+    }
     default:
       throw new Error(`Unrecognized scope type: ${scope.type}`);
   }
-
   slug = slug ?? (await getSlug(projectId));
 
   await client.query(
@@ -150,7 +145,6 @@ async function addBid({
       hexToBuf(signature),
     ]
   );
-
   const { createTime } = insertRes.rows[0];
 
   const notification = {
@@ -166,7 +160,6 @@ async function addBid({
     timestamp: createTime.toISOString(),
     expirationTime: deadline && deadline.toISOString(),
   };
-
   await marketEvents.send(client, notification);
 
   await client.query("COMMIT");
