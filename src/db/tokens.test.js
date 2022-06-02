@@ -76,4 +76,23 @@ describe("db/tokens", () => {
       ]);
     })
   );
+  it(
+    "supports tokenInfoById",
+    withTestDb(async ({ client }) => {
+      await addProjects(client, [snapshots.ARCHETYPE]);
+      const tokenId = snapshots.ARCH_TRIPTYCH_1;
+      const [{ id: archipelagoTokenId }] = await addTokens(client, [tokenId]);
+      const res = await tokens.tokenInfoById({
+        client,
+        tokenIds: [archipelagoTokenId],
+      });
+      expect(res).toEqual([
+        {
+          tokenId: archipelagoTokenId,
+          slug: "archetype",
+          tokenIndex: 36,
+        },
+      ]);
+    })
+  );
 });

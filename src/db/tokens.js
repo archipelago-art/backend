@@ -32,4 +32,17 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
   return res.rows;
 }
 
-module.exports = { tokenSummariesByOnChainId };
+async function tokenInfoById({ client, tokenIds }) {
+  const res = await client.query(
+    `
+    SELECT t.token_index as "tokenIndex", t.token_id as "tokenId", p.slug
+    FROM tokens t JOIN projects p USING (project_id)
+    WHERE token_id = ANY($1::tokenid[])
+    ORDER BY token_id
+  `,
+    [tokenIds]
+  );
+  return res.rows;
+}
+
+module.exports = { tokenSummariesByOnChainId, tokenInfoById };
