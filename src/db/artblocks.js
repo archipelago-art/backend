@@ -213,21 +213,11 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
     artblocksTokenId,
     alreadyInTransaction: true,
   });
-  await client.query(
-    `
-    INSERT INTO artblocks_tokens (
-      token_id,
-      token_data,
-      fetch_time
-    ) VALUES ($1, $2, now())
-    `,
-    [tokenId, rawTokenData]
-  );
-  await populateTraitMembers({
+  await updateTokenData({
     client,
     tokenId,
-    projectId,
     rawTokenData,
+    alreadyInTransaction: true,
   });
   await client.query("COMMIT");
   return tokenId;
@@ -313,16 +303,21 @@ async function populateTraitMembers({
   await traitsUpdatedChannel.send(client, {});
 }
 
-async function updateTokenData({ client, tokenId, rawTokenData }) {
+async function updateTokenData({
+  client,
+  tokenId,
+  rawTokenData,
+  alreadyInTransaction = false,
+}) {
   if (rawTokenData == null) {
     throw new Error("can't update token data to become missing");
   }
-  await client.query("BEGIN");
+  if (!alreadyInTransaction) await client.query("BEGIN");
   const updateRes = await client.query(
     `
-    UPDATE artblocks_tokens
-    SET token_data = $2, fetch_time = now()
-    WHERE token_id = $1
+    INSERT INTO artblocks_tokens (token_id, token_data, fetch_time)
+    VALUES ($1::tokenid, $2, now())
+    ON CONFLICT (token_id) DO UPDATE SET token_data = $2, fetch_time = now()
     RETURNING (SELECT project_id FROM tokens WHERE token_id = $1) AS "projectId"
     `,
     [tokenId, rawTokenData]
@@ -347,7 +342,7 @@ async function updateTokenData({ client, tokenId, rawTokenData }) {
     projectId,
     rawTokenData,
   });
-  await client.query("COMMIT");
+  if (!alreadyInTransaction) await client.query("COMMIT");
 }
 
 /*
