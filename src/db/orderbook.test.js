@@ -361,6 +361,7 @@ describe("db/orderbook", () => {
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
         const price = ethers.BigNumber.from("100");
         const bidder = ethers.constants.AddressZero;
+
         const bidId = await addBid({
           client,
           scope: { type: "PROJECT", projectId: archetype },
@@ -390,27 +391,55 @@ describe("db/orderbook", () => {
   describe("addAsk", () => {
     it(
       "adds an ask",
-      withTestDb(async ({ client }) => {
+      withTestDb(async ({ pool, client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [theCube] = await addTokens(client, [snapshots.THE_CUBE]);
         const price = ethers.BigNumber.from("100");
         const asker = ethers.constants.AddressZero;
         const deadline = new Date("2099-01-01");
-        const askId = await addAsk({
-          client,
-          tokenId: theCube,
-          price,
-          deadline,
-          asker,
-          nonce: ethers.BigNumber.from("0xabcd"),
-          agreement: "0x",
-          message: "0x",
-          signature: "0x" + "fe".repeat(65),
+        await acqrel(pool, async (listenClient) => {
+          const postgresEvent = adHocPromise();
+          listenClient.on("notification", (n) => {
+            if (n.channel === marketEvents.name) {
+              postgresEvent.resolve(n.payload);
+            } else {
+              postgresEvent.reject("unexpected channel: " + n.channel);
+            }
+          });
+          await marketEvents.listen(listenClient);
+
+          const askId = await addAsk({
+            client,
+            tokenId: theCube,
+            price,
+            deadline,
+            asker,
+            nonce: ethers.BigNumber.from("0xabcd"),
+            agreement: "0x",
+            message: "0x",
+            signature: "0x" + "fe".repeat(65),
+          });
+
+          const eventValue = await postgresEvent.promise;
+          expect(JSON.parse(eventValue)).toEqual({
+            type: "ASK_PLACED",
+            orderId: askId,
+            projectId: archetype,
+            slug: "archetype",
+            tokenIndex: 250,
+            venue: "ARCHIPELAGO",
+            asker,
+            currency: "ETH",
+            price: String(price),
+            timestamp: expect.any(String),
+            expirationTime: deadline.toISOString(),
+          });
+
+          expect(await floorAsk({ client, tokenId: theCube })).toEqual(askId);
+          expect(await askDetails({ client, askIds: [askId] })).toEqual([
+            { askId, price, deadline, asker, tokenId: theCube },
+          ]);
         });
-        expect(await floorAsk({ client, tokenId: theCube })).toEqual(askId);
-        expect(await askDetails({ client, askIds: [askId] })).toEqual([
-          { askId, price, deadline, asker, tokenId: theCube },
-        ]);
       })
     );
 

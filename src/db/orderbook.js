@@ -179,8 +179,20 @@ async function addAsk({
 }) {
   await client.query("BEGIN");
   const projectId = await projectForTokenId(client, tokenId);
+  const tokenDetailsRes = await client.query(
+    `
+    SELECT
+      t.token_index as "tokenIndex",
+      p.slug
+    FROM tokens t
+    JOIN projects p USING (project_id)
+    WHERE t.token_id = $1
+    `,
+    [tokenId]
+  );
+  const { tokenIndex, slug } = tokenDetailsRes.rows[0];
   const askId = newId(ObjectType.ASK);
-  await client.query(
+  const insertRes = await client.query(
     `
     INSERT INTO asks (
       ask_id,
@@ -208,7 +220,7 @@ async function addAsk({
       $8::bytea,
       $9::bytea,
       $10::signature
-    )
+    ) RETURNING create_time AS "createTime"
     `,
     [
       askId,
@@ -223,6 +235,24 @@ async function addAsk({
       hexToBuf(signature),
     ]
   );
+
+  const { createTime } = insertRes.rows[0];
+
+  const notification = {
+    type: "ASK_PLACED",
+    orderId: askId,
+    projectId,
+    slug,
+    tokenIndex,
+    venue: "ARCHIPELAGO",
+    asker,
+    currency: "ETH",
+    price: String(price),
+    timestamp: createTime.toISOString(),
+    expirationTime: deadline && deadline.toISOString(),
+  };
+  await marketEvents.send(client, notification);
+
   await client.query("COMMIT");
   return askId;
 }
