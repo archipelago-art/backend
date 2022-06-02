@@ -119,6 +119,7 @@ const migrationModules = [
   "./0108_index_erc_721_transfers_to_address_from_address",
   "./0109_eth_blocks_remove_nonzero_parent_hash_constraint",
   "./0110_artblocks_tokens_token_id_fkey",
+  "./0111_token_traits_queue",
   // ...
 ];
 
