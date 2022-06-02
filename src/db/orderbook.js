@@ -1,5 +1,5 @@
 const ethers = require("ethers");
-const { ObjectType, newId } = require("./id");
+const { idType, ObjectType, objectTypeToName, newId } = require("./id");
 const { hexToBuf, bufToAddress } = require("./util");
 const { marketEvents } = require("./channels");
 
@@ -475,7 +475,7 @@ async function highBidIdsForAllTokensInProject({ client, projectId }) {
 async function bidDetails({ client, bidIds }) {
   const res = await client.query(
     `
-    SELECT bid_id AS "bidId", price, deadline, bidder
+    SELECT bid_id AS "bidId", price, deadline, bidder, scope
     FROM bids
     WHERE bid_id = ANY($1::bidid[])
     `,
@@ -486,6 +486,10 @@ async function bidDetails({ client, bidIds }) {
     price: ethers.BigNumber.from(r.price),
     deadline: r.deadline,
     bidder: bufToAddress(r.bidder),
+    scope: {
+      type: objectTypeToName[idType(r.scope)],
+      scope: r.scope,
+    },
   }));
 }
 

@@ -144,7 +144,13 @@ describe("db/orderbook", () => {
             expirationTime: deadline.toISOString(),
           });
 
-          const bid = { bidId, price, bidder, deadline };
+          const bid = {
+            bidId,
+            price,
+            bidder,
+            deadline,
+            scope: { type: "PROJECT", scope: archetype },
+          };
           expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
         });
       })
@@ -201,7 +207,14 @@ describe("db/orderbook", () => {
             expirationTime: deadline.toISOString(),
           });
 
-          const bid = { bidId, price, bidder, deadline };
+          const bid = {
+            bidId,
+            price,
+            bidder,
+            deadline,
+            scope: { type: "TOKEN", scope: tokenId },
+          };
+
           expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
         });
       })
@@ -277,7 +290,13 @@ describe("db/orderbook", () => {
             timestamp: expect.any(String),
             expirationTime: deadline.toISOString(),
           });
-          const bid = { bidId, price, bidder, deadline };
+          const bid = {
+            bidId,
+            price,
+            bidder,
+            deadline,
+            scope: { type: "TRAIT", scope: traitId },
+          };
           expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
         });
       })
@@ -347,7 +366,13 @@ describe("db/orderbook", () => {
             expirationTime: deadline.toISOString(),
           });
 
-          const bid = { bidId, price, bidder, deadline };
+          const bid = {
+            bidId,
+            price,
+            bidder,
+            deadline,
+            scope: { type: "CNF", scope: cnfId },
+          };
           expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
         });
       })
@@ -373,7 +398,13 @@ describe("db/orderbook", () => {
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
-        const bid = { bidId, price, bidder, deadline };
+        const bid = {
+          bidId,
+          price,
+          bidder,
+          deadline,
+          scope: { type: "PROJECT", scope: archetype },
+        };
         // Bid is included because it's (incorrectly) marked active (for now)
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
         // Manually set active=false so we can test the bidDetailsForToken behavior
