@@ -275,28 +275,24 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
 async function tokenSummariesByAccount({ client, account }) {
   const res = await client.query(
     `
-      SELECT * FROM (
-        SELECT DISTINCT ON (e.token_id)
-            p.name,
-            p.slug,
-            p.image_template as "imageTemplate",
-            t.token_index AS "tokenIndex",
-            p.artist_name as "artistName",
-            p.aspect_ratio as "aspectRatio",
-            e.token_id AS "tokenId",
-            e.to_address AS "toAddress",
-            t.token_contract AS "contractAddress"
-        FROM erc_721_transfers e
-        JOIN tokens t USING (token_id)
-        JOIN projects p USING (project_id)
-        WHERE e.to_address = $1::address
-        OR e.from_address = $1::address
-        ORDER BY
-          e.token_id,
-          e.block_number desc,
-          e.log_index desc
-        ) q
-        WHERE "toAddress" = $1::address;
+    SELECT * FROM (
+      SELECT DISTINCT ON (e.token_id)
+        p.name,
+        p.slug,
+        p.image_template as "imageTemplate",
+        t.token_index AS "tokenIndex",
+        p.artist_name as "artistName",
+        p.aspect_ratio as "aspectRatio",
+        e.token_id AS "tokenId",
+        e.to_address AS "toAddress",
+        t.token_contract AS "contractAddress"
+      FROM erc_721_transfers e
+      JOIN tokens t USING (token_id)
+      JOIN projects p USING (project_id)
+      WHERE (e.to_address = $1::address OR e.from_address = $1::address)
+      ORDER BY e.token_id, e.block_number DESC, e.log_index DESC
+    ) q
+    WHERE "toAddress" = $1::address;
     `,
     [hexToBuf(account)]
   );
