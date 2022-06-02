@@ -1,8 +1,9 @@
 const channels = require("./channels");
 const { hexToBuf } = require("./util");
-const { ObjectType, newId } = require("./id");
+const { ObjectType, newId, newIds } = require("./id");
 
 const newTokensChannel = channels.newTokens;
+const traitsUpdatedChannel = channels.traitsUpdated;
 
 /**
  * Adds a new token to an existing project without populating any traits. This
@@ -59,6 +60,107 @@ async function addBareToken({
   return tokenId;
 }
 
+/**
+ * Set or update traits for a token. `featureData` represents the *entire* new
+ * set of traits: i.e., any existing trait memberships not specified here will
+ * be deleted.
+ */
+async function setTokenTraits({
+  client,
+  tokenId,
+  featureData /*: object mapping feature names (strings) to trait values (strings) */,
+  alreadyInTransaction = false,
+}) {
+  if (!alreadyInTransaction) await client.query("BEGIN");
+
+  const projectIdRes = await client.query(
+    'SELECT project_id AS "projectId" FROM tokens WHERE token_id = $1::tokenid',
+    [tokenId]
+  );
+  if (projectIdRes.rows.length === 0)
+    throw new Error("no such token: " + tokenId);
+  const { projectId } = projectIdRes.rows[0];
+
+  // Get relevant feature IDs, adding new features as necessary.
+  if (typeof featureData !== "object" /* arrays are okay */) {
+    throw new Error(
+      "expected object or array for features; got: " + featureData
+    );
+  }
+  const featureNames = Object.keys(featureData);
+  await client.query(
+    `
+    INSERT INTO features (project_id, feature_id, name)
+    VALUES (
+      $1::projectid,
+      unnest($2::featureid[]),
+      unnest($3::text[])
+    )
+    ON CONFLICT (project_id, name) DO NOTHING
+    `,
+    [projectId, newIds(featureNames.length, ObjectType.FEATURE), featureNames]
+  );
+  const featureIdsRes = await client.query(
+    `
+    SELECT feature_id AS "id", name
+    FROM features
+    WHERE project_id = $1 AND name = ANY($2::text[])
+    `,
+    [projectId, featureNames]
+  );
+  const featureIds = featureIdsRes.rows.map((r) => r.id);
+
+  // Get relevant trait IDs, adding new traits as necessary.
+  const traitValues = featureIdsRes.rows.map((r) => {
+    const traitValue = featureData[r.name];
+    if (typeof traitValue !== "string") {
+      throw new Error(
+        `expected string trait value for feature "${r.name}"; got: ${traitValue}`
+      );
+    }
+    return traitValue;
+  });
+  await client.query(
+    `
+    INSERT INTO traits (feature_id, trait_id, value)
+    VALUES (
+      unnest($1::featureid[]),
+      unnest($2::traitid[]),
+      unnest($3::text[])
+    )
+    ON CONFLICT (feature_id, value) DO NOTHING
+    `,
+    [featureIds, newIds(traitValues.length, ObjectType.TRAIT), traitValues]
+  );
+
+  // Update token traits.
+  await client.query("DELETE FROM trait_members WHERE token_id = $1", [
+    tokenId,
+  ]);
+  await client.query(
+    `
+    INSERT INTO trait_members (trait_id, token_id)
+    SELECT trait_id, $1::tokenid
+    FROM traits
+    JOIN unnest($2::featureid[], $3::text[]) AS my_traits(feature_id, value)
+      USING (feature_id, value)
+    ON CONFLICT DO NOTHING
+    `,
+    [tokenId, featureIds, traitValues]
+  );
+
+  await client.query(
+    `
+    INSERT INTO cnf_trait_update_queue (token_id, traits_last_update_time)
+    VALUES ($1, now())
+    ON CONFLICT (token_id) DO UPDATE SET traits_last_update_time = now()
+    `,
+    [tokenId]
+  );
+  await traitsUpdatedChannel.send(client, {});
+  if (!alreadyInTransaction) await client.query("COMMIT");
+}
+
 // tokens is an array of {address, tokenId} objects.
 // type TokenSummary = {
 //   name: string, // e.g. "Chromie Squiggle"
@@ -106,6 +208,7 @@ async function tokenInfoById({ client, tokenIds }) {
 
 module.exports = {
   addBareToken,
+  setTokenTraits,
   tokenSummariesByOnChainId,
   tokenInfoById,
 };

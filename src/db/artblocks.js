@@ -223,86 +223,6 @@ async function addToken({ client, artblocksTokenId, rawTokenData }) {
   return tokenId;
 }
 
-async function populateTraitMembers({
-  client,
-  tokenId,
-  projectId,
-  rawTokenData,
-}) {
-  const featureData = JSON.parse(rawTokenData).features;
-  if (typeof featureData !== "object" /* arrays are okay */) {
-    throw new Error(
-      "expected object or array for features; got: " + featureData
-    );
-  }
-  const featureNames = Object.keys(featureData);
-  await client.query(
-    `
-    INSERT INTO features (project_id, feature_id, name)
-    VALUES (
-      $1::projectid,
-      unnest($2::featureid[]),
-      unnest($3::text[])
-    )
-    ON CONFLICT (project_id, name) DO NOTHING
-    `,
-    [projectId, newIds(featureNames.length, ObjectType.FEATURE), featureNames]
-  );
-  const featureIdsRes = await client.query(
-    `
-    SELECT feature_id AS "id", name
-    FROM features
-    WHERE project_id = $1 AND name = ANY($2::text[])
-    `,
-    [projectId, featureNames]
-  );
-
-  const featureIds = featureIdsRes.rows.map((r) => r.id);
-
-  const traitValues = featureIdsRes.rows.map((r) =>
-    // Normalize all values as strings instead of retaining the JSON type data,
-    // since Art Blocks can't be trusted to give consistently typed values
-    // (e.g., giving JSON `1` for some values and JSON `"1"` for others within
-    // the same feature).
-    String(featureData[r.name])
-  );
-
-  await client.query(
-    `
-    INSERT INTO traits (feature_id, trait_id, value)
-    VALUES (
-      unnest($1::featureid[]),
-      unnest($2::traitid[]),
-      unnest($3::text[])
-    )
-    ON CONFLICT (feature_id, value) DO NOTHING
-    `,
-    [featureIds, newIds(traitValues.length, ObjectType.TRAIT), traitValues]
-  );
-
-  await client.query(
-    `
-    INSERT INTO trait_members (trait_id, token_id)
-    SELECT trait_id, $1::tokenid
-    FROM traits
-    JOIN unnest($2::featureid[], $3::text[]) AS my_traits(feature_id, value)
-      USING (feature_id, value)
-    ON CONFLICT DO NOTHING
-    `,
-    [tokenId, featureIds, traitValues]
-  );
-
-  await client.query(
-    `
-    INSERT INTO cnf_trait_update_queue (token_id, traits_last_update_time)
-    VALUES ($1, now())
-    ON CONFLICT (token_id) DO UPDATE SET traits_last_update_time = now()
-    `,
-    [tokenId]
-  );
-  await traitsUpdatedChannel.send(client, {});
-}
-
 async function updateTokenData({
   client,
   tokenId,
@@ -318,29 +238,25 @@ async function updateTokenData({
     INSERT INTO artblocks_tokens (token_id, token_data, fetch_time)
     VALUES ($1::tokenid, $2, now())
     ON CONFLICT (token_id) DO UPDATE SET token_data = $2, fetch_time = now()
-    RETURNING (SELECT project_id FROM tokens WHERE token_id = $1) AS "projectId"
     `,
     [tokenId, rawTokenData]
   );
   if (updateRes.rowCount !== 1) {
     throw new Error("issue updating artblocks_tokens for ID " + tokenId);
   }
-  const projectId = updateRes.rows[0].projectId;
-  if (projectId == null) {
-    throw new Error("no token with ID " + tokenId);
+  const featureData = JSON.parse(rawTokenData).features;
+  for (const k of Object.keys(featureData)) {
+    // Normalize all values as strings instead of retaining the JSON type data,
+    // since Art Blocks can't be trusted to give consistently typed values
+    // (e.g., giving JSON `1` for some values and JSON `"1"` for others within
+    // the same feature).
+    featureData[k] = String(featureData[k]);
   }
-  await client.query(
-    `
-    DELETE FROM trait_members
-    WHERE token_id = $1
-    `,
-    [tokenId]
-  );
-  await populateTraitMembers({
+  await dbTokens.setTokenTraits({
     client,
     tokenId,
-    projectId,
-    rawTokenData,
+    featureData,
+    alreadyInTransaction: true,
   });
   if (!alreadyInTransaction) await client.query("COMMIT");
 }
