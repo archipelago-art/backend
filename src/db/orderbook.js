@@ -472,6 +472,21 @@ async function highBidIdsForAllTokensInProject({ client, projectId }) {
   return result;
 }
 
+async function bidIdsForAddress({ client, address, activeOnly = true }) {
+  const deadline = activeOnly ? new Date() : null;
+  const res = await client.query(
+    `
+      SELECT bid_id as "bidId"
+      FROM bids
+      WHERE bidder = $1
+      AND (deadline > $2 OR $2 IS NULL)
+      ORDER BY create_time ASC
+    `,
+    [hexToBuf(address), deadline]
+  );
+  return res.rows;
+}
+
 async function bidDetails({ client, bidIds }) {
   const res = await client.query(
     `
@@ -551,6 +566,7 @@ module.exports = {
   floorAskIdsForAllTokensInProject,
   floorAskForEveryProject,
   bidIdsForToken,
+  bidIdsForAddress,
   bidDetails,
   bidDetailsForToken,
   highBidIdsForAllTokensInProject,

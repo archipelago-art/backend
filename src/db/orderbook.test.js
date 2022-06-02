@@ -14,6 +14,7 @@ const {
   floorAskForEveryProject,
   askDetails,
   bidDetailsForToken,
+  bidIdsForAddress,
   highBidIdsForAllTokensInProject,
 } = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
@@ -415,6 +416,59 @@ describe("db/orderbook", () => {
           [bidId]
         );
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([]);
+      })
+    );
+    it(
+      "gets all and active bid IDs for an address",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const deadline = new Date("2050-01-01");
+        const deadlineExpired = new Date("2020-01-01");
+        const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
+        const price = ethers.BigNumber.from("100");
+        const bidder = ethers.constants.AddressZero;
+
+        const bidIdCurrent = await addBid({
+          client,
+          scope: { type: "TOKEN", tokenId },
+          price,
+          deadline,
+          bidder: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+
+        const bidIdExpired = await addBid({
+          client,
+          scope: { type: "TOKEN", tokenId },
+          price,
+          deadline: deadlineExpired,
+          bidder: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("0xabcd"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+
+        const bidIdsCurrent = await bidIdsForAddress({
+          client,
+          address: bidder,
+        });
+        expect(bidIdsCurrent.length).toEqual(1);
+        expect(bidIdsCurrent[0].bidId).toEqual(bidIdCurrent);
+
+        const bidIdsAll = await bidIdsForAddress({
+          client,
+          address: bidder,
+          activeOnly: false,
+        });
+
+        expect(bidIdsAll.length).toEqual(2);
+        expect(
+          bidIdsAll.findIndex((row) => row.bidId === bidIdExpired) >= 0
+        ).toBe(true);
       })
     );
   });
