@@ -10,6 +10,7 @@ const {
   addBid,
   addAsk,
   floorAsk,
+  floorAsks,
   floorAskIdsForAllTokensInProject,
   floorAskForEveryProject,
   askDetails,
@@ -594,9 +595,9 @@ describe("db/orderbook", () => {
     );
   });
 
-  describe("floorAsk", () => {
+  describe("floorAsk(s)", () => {
     it(
-      "returns returns the lowest active ask on a project",
+      "returns the lowest active ask on a project",
       withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [theCube, arch1] = await addTokens(client, [
@@ -640,11 +641,17 @@ describe("db/orderbook", () => {
         await markInactive(client, ask3);
         const floor = await floorAsk({ client, projectId: archetype });
         expect(floor).toEqual(ask2);
+        const floors = await floorAsks({
+          client,
+          projectId: archetype,
+          limit: 2,
+        });
+        expect(floors).toEqual([ask2, ask1]);
       })
     );
 
     it(
-      "returns returns the lowest active ask on a token",
+      "returns the lowest active ask on a token",
       withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [theCube, arch1] = await addTokens(client, [
@@ -699,6 +706,12 @@ describe("db/orderbook", () => {
         });
         const floor = await floorAsk({ client, tokenId: theCube });
         expect(floor).toEqual(ask2);
+        const floors = await floorAsks({
+          client,
+          tokenId: theCube,
+          limit: 2,
+        });
+        expect(floors).toEqual([ask2, ask1]);
       })
     );
 

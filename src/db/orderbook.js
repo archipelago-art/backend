@@ -275,7 +275,7 @@ async function askDetails({ client, askIds }) {
   }));
 }
 
-async function floorAsk({ client, projectId, tokenId }) {
+async function floorAsks({ client, projectId, tokenId, limit }) {
   if ((projectId == null) == (tokenId == null)) {
     throw new Error("must provide either projectId or tokenId");
   }
@@ -288,14 +288,17 @@ async function floorAsk({ client, projectId, tokenId }) {
       AND (project_id = $2 OR $2 IS NULL)
       AND active
     ORDER BY price ASC, create_time ASC
-    LIMIT 1
+    LIMIT $3
     `,
-    [tokenId, projectId]
+    [tokenId, projectId, limit]
   );
-  if (res.rows.length === 0) {
-    return null;
-  }
-  return res.rows[0].askId;
+  return res.rows.map((r) => r.askId);
+}
+
+async function floorAsk({ client, projectId, tokenId }) {
+  const res = await floorAsks({ client, projectId, tokenId, limit: 1 });
+  if (res.length === 0) return null;
+  return res[0];
 }
 
 /**
@@ -578,6 +581,7 @@ module.exports = {
   addAsk,
   askDetails,
   floorAsk,
+  floorAsks,
   floorAskIdsForAllTokensInProject,
   floorAskForEveryProject,
   askIdsForAddress,
