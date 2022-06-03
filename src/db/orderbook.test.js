@@ -522,7 +522,14 @@ describe("db/orderbook", () => {
 
           expect(await floorAsk({ client, tokenId: theCube })).toEqual(askId);
           expect(await askDetails({ client, askIds: [askId] })).toEqual([
-            { askId, price, deadline, asker, tokenId: theCube },
+            {
+              askId,
+              price,
+              createTime: expect.any(Date),
+              deadline,
+              asker,
+              tokenId: theCube,
+            },
           ]);
         });
       })

@@ -260,7 +260,13 @@ async function addAsk({
 async function askDetails({ client, askIds }) {
   const res = await client.query(
     `
-    SELECT ask_id AS "askId", price, deadline, asker, token_id AS "tokenId"
+    SELECT
+      ask_id AS "askId",
+      price,
+      create_time AS "createTime",
+      deadline,
+      asker,
+      token_id AS "tokenId"
     FROM asks
     WHERE ask_id = ANY($1::askid[])
     `,
@@ -269,6 +275,7 @@ async function askDetails({ client, askIds }) {
   return res.rows.map((r) => ({
     askId: r.askId,
     price: ethers.BigNumber.from(r.price),
+    createTime: r.createTime,
     deadline: r.deadline,
     asker: bufToAddress(r.asker),
     tokenId: r.tokenId,
