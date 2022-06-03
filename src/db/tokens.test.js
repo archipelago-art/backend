@@ -61,6 +61,14 @@ describe("db/tokens", () => {
         if (a !== b) throw new Error(`token count mismatch: ${a} !== ${b}`);
         return a;
       }
+      async function getTokenId(onChainTokenId) {
+        const tokenContract = artblocks.CONTRACT_ARTBLOCKS_STANDARD;
+        return await tokens.tokenIdByChainData({
+          client,
+          tokenContract,
+          onChainTokenId,
+        });
+      }
       expect(await getTokenCount()).toEqual(0);
       const tokenId1 = await tokens.addBareToken({
         client,
@@ -70,6 +78,8 @@ describe("db/tokens", () => {
       });
       expect(tokenId1).toEqual(expect.any(String));
       expect(await getTokenCount()).toEqual(1);
+
+      expect(await getTokenId(snapshots.ARCH_66)).toEqual(null);
       const tokenId2 = await tokens.addBareToken({
         client,
         projectId: archetype,
@@ -79,6 +89,7 @@ describe("db/tokens", () => {
       expect(await getTokenCount()).toEqual(2);
       expect(tokenId2).toEqual(expect.any(String));
       expect(tokenId1).not.toEqual(tokenId2);
+      expect(await getTokenId(snapshots.ARCH_66)).toEqual(tokenId2);
     })
   );
 

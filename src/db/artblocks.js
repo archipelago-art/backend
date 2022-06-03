@@ -35,7 +35,12 @@ function splitOnChainTokenId(artblocksTokenId) {
   return { artblocksProjectIndex, tokenIndex };
 }
 
-async function addProject({ client, project, slugOverride }) {
+async function addProject({
+  client,
+  project,
+  slugOverride,
+  alreadyInTransaction = false,
+}) {
   if (typeof project.scriptJson !== "string") {
     throw new Error(
       "project.scriptJson should be a raw JSON string; got: " +
@@ -44,7 +49,7 @@ async function addProject({ client, project, slugOverride }) {
   }
   const rawAspectRatio = JSON.parse(project.scriptJson).aspectRatio;
   const aspectRatio = normalizeAspectRatio(rawAspectRatio);
-  await client.query("BEGIN");
+  if (!alreadyInTransaction) await client.query("BEGIN");
   const projectIdRes = await client.query(
     `
     SELECT project_id AS id FROM artblocks_projects
@@ -112,7 +117,7 @@ async function addProject({ client, project, slugOverride }) {
     `,
     [projectId, project.projectId, project.scriptJson, project.script]
   );
-  await client.query("COMMIT");
+  if (!alreadyInTransaction) await client.query("COMMIT");
   return projectId;
 }
 

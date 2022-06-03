@@ -1,4 +1,7 @@
+const artblocks = require("../../db/artblocks");
+
 const makeEchoJob = require("./echo");
+const makeErc721TransfersJob = require("./erc721Transfers");
 
 /*::
 interface Job {
@@ -34,6 +37,10 @@ interface Job {
 
 const JOBS = [
   makeEchoJob(),
+  makeErc721TransfersJob({
+    address: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
+    startBlock: 11341469,
+  }),
   // ...
 ];
 

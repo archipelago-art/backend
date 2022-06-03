@@ -358,7 +358,7 @@ async function rollForwardJobForRange({
     log.debug`updated job ${jobId} progress to #${maxBlock}`;
     return { type: "OK" };
   } catch (e) {
-    log.error`failure applying job ${jobId} to ${minBlock}..=${maxBlock}: ${e}`;
+    log.error`failure applying job ${jobId} to ${minBlock}..=${maxBlock}: ${e} // ${e.stack}`;
     return { type: "ERROR", error: e };
   }
 }
