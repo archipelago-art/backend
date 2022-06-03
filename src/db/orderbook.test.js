@@ -548,9 +548,10 @@ describe("db/orderbook", () => {
         expect(active).toBe(true); // for now...
       })
     );
-    it.only(
+    it(
       "gets all and active ask IDs for an address",
       withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [theCube] = await addTokens(client, [snapshots.THE_CUBE]);
         const price = ethers.BigNumber.from("100");
         const asker = ethers.constants.AddressZero;
