@@ -61,13 +61,7 @@ async function addBareToken({
   // finishes. This insert shouldn't conflict because we've just added the
   // token, so the foreign key constraint couldn't have been satisfied until
   // now.
-  await client.query(
-    `
-    INSERT INTO token_traits_queue (token_id, create_time)
-    VALUES ($1::tokenid, now())
-    `,
-    [tokenId]
-  );
+  await enqueueTokenTraitsQueueEntries({ client, tokenIds: [tokenId] });
 
   if (!alreadyInTransaction) await client.query("COMMIT");
   return tokenId;
@@ -99,6 +93,16 @@ async function claimTokenTraitsQueueEntries({
     [limit]
   );
   return res.rows.map((r) => r.tokenId);
+}
+
+async function enqueueTokenTraitsQueueEntries({ client, tokenIds }) {
+  await client.query(
+    `
+    INSERT INTO token_traits_queue (token_id, create_time)
+    VALUES (unnest($1::tokenid[]), now())
+    `,
+    [tokenIds]
+  );
 }
 
 /**
@@ -282,6 +286,7 @@ async function tokenInfoById({ client, tokenIds }) {
 module.exports = {
   addBareToken,
   claimTokenTraitsQueueEntries,
+  enqueueTokenTraitsQueueEntries,
   setTokenTraits,
   tokenIdByChainData,
   tokenSummariesByOnChainId,

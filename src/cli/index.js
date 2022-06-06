@@ -22,6 +22,7 @@ const commands = [
   ["alchemy-poke-transfers", require("./alchemyPokeTransfers")],
   ["alchemy-undefer-transfers", require("./alchemyUndeferTransfers")],
   ["watch-cnf-queue", require("./watchCnfQueue")],
+  ["watch-token-traits-queue", require("./watchTokenTraitsQueue")],
   ["opensea", require("./opensea")],
   ["follow-chain", require("./followChain")],
   ["add-historical-blocks", require("./addHistoricalBlocks")],
