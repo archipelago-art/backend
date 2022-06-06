@@ -244,12 +244,8 @@ async function addNewHeaders({ pool, provider }) {
     let expectedParentHash = null;
     if (i > 0) {
       expectedParentHash = blocks[i - 1].hash;
-      log.debug`expecting parent hash ${expectedParentHash} based on previous block`;
     } else if (localHead != null) {
       expectedParentHash = localHead.blockHash;
-      log.debug`expecting parent hash ${expectedParentHash} based on local head`;
-    } else {
-      log.debug`no expected parent hash (this appears to be the first block)`;
     }
     if (expectedParentHash != null && block.parentHash !== expectedParentHash) {
       // This can happen if a reorg occurs between the times that we fetch
