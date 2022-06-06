@@ -26,7 +26,7 @@ function makeProvider() {
   return new ethers.providers.AlchemyProvider(network, apiKey);
 }
 
-async function main({ pool }) {
+async function main({ pool, newBlocksBatchSize = null }) {
   const log = childLog("main");
   const provider = makeProvider();
 
@@ -58,7 +58,11 @@ async function main({ pool }) {
       // 2. Get new block headers.
       let moreBlocks = false;
       {
-        const res = await addNewHeaders({ pool, provider });
+        const res = await addNewHeaders({
+          pool,
+          provider,
+          batchSize: newBlocksBatchSize,
+        });
         switch (res.type) {
           case "OK":
             log.debug`addNewHeaders succeeded, adding ${res.blocksAdded} blocks; more=${res.moreBlocks}`;
@@ -193,7 +197,11 @@ async function unrollBlocksSince({ pool, provider, firstBadHeight }) {
   log.info`unrolled ${blocksToRollBack.length} blocks from ${firstBadHeight}`;
 }
 
-async function addNewHeaders({ pool, provider }) {
+async function addNewHeaders({
+  pool,
+  provider,
+  batchSize: maxBatchSize = null,
+}) {
   const log = childLog("addNewHeaders");
   const localHead = await acqrel(pool, (client) =>
     dbEth.latestBlockHeader({ client })
@@ -217,10 +225,10 @@ async function addNewHeaders({ pool, provider }) {
   log.info`head heights: local=${localHeadNumber}, remote=${
     remoteHead.number
   }, delta=${remoteHead.number - localHeadNumber}`;
-  const maxBatchSize = 256;
   const minBlock = localHeadNumber + 1;
   let maxBlock = remoteHead.number;
   let moreBlocks = false;
+  if (maxBatchSize == null) maxBatchSize = 256;
   if (maxBlock > localHeadNumber + maxBatchSize) {
     maxBlock = localHeadNumber + maxBatchSize;
     moreBlocks = true;
