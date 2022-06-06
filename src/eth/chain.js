@@ -284,6 +284,10 @@ async function applyJobs({ pool, provider }) {
       log.warn`job #${jobId} is at ${lastBlockNumber} ahead of local head ${localHead.blockNumber}; skipping`;
       continue;
     }
+    if (lastBlockNumber === localHead.blockNumber) {
+      log.debug`job #${jobId} up to date at ${lastBlockNumber}; skipping`;
+      continue;
+    }
     const job = getJob(jobId);
     const minBlock = lastBlockNumber + 1;
     const maxLength = job.blockBatchSize();
