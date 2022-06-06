@@ -73,19 +73,6 @@ async function addBareToken({
   return tokenId;
 }
 
-async function tokenIdByChainData({ client, tokenContract, onChainTokenId }) {
-  const res = await client.query(
-    `
-    SELECT token_id AS "tokenId" FROM tokens
-    WHERE token_contract = $1::address AND on_chain_token_id = $2::uint256
-    `,
-    [hexToBuf(tokenContract), onChainTokenId]
-  );
-  const row = res.rows[0];
-  if (row == null) return null;
-  return row.tokenId;
-}
-
 /**
  * Set or update traits for a token. `featureData` represents the *entire* new
  * set of traits: i.e., any existing trait memberships not specified here will
@@ -204,6 +191,19 @@ async function setTokenTraits({
     [tokenId]
   );
   if (!alreadyInTransaction) await client.query("COMMIT");
+}
+
+async function tokenIdByChainData({ client, tokenContract, onChainTokenId }) {
+  const res = await client.query(
+    `
+    SELECT token_id AS "tokenId" FROM tokens
+    WHERE token_contract = $1::address AND on_chain_token_id = $2::uint256
+    `,
+    [hexToBuf(tokenContract), onChainTokenId]
+  );
+  const row = res.rows[0];
+  if (row == null) return null;
+  return row.tokenId;
 }
 
 // tokens is an array of {address, tokenId} objects.
