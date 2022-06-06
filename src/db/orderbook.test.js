@@ -116,13 +116,14 @@ describe("db/orderbook", () => {
           });
           await marketEvents.listen(listenClient);
 
+          const nonce = ethers.BigNumber.from("0xabcd");
           const bidId = await addBid({
             client,
             scope: { type: "PROJECT", projectId: archetype },
             price,
             deadline,
             bidder,
-            nonce: ethers.BigNumber.from("0xabcd"),
+            nonce,
             agreement: "0x",
             message: "0x",
             signature: "0x" + "fe".repeat(65),
@@ -141,6 +142,7 @@ describe("db/orderbook", () => {
             },
             venue: "ARCHIPELAGO",
             bidder,
+            nonce: nonce.toString(),
             currency: "ETH",
             price: String(price),
             timestamp: expect.any(String),
@@ -151,6 +153,7 @@ describe("db/orderbook", () => {
             bidId,
             price,
             bidder,
+            nonce: nonce.toString(),
             deadline,
             scope: { type: "PROJECT", scope: archetype },
           };
@@ -179,13 +182,14 @@ describe("db/orderbook", () => {
           });
           await marketEvents.listen(listenClient);
 
+          const nonce = ethers.BigNumber.from("0xabcd");
           const bidId = await addBid({
             client,
             scope: { type: "TOKEN", tokenId },
             price,
             deadline,
             bidder,
-            nonce: ethers.BigNumber.from("0xabcd"),
+            nonce,
             agreement: "0x",
             message: "0x",
             signature: "0x" + "fe".repeat(65),
@@ -204,6 +208,7 @@ describe("db/orderbook", () => {
             },
             venue: "ARCHIPELAGO",
             bidder,
+            nonce: nonce.toString(),
             currency: "ETH",
             price: String(price),
             timestamp: expect.any(String),
@@ -214,6 +219,7 @@ describe("db/orderbook", () => {
             bidId,
             price,
             bidder,
+            nonce: nonce.toString(),
             deadline,
             scope: { type: "TOKEN", scope: tokenId },
           };
@@ -262,13 +268,14 @@ describe("db/orderbook", () => {
           });
           await marketEvents.listen(listenClient);
 
+          const nonce = ethers.BigNumber.from("0xabcd");
           const bidId = await addBid({
             client,
             scope: { type: "TRAIT", traitId },
             price,
             deadline,
             bidder,
-            nonce: ethers.BigNumber.from("0xabcd"),
+            nonce,
             agreement: "0x",
             message: "0x",
             signature: "0x" + "fe".repeat(65),
@@ -288,6 +295,7 @@ describe("db/orderbook", () => {
             },
             venue: "ARCHIPELAGO",
             bidder,
+            nonce: nonce.toString(),
             currency: "ETH",
             price: String(price),
             timestamp: expect.any(String),
@@ -297,6 +305,7 @@ describe("db/orderbook", () => {
             bidId,
             price,
             bidder,
+            nonce: nonce.toString(),
             deadline,
             scope: { type: "TRAIT", scope: traitId },
           };
@@ -339,13 +348,14 @@ describe("db/orderbook", () => {
           });
           await marketEvents.listen(listenClient);
 
+          const nonce = ethers.BigNumber.from("0xabcd");
           const bidId = await addBid({
             client,
             scope: { type: "CNF", cnfId },
             price: ethers.BigNumber.from("100"),
             deadline: new Date("2099-01-01"),
             bidder: ethers.constants.AddressZero,
-            nonce: ethers.BigNumber.from("0xabcd"),
+            nonce,
             agreement: "0x",
             message: "0x",
             signature: "0x" + "fe".repeat(65),
@@ -363,6 +373,7 @@ describe("db/orderbook", () => {
             },
             venue: "ARCHIPELAGO",
             bidder,
+            nonce: nonce.toString(),
             currency: "ETH",
             price: String(price),
             timestamp: expect.any(String),
@@ -373,6 +384,7 @@ describe("db/orderbook", () => {
             bidId,
             price,
             bidder,
+            nonce: nonce.toString(),
             deadline,
             scope: { type: "CNF", scope: cnfId },
           };
@@ -390,13 +402,14 @@ describe("db/orderbook", () => {
         const price = ethers.BigNumber.from("100");
         const bidder = ethers.constants.AddressZero;
 
+        const nonce = ethers.BigNumber.from("0xabcd");
         const bidId = await addBid({
           client,
           scope: { type: "PROJECT", projectId: archetype },
           price: ethers.BigNumber.from("100"),
           deadline,
           bidder: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          nonce,
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
@@ -405,6 +418,7 @@ describe("db/orderbook", () => {
           bidId,
           price,
           bidder,
+          nonce: nonce.toString(),
           deadline,
           scope: { type: "PROJECT", scope: archetype },
         };
@@ -493,13 +507,14 @@ describe("db/orderbook", () => {
           });
           await marketEvents.listen(listenClient);
 
+          const nonce = ethers.BigNumber.from("0xabcd");
           const askId = await addAsk({
             client,
             tokenId: theCube,
             price,
             deadline,
             asker,
-            nonce: ethers.BigNumber.from("0xabcd"),
+            nonce,
             agreement: "0x",
             message: "0x",
             signature: "0x" + "fe".repeat(65),
@@ -514,6 +529,7 @@ describe("db/orderbook", () => {
             tokenIndex: 250,
             venue: "ARCHIPELAGO",
             asker,
+            nonce: nonce.toString(),
             currency: "ETH",
             price: String(price),
             timestamp: expect.any(String),
@@ -528,6 +544,7 @@ describe("db/orderbook", () => {
               createTime: expect.any(Date),
               deadline,
               asker,
+              nonce: nonce.toString(),
               tokenId: theCube,
             },
           ]);

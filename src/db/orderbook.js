@@ -155,6 +155,7 @@ async function addBid({
     scope: outputScope,
     venue: "ARCHIPELAGO",
     bidder,
+    nonce: String(nonce),
     currency: "ETH",
     price: String(price),
     timestamp: createTime.toISOString(),
@@ -246,6 +247,7 @@ async function addAsk({
     tokenIndex,
     venue: "ARCHIPELAGO",
     asker,
+    nonce: String(nonce),
     currency: "ETH",
     price: String(price),
     timestamp: createTime.toISOString(),
@@ -266,6 +268,7 @@ async function askDetails({ client, askIds }) {
       create_time AS "createTime",
       deadline,
       asker,
+      nonce,
       token_id AS "tokenId"
     FROM asks
     WHERE ask_id = ANY($1::askid[])
@@ -278,6 +281,7 @@ async function askDetails({ client, askIds }) {
     createTime: r.createTime,
     deadline: r.deadline,
     asker: bufToAddress(r.asker),
+    nonce: String(r.nonce),
     tokenId: r.tokenId,
   }));
 }
@@ -515,7 +519,7 @@ async function askIdsForAddress({ client, address, activeOnly = true }) {
 async function bidDetails({ client, bidIds }) {
   const res = await client.query(
     `
-    SELECT bid_id AS "bidId", price, deadline, bidder, scope
+    SELECT bid_id AS "bidId", price, deadline, bidder, scope, nonce
     FROM bids
     WHERE bid_id = ANY($1::bidid[])
     `,
@@ -526,6 +530,7 @@ async function bidDetails({ client, bidIds }) {
     price: ethers.BigNumber.from(r.price),
     deadline: r.deadline,
     bidder: bufToAddress(r.bidder),
+    nonce: String(r.nonce),
     scope: {
       type: objectTypeToName[idType(r.scope)],
       scope: r.scope,
