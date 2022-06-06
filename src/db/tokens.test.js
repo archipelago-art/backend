@@ -94,6 +94,64 @@ describe("db/tokens", () => {
   );
 
   it(
+    "claims entries from the token-traits queue",
+    withTestDb(async ({ client: client1, pool }) => {
+      const [{ id: archetype }] = await addProjects(client1, [
+        snapshots.ARCHETYPE,
+      ]);
+      async function getCommittedQueueSize() {
+        const res = await pool.query(
+          'SELECT count(1)::int AS "n" FROM token_traits_queue'
+        );
+        return res.rows[0].n;
+      }
+      expect(await getCommittedQueueSize()).toEqual(0);
+      const tokenId1 = await tokens.addBareToken({
+        client: client1,
+        projectId: archetype,
+        tokenIndex: 250,
+        onChainTokenId: snapshots.THE_CUBE,
+      });
+      const tokenId2 = await tokens.addBareToken({
+        client: client1,
+        projectId: archetype,
+        tokenIndex: 66,
+        onChainTokenId: snapshots.ARCH_66,
+      });
+      expect(await getCommittedQueueSize()).toEqual(2);
+
+      async function claimOneEntry(client) {
+        return await tokens.claimTokenTraitsQueueEntries({
+          client,
+          limit: 1,
+          alreadyInTransaction: true,
+        });
+      }
+
+      await acqrel(pool, async (client2) => {
+        await client1.query("BEGIN");
+        await client2.query("BEGIN");
+        const e1 = await claimOneEntry(client1);
+        const e2 = await claimOneEntry(client2);
+        expect(e1).toEqual([tokenId1]); // added earlier
+        expect(e2).toEqual([tokenId2]);
+        expect(await claimOneEntry(client1)).toEqual([]);
+        expect(await claimOneEntry(client2)).toEqual([]);
+
+        await tokens.setTokenTraits({
+          client: client2,
+          tokenId: tokenId2,
+          featureData: { Foo: "Bar" },
+        });
+        await client2.query("COMMIT");
+        expect(await getCommittedQueueSize()).toEqual(1);
+        await client1.query("ROLLBACK");
+        expect(await getCommittedQueueSize()).toEqual(1);
+      });
+    })
+  );
+
+  it(
     "supports tokenSummariesByOnChainId",
     withTestDb(async ({ client }) => {
       await addProjects(client, [snapshots.ARCHETYPE]);

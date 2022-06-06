@@ -74,6 +74,34 @@ async function addBareToken({
 }
 
 /**
+ * Removes some unclaimed entries from the token-traits queue. Must be run
+ * within a transaction; the caller should fetch trait data, call
+ * `setTokenTraits`, and commit the transaction, or else roll back.
+ */
+async function claimTokenTraitsQueueEntries({
+  client,
+  limit,
+  alreadyInTransaction = false,
+}) {
+  if (!alreadyInTransaction)
+    throw new Error("must be in transaction to claim queue entries");
+  const res = await client.query(
+    `
+    DELETE FROM token_traits_queue
+    WHERE token_id IN (
+      SELECT token_id FROM token_traits_queue
+      ORDER BY create_time ASC
+      LIMIT $1
+      FOR UPDATE SKIP LOCKED
+    )
+    RETURNING token_id AS "tokenId"
+    `,
+    [limit]
+  );
+  return res.rows.map((r) => r.tokenId);
+}
+
+/**
  * Set or update traits for a token. `featureData` represents the *entire* new
  * set of traits: i.e., any existing trait memberships not specified here will
  * be deleted.
@@ -253,6 +281,7 @@ async function tokenInfoById({ client, tokenIds }) {
 
 module.exports = {
   addBareToken,
+  claimTokenTraitsQueueEntries,
   setTokenTraits,
   tokenIdByChainData,
   tokenSummariesByOnChainId,
