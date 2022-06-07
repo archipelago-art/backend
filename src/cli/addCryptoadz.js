@@ -1,28 +1,36 @@
-const { addCryptoadz, fixCryptoadz } = require("../db/cryptoadz");
+const {
+  addCryptoadz,
+  fixCryptoadz,
+  addSpecialCryptoadz,
+} = require("../db/cryptoadz");
 const { withClient } = require("../db/util");
 const log = require("../util/log")(__filename);
 
 async function main(args) {
-  if (args.length === 0) {
-    try {
+  if (args.length !== 1) {
+    throw new Error("usage: add-cryptoadz <add|fix|add-special>");
+  }
+  switch (args[0]) {
+    case "add": {
       await withClient((client) => addCryptoadz({ client }));
       log.info`added toadz :)`;
-    } catch (e) {
-      log.error`failed to add toadz: ${e}`;
-      process.exitCode = 1;
-      return;
+      break;
     }
-  } else if (args.length === 1 && args[0] === "fix") {
-    try {
+    case "fix": {
       await withClient((client) => fixCryptoadz({ client }));
       log.info`fixed toadz :)`;
-    } catch (e) {
-      log.error`failed to fix toadz: ${e}`;
-      process.exitCode = 1;
-      return;
+      break;
     }
-  } else {
-    throw new Error("usage: add-cryptoadz [fix]");
+    case "add-special": {
+      await withClient(async (client) => {
+        log.info`adding special toadz`;
+        const n = await addSpecialCryptoadz({ client });
+        log.info`added ${n} special toadz :)`;
+      });
+      break;
+    }
+    default:
+      throw new Error("usage: add-cryptoadz <add|fix|add-special>");
   }
 }
 

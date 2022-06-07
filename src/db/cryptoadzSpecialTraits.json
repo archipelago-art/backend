@@ -1,0 +1,954 @@
+[
+  {
+    "tokenId": 1000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "0xtoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 2000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "2croakchanes"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 3000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "41croak6"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 4000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "91croak5"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 5000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "9croak99"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 6000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Aversanoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 7000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Barcroaka"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 8000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Basglyphtoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 9000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Bastoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 10000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "belethtoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 11000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "BNToad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 12000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Chanzerotoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 13000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Cheftoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 14000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Clairetoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 15000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Croaklehat"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 16000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Senecatoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 17000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Crycroak"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 18000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Deezetoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 19000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Dinfoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 20000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Domtoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 21000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Drocroak"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 22000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Emmytoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 23000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Erintoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 24000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Geebztoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 25000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Gustoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 26000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Heeeeeeeetoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 27000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Herreratoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 28000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Huntoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 29000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Hypetoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 30000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Jeztoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 31000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Koppertoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 32000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Leetoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 33000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Marlotoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 34000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Miketoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 35000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Motitoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 36000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Moxtoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 37000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Mr7croak3"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 38000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Nourtoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 39000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Onitoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 40000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Rastertoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 41000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Samjtoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 42000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Slowbrodicktoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 43000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Snowfroad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 44000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Sobytoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 45000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Spvcetovd"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 46000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Sumtoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 47000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Tappytoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 48000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Termitoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 49000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Tiodan"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 50000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Toadbeef"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 51000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Trilltoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 52000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Vegtoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 53000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "VGFtoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 54000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Westoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 55000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Yuppietoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  },
+  {
+    "tokenId": 56000000,
+    "attributes": [
+      {
+        "feature": "Custom",
+        "trait": "1/1"
+      },
+      {
+        "feature": "Name",
+        "trait": "Zolitoad"
+      },
+      {
+        "feature": "# Traits",
+        "trait": "2"
+      }
+    ]
+  }
+]

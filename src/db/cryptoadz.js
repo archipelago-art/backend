@@ -1,9 +1,14 @@
+const api = require("../api");
 const { withClient } = require("../db/util");
 const log = require("../util/log")(__filename);
 const { newId, newIds, ObjectType } = require("./id");
+const tokens = require("./tokens");
 const { hexToBuf } = require("./util");
 const { newTokensChannel } = require("./artblocks");
+const toadzSpecialTraits = require("./cryptoadzSpecialTraits.json");
 const toadzTraits = require("./cryptoadzTraits.json");
+
+const PROJECT_SLUG = "cryptoadz";
 
 function processToadzData(tokenIds) {
   // feature name to feature id
@@ -49,8 +54,9 @@ async function fixCryptoadz({ client, testMode }) {
     `
     SELECT project_id AS "projectId"
     FROM projects
-    WHERE slug='cryptoadz';
-    `
+    WHERE slug=$1;
+    `,
+    [PROJECT_SLUG]
   );
   const projectId = projectIdRes.rows[0].projectId;
   const toadzIdsRes = await client.query(
@@ -214,4 +220,32 @@ This project is in the public domain. Feel free to use the toadz in any way you 
   return projectId;
 }
 
-module.exports = { addCryptoadz, fixCryptoadz };
+async function addSpecialCryptoadz({ client }) {
+  await client.query("BEGIN");
+  const projectId = await api.resolveProjectId({ client, slug: PROJECT_SLUG });
+  let n = 0;
+  for (const row of toadzSpecialTraits) {
+    const tokenId = await tokens.addBareToken({
+      client,
+      projectId,
+      tokenIndex: row.tokenId,
+      onChainTokenId: row.tokenId,
+      alreadyInTransaction: true,
+    });
+    const featureData = {};
+    for (const { feature, trait } of row.attributes) {
+      featureData[feature] = trait;
+    }
+    await tokens.setTokenTraits({
+      client,
+      tokenId,
+      featureData,
+      alreadyInTransaction: true,
+    });
+    n++;
+  }
+  await client.query("COMMIT");
+  return n;
+}
+
+module.exports = { addCryptoadz, fixCryptoadz, addSpecialCryptoadz };
