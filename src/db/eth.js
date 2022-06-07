@@ -264,6 +264,18 @@ async function deleteErc721Transfers({ client, blockHash, tokenContract }) {
   return res.rowCount;
 }
 
+
+async function getTransferCount({ client, fromAddress, toAddress }) {
+  const res = await client.query(
+    `
+    SELECT count(1) AS "count" FROM erc721_transfers
+    WHERE from_address = $1::address AND to_address = $2::address
+    `,
+    [hexToBuf(fromAddress), hexToBuf(toAddress)]
+  );
+  return Number(res.rows[0].count);
+}
+
 module.exports = {
   getJobProgress,
   addJob,
@@ -277,4 +289,5 @@ module.exports = {
 
   addErc721Transfers,
   deleteErc721Transfers,
+  getTransferCount,
 };

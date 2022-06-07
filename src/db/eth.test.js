@@ -328,6 +328,30 @@ describe("db/eth", () => {
           { ...aliceSendsSquiggle, blockNumber: 0 },
           { ...bobReturnsSquiggleLater, blockNumber: 2 },
         ]);
+        expect(
+          await eth.getTransfersForToken({ client, tokenId: squiggle })
+        ).toEqual(
+          [aliceMintsSquiggle, aliceSendsSquiggle, bobReturnsSquiggleLater].map(
+            (e) => ({
+              blockNumber: blocks.find((b) => b.hash === e.blockHash).number,
+              logIndex: e.logIndex,
+              transactionHash: e.transactionHash,
+              blockHash: e.blockHash,
+              timestamp: new Date(
+                1000 * blocks.find((b) => b.hash === e.blockHash).timestamp
+              ),
+              from: e.fromAddress,
+              to: e.toAddress,
+            })
+          )
+        );
+        expect(
+          await eth.getTransferCount({
+            client,
+            fromAddress: alice,
+            toAddress: bob,
+          })
+        ).toEqual(1);
         await eth.deleteErc721Transfers({
           client,
           blockHash: blocks[0].hash,

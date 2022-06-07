@@ -2,6 +2,7 @@ const accounts = require("../db/accounts");
 const artblocks = require("../db/artblocks");
 const cnfs = require("../db/cnfs");
 const emails = require("../db/emails");
+const eth = require("../db/eth");
 const erc721Transfers = require("../db/erc721Transfers");
 const orderbook = require("../db/orderbook");
 const { bufToAddress, hexToBuf } = require("../db/util");
@@ -395,7 +396,7 @@ async function tokenHistory({ client, tokenId }) {
 }
 
 async function transferCount({ client, fromAddress, toAddress }) {
-  const count = await erc721Transfers.getTransferCount({
+  const count = await eth.getTransferCount({
     client,
     fromAddress,
     toAddress,

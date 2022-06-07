@@ -6,6 +6,7 @@ const api = require(".");
 const artblocks = require("../db/artblocks");
 const autoglyphs = require("../db/autoglyphs");
 const emails = require("../db/emails");
+const eth = require("../db/eth");
 const erc721Transfers = require("../db/erc721Transfers");
 const openseaIngest = require("../db/opensea/ingestEvents");
 const wellKnownCurrencies = require("../db/wellKnownCurrencies");
@@ -823,7 +824,7 @@ describe("api", () => {
       );
       const theCube = await sc.token(snapshots.THE_CUBE);
       await artblocks.addProject({ client, project: archetype });
-      await artblocks.addToken({
+      const tokenId = await artblocks.addToken({
         client,
         artblocksTokenId: snapshots.THE_CUBE,
         rawTokenData: theCube,
@@ -833,27 +834,23 @@ describe("api", () => {
       const alice = ethers.utils.getAddress(
         ethers.utils.id("address:alice").slice(0, 42)
       );
-      function pad(value, type) {
-        return ethers.utils.defaultAbiCoder.encode([type], [value]);
-      }
+      const blockHash = "0x" + "77".repeat(32);
+      const block = {
+        hash: blockHash,
+        parentHash: ethers.constants.HashZero,
+        number: 0,
+        timestamp: 0,
+      };
+      await eth.addBlock({ client, block });
       const transfer = {
-        address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-        removed: false,
-        data: "0x",
-        tokenId: snapshots.THE_CUBE,
-        topics: [
-          ethers.utils.id("Transfer(address,address,uint256)"),
-          pad(zero, "address"),
-          pad(alice, "address"),
-          pad(snapshots.THE_CUBE, "uint256"),
-        ],
-        blockNumber: 12164300,
-        blockHash: ethers.utils.id("block:12164300"),
+        tokenId,
+        fromAddress: zero,
+        toAddress: alice,
+        blockHash,
         logIndex: 123,
         transactionHash: "0x" + "fe".repeat(32),
-        transactionIndex: 77,
       };
-      await erc721Transfers.addTransfers({ client, transfers: [transfer] });
+      await eth.addErc721Transfers({ client, transfers: [transfer] });
       const res = await api.transferCount({
         client,
         fromAddress: zero,
