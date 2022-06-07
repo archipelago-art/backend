@@ -335,6 +335,7 @@ async function tokenSummariesByAccount({ client, account }) {
       tokenIndex: x.tokenIndex,
     }),
     tokenIndex: x.tokenIndex,
+    tokenId: x.tokenId,
     artistName: x.artistName,
     aspectRatio: x.aspectRatio,
     contractAddress: bufToAddress(x.contractAddress),

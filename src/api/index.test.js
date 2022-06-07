@@ -578,6 +578,18 @@ describe("api", () => {
         client,
         account: cherylsVault,
       });
+      expect(tokens.length).toEqual(1);
+      expect(tokens[0]).toEqual({
+        name: "Archetype",
+        slug: "archetype",
+        imageUrlTemplate:
+          "https://img.archipelago.art/artblocks/{sz}/23/000/250",
+        tokenIndex: 250,
+        tokenId: tokens[0].tokenId,
+        artistName: "Kjetil Golid",
+        aspectRatio: 1,
+        contractAddress: "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270",
+      });
     })
   );
 
