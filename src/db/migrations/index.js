@@ -121,6 +121,7 @@ const migrationModules = [
   "./0110_artblocks_tokens_token_id_fkey",
   "./0111_token_traits_queue",
   "./0112_new_erc721_transfers",
+  "./0113_erc721_transfers_adjust_unique_constraint",
   // ...
 ];
 
