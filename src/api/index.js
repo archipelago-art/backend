@@ -304,7 +304,7 @@ async function tokenSummariesByAccount({ client, account }) {
     WITH owned_tokens AS (
       SELECT token_id FROM (
         SELECT DISTINCT ON (token_id) token_id, to_address
-        FROM erc_721_transfers
+        FROM erc721_transfers
         WHERE (to_address = $1::address OR from_address = $1::address)
         ORDER BY token_id, block_number DESC, log_index DESC
       ) q
