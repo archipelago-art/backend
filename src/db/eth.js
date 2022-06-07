@@ -1,6 +1,8 @@
 const ethers = require("ethers");
 
 const log = require("../util/log")(__filename);
+
+const { marketEvents } = require("./channels");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 
 async function getJobProgress({ client }) {
@@ -153,7 +155,11 @@ async function deleteBlock({ client, blockHash }) {
   return res.rowCount > 0;
 }
 
-async function addErc721Transfers({ client, transfers }) {
+async function addErc721Transfers({
+  client,
+  transfers,
+  alreadyInTransaction = false,
+}) {
   const n = transfers.length;
   const tokenIds = Array(n);
   const fromAddresses = Array(n);
@@ -171,6 +177,8 @@ async function addErc721Transfers({ client, transfers }) {
     transactionHashes[i] = hexToBuf(transfer.transactionHash);
   }
 
+  if (!alreadyInTransaction) await client.query("BEGIN");
+
   const res = await client.query(
     `
     INSERT INTO erc721_transfers (
@@ -186,6 +194,29 @@ async function addErc721Transfers({ client, transfers }) {
       unnest($1::tokenid[], $2::address[], $3::address[], $4::bytes32[], $5::int[], $6::bytes32[])
         AS i(token_id, from_address, to_address, block_hash, log_index, transaction_hash)
       LEFT OUTER JOIN eth_blocks USING (block_hash)
+    RETURNING (
+      SELECT slug
+      FROM tokens
+      JOIN projects USING (project_id)
+      WHERE token_id = erc721_transfers.token_id
+    ) as slug,
+    (
+      SELECT token_index
+      FROM tokens
+      WHERE token_id = erc721_transfers.token_id
+    ) as "tokenIndex",
+    (
+      SELECT block_timestamp
+      FROM eth_blocks
+      WHERE block_hash = erc721_transfers.block_hash
+    ) as "blockTimestamp",
+      token_id as "tokenId",
+      from_address as "fromAddress",
+      to_address as "toAddress",
+      block_hash as "blockHash",
+      block_number as "blockNumber",
+      log_index as "logIndex",
+      transaction_hash as "transactionHash"
     `,
     [
       tokenIds,
@@ -196,6 +227,25 @@ async function addErc721Transfers({ client, transfers }) {
       transactionHashes,
     ]
   );
+
+  await marketEvents.sendMany(
+    client,
+    res.rows.map((r) => ({
+      type: "TOKEN_TRANSFERRED",
+      slug: r.slug,
+      tokenIndex: r.tokenIndex,
+      blockTimestamp: r.blockTimestamp.toISOString(),
+      tokenId: r.tokenId,
+      fromAddress: bufToAddress(r.fromAddress),
+      toAddress: bufToAddress(r.toAddress),
+      blockHash: bufToHex(r.blockHash),
+      blockNumber: r.blockNumber,
+      logIndex: r.logIndex,
+      transactionHash: bufToHex(r.transactionHash),
+    }))
+  );
+
+  if (!alreadyInTransaction) await client.query("COMMIT");
 }
 
 async function deleteErc721Transfers({ client, blockHash, tokenContract }) {

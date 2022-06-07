@@ -7,6 +7,7 @@ const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const adHocPromise = require("../util/adHocPromise");
 const artblocks = require("./artblocks");
+const { marketEvents } = require("./channels");
 const eth = require("./eth");
 
 describe("db/eth", () => {
@@ -205,7 +206,7 @@ describe("db/eth", () => {
   describe("erc721_transfers", () => {
     it(
       "adds and removes transfers across different blocks",
-      withTestDb(async ({ client }) => {
+      withTestDb(async ({ pool, client }) => {
         await addProjects(client, [snapshots.SQUIGGLES, snapshots.ARCHETYPE]);
         const [squiggle, cube] = await addTokens(client, [
           snapshots.PERFECT_CHROMATIC,
@@ -286,14 +287,40 @@ describe("db/eth", () => {
         }
 
         expect(await summarizeTransfers()).toEqual([]);
-        await eth.addErc721Transfers({
-          client,
-          transfers: [
-            aliceMintsSquiggle,
-            bobMintsCube,
-            aliceSendsSquiggle,
-            bobReturnsSquiggleLater,
-          ],
+        await acqrel(pool, async (listenClient) => {
+          const postgresEvent = adHocPromise();
+          listenClient.on("notification", (n) => {
+            if (n.channel === marketEvents.name) {
+              postgresEvent.resolve(n.payload);
+            } else {
+              postgresEvent.reject("unexpected channel: " + n.channel);
+            }
+          });
+          await marketEvents.listen(listenClient);
+
+          await eth.addErc721Transfers({
+            client,
+            transfers: [
+              aliceMintsSquiggle,
+              bobMintsCube,
+              aliceSendsSquiggle,
+              bobReturnsSquiggleLater,
+            ],
+          });
+          const eventValue = await postgresEvent.promise;
+          expect(JSON.parse(eventValue)).toEqual({
+            type: "TOKEN_TRANSFERRED",
+            slug: "chromie-squiggle",
+            tokenIndex: 7583,
+            blockTimestamp: "1970-01-01T00:00:00.000Z",
+            tokenId: expect.any(String),
+            fromAddress: alice,
+            toAddress: bob,
+            blockHash: blocks[0].hash,
+            blockNumber: 0,
+            logIndex: 4,
+            transactionHash: dummyTx(3),
+          });
         });
         expect(await summarizeTransfers()).toEqual([
           { ...aliceMintsSquiggle, blockNumber: 0 },

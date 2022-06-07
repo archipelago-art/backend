@@ -58,7 +58,11 @@ class Erc721TransfersJob {
       });
       if (added) newTokens++;
     }
-    await eth.addErc721Transfers({ client, transfers });
+    await eth.addErc721Transfers({
+      client,
+      transfers,
+      alreadyInTransaction: true,
+    });
     const n = transfers.length;
     this._log
       .info`up(${minBlock}..=${maxBlock}): added ${n} transfers with ${newTokens} new tokens`;
