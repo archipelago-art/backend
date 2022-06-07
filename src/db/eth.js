@@ -264,6 +264,36 @@ async function deleteErc721Transfers({ client, blockHash, tokenContract }) {
   return res.rowCount;
 }
 
+async function getTransfersForToken({ client, tokenId }) {
+  const res = await client.query(
+    `
+    SELECT
+      block_number AS "blockNumber",
+      log_index AS "logIndex",
+      transaction_hash AS "transactionHash",
+      block_hash AS "blockHash",
+      (
+        SELECT block_timestamp FROM eth_blocks
+        WHERE eth_blocks.block_hash = erc721_transfers.block_hash
+      ) AS "timestamp",
+      from_address AS "from",
+      to_address AS "to"
+    FROM erc721_transfers
+    WHERE token_id = $1
+    ORDER BY block_number ASC, log_index ASC
+    `,
+    [tokenId]
+  );
+  return res.rows.map((r) => ({
+    blockNumber: r.blockNumber,
+    logIndex: r.logIndex,
+    transactionHash: bufToHex(r.transactionHash),
+    blockHash: bufToHex(r.blockHash),
+    timestamp: r.timestamp,
+    from: bufToAddress(r.from),
+    to: bufToAddress(r.to),
+  }));
+}
 
 async function getTransferCount({ client, fromAddress, toAddress }) {
   const res = await client.query(
@@ -289,5 +319,6 @@ module.exports = {
 
   addErc721Transfers,
   deleteErc721Transfers,
+  getTransfersForToken,
   getTransferCount,
 };

@@ -3,7 +3,6 @@ const artblocks = require("../db/artblocks");
 const cnfs = require("../db/cnfs");
 const emails = require("../db/emails");
 const eth = require("../db/eth");
-const erc721Transfers = require("../db/erc721Transfers");
 const orderbook = require("../db/orderbook");
 const { bufToAddress, hexToBuf } = require("../db/util");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
@@ -344,7 +343,7 @@ async function tokenSummariesByAccount({ client, account }) {
 }
 
 async function tokenHistory({ client, tokenId }) {
-  const transfers = await erc721Transfers.getTransfersForToken({
+  const transfers = await eth.getTransfersForToken({
     client,
     tokenId,
   });

@@ -7,7 +7,6 @@ const artblocks = require("../db/artblocks");
 const autoglyphs = require("../db/autoglyphs");
 const emails = require("../db/emails");
 const eth = require("../db/eth");
-const erc721Transfers = require("../db/erc721Transfers");
 const openseaIngest = require("../db/opensea/ingestEvents");
 const wellKnownCurrencies = require("../db/wellKnownCurrencies");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
@@ -568,6 +567,19 @@ describe("api", () => {
   it(
     "provides a unified history of sales and transfers",
     withTestDb(async ({ client }) => {
+      const archetype = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      await artblocks.addProject({ client, project: archetype });
+
+      const theCube = await sc.token(snapshots.THE_CUBE);
+      const tokenId = await artblocks.addToken({
+        client,
+        artblocksTokenId: snapshots.THE_CUBE,
+        rawTokenData: theCube,
+      });
+
       function dummyBlockHash(blockNumber) {
         return ethers.utils.id(`block:${blockNumber}`);
       }
@@ -619,77 +631,56 @@ describe("api", () => {
         };
       }
 
-      const nBlocks = await erc721Transfers.addBlocks({
+      await eth.addBlocks({
         client,
         blocks: [
           {
-            hash: dummyBlockHash(777),
-            number: ethers.BigNumber.from(777),
+            hash: dummyBlockHash(0),
+            parentHash: ethers.constants.HashZero,
+            number: 0,
             timestamp: ethers.BigNumber.from(Date.parse("2020-12-30") / 1000),
           },
           {
-            hash: dummyBlockHash(888),
-            number: ethers.BigNumber.from(888),
+            hash: dummyBlockHash(1),
+            parentHash: dummyBlockHash(0),
+            number: 1,
             timestamp: ethers.BigNumber.from(Date.parse("2021-01-02") / 1000),
           },
           {
-            hash: dummyBlockHash(999),
-            number: ethers.BigNumber.from(999),
+            hash: dummyBlockHash(2),
+            parentHash: dummyBlockHash(1),
+            number: 2,
             timestamp: ethers.BigNumber.from(Date.parse("2021-02-08") / 1000),
           },
         ],
       });
-      expect(nBlocks).toEqual(3);
 
       let nextLogIndex = 101;
-      function transfer({
-        contractAddress = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-        tokenId = snapshots.THE_CUBE,
-        to,
-        from = ethers.constants.AddressZero,
-        blockNumber,
-        tx,
-      } = {}) {
-        const eventSignature = "Transfer(address,address,uint256)";
-        const transferTopic = ethers.utils.id(eventSignature);
-        function pad(value, type) {
-          return ethers.utils.defaultAbiCoder.encode([type], [value]);
-        }
-        const blockHash = dummyBlockHash(blockNumber);
+      function transfer({ to, from, blockNumber, tx } = {}) {
         return {
-          args: [from, to, ethers.BigNumber.from(tokenId)],
-          data: "0x",
-          event: "Transfer",
-          topics: [
-            transferTopic,
-            pad(from, "address"),
-            pad(to, "address"),
-            pad(tokenId, "uint256"),
-          ],
-          address: contractAddress,
-          removed: false,
-          logIndex: nextLogIndex++,
+          tokenId,
+          fromAddress: from,
+          toAddress: to,
           blockHash: dummyBlockHash(blockNumber),
-          blockNumber,
-          eventSignature,
+          logIndex: nextLogIndex++,
           transactionHash: tx,
-          transactionIndex: 0,
         };
       }
 
+      const zero = ethers.constants.AddressZero;
       const alice = dummyAddress("alice.eth");
       const bob = dummyAddress("bob.eth");
       const cheryl = dummyAddress("cheryl.eth");
       const cherylsVault = dummyAddress("vault.cheryl.eth");
 
       const transfers = [
-        transfer({ to: alice, blockNumber: 777, tx: dummyTx(1) }),
-        transfer({ from: alice, to: bob, blockNumber: 888, tx: dummyTx(2) }),
-        transfer({ from: bob, to: cheryl, blockNumber: 999, tx: dummyTx(3) }),
+        transfer({ from: zero, to: alice, blockNumber: 0, tx: dummyTx(1) }),
+        transfer({ from: alice, to: bob, blockNumber: 1, tx: dummyTx(2) }),
+        transfer({ from: bob, to: cheryl, blockNumber: 2, tx: dummyTx(3) }),
         transfer({
           from: cheryl,
           to: cherylsVault,
-          blockNumber: 999,
+          blockNumber: 2,
           tx: dummyTx(3), // same tx as previous: manual transfer away
         }),
       ];
@@ -713,20 +704,7 @@ describe("api", () => {
         }),
       ];
 
-      const archetype = parseProjectData(
-        snapshots.ARCHETYPE,
-        await sc.project(snapshots.ARCHETYPE)
-      );
-      await artblocks.addProject({ client, project: archetype });
-
-      const theCube = await sc.token(snapshots.THE_CUBE);
-      const tokenId = await artblocks.addToken({
-        client,
-        artblocksTokenId: snapshots.THE_CUBE,
-        rawTokenData: theCube,
-      });
-
-      await erc721Transfers.addTransfers({ client, transfers });
+      await eth.addErc721Transfers({ client, transfers });
       await openseaIngest.addRawEvents({ client, events: openseaSales });
       await openseaIngest.ingestEvents({ client });
 
@@ -735,10 +713,10 @@ describe("api", () => {
         // Initial mint event
         {
           type: "TRANSFER",
-          blockNumber: 777,
+          blockNumber: 0,
           logIndex: 101,
           transactionHash: dummyTx(1),
-          blockHash: dummyBlockHash(777),
+          blockHash: dummyBlockHash(0),
           timestamp: new Date("2020-12-30"),
           from: ethers.constants.AddressZero,
           to: alice,
@@ -756,20 +734,20 @@ describe("api", () => {
         // represented individually
         {
           type: "TRANSFER",
-          blockNumber: 999,
+          blockNumber: 2,
           logIndex: 103,
           transactionHash: dummyTx(3),
-          blockHash: dummyBlockHash(999),
+          blockHash: dummyBlockHash(2),
           timestamp: new Date("2021-02-08T00:00:00Z"),
           from: bob,
           to: cheryl,
         },
         {
           type: "TRANSFER",
-          blockNumber: 999,
+          blockNumber: 2,
           logIndex: 104,
           transactionHash: dummyTx(3),
-          blockHash: dummyBlockHash(999),
+          blockHash: dummyBlockHash(2),
           timestamp: new Date("2021-02-08T00:00:00Z"),
           from: cheryl,
           to: cherylsVault,
