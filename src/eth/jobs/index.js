@@ -41,6 +41,10 @@ const JOBS = [
     address: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
     startBlock: 11341469,
   }),
+  makeErc721TransfersJob({
+    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+    startBlock: 11438389,
+  }),
   // ...
 ];
 
