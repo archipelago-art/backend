@@ -149,7 +149,7 @@ async function addBid({
 
   const notification = {
     type: "BID_PLACED",
-    orderId: bidId,
+    bidId,
     projectId,
     slug,
     scope: outputScope,
@@ -241,7 +241,7 @@ async function addAsk({
 
   const notification = {
     type: "ASK_PLACED",
-    orderId: askId,
+    askId,
     projectId,
     slug,
     tokenIndex,

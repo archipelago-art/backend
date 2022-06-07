@@ -132,7 +132,7 @@ describe("db/orderbook", () => {
           const eventValue = await postgresEvent.promise;
           expect(JSON.parse(eventValue)).toEqual({
             type: "BID_PLACED",
-            orderId: bidId,
+            bidId,
             projectId: archetype,
             slug: "archetype",
             scope: {
@@ -198,7 +198,7 @@ describe("db/orderbook", () => {
           const eventValue = await postgresEvent.promise;
           expect(JSON.parse(eventValue)).toEqual({
             type: "BID_PLACED",
-            orderId: bidId,
+            bidId,
             projectId: archetype,
             slug: "archetype",
             scope: {
@@ -284,7 +284,7 @@ describe("db/orderbook", () => {
           const eventValue = await postgresEvent.promise;
           expect(JSON.parse(eventValue)).toEqual({
             type: "BID_PLACED",
-            orderId: bidId,
+            bidId,
             projectId: archetype,
             slug: "archetype",
             scope: {
@@ -364,7 +364,7 @@ describe("db/orderbook", () => {
           const eventValue = await postgresEvent.promise;
           expect(JSON.parse(eventValue)).toEqual({
             type: "BID_PLACED",
-            orderId: bidId,
+            bidId,
             projectId: archetype,
             slug: "archetype",
             scope: {
@@ -523,7 +523,7 @@ describe("db/orderbook", () => {
           const eventValue = await postgresEvent.promise;
           expect(JSON.parse(eventValue)).toEqual({
             type: "ASK_PLACED",
-            orderId: askId,
+            askId,
             projectId: archetype,
             slug: "archetype",
             tokenIndex: 250,
