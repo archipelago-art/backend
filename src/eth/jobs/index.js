@@ -35,6 +35,9 @@ interface Job {
 }
 */
 
+const AUTOGLYPHS_ADDRESS = "0xd4e4078ca3495DE5B1d4dB434BEbc5a986197782";
+const CRYPTOADZ_ADDRESS = "0x1CB1A5e65610AEFF2551A50f76a87a7d3fB649C6";
+
 const JOBS = [
   makeEchoJob(),
   makeErc721TransfersJob({
@@ -44,6 +47,14 @@ const JOBS = [
   makeErc721TransfersJob({
     address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
     startBlock: 11438389,
+  }),
+  makeErc721TransfersJob({
+    address: AUTOGLYPHS_ADDRESS,
+    startBlock: 7510386,
+  }),
+  makeErc721TransfersJob({
+    address: CRYPTOADZ_ADDRESS,
+    startBlock: 13186834,
   }),
   // ...
 ];
