@@ -122,6 +122,7 @@ const migrationModules = [
   "./0111_token_traits_queue",
   "./0112_new_erc721_transfers",
   "./0113_erc721_transfers_adjust_unique_constraint",
+  "./0114_index_erc721_transfers_to_address_and_from_address",
   // ...
 ];
 
