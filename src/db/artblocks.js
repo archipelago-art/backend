@@ -530,19 +530,20 @@ async function getTokenImageData({ client, projectId }) {
   const res = await client.query(
     `
     SELECT
-      artblocks_project_index * $1 + token_index AS "tokenId",
-      project_id AS "projectId",
-      token_data->'image' AS "imageUrl",
-      token_data->'token_hash' AS "tokenHash"
+      on_chain_token_id AS "onChainTokenId",
+      project_id AS "projectId"
     FROM tokens
     JOIN artblocks_projects USING (project_id)
-    JOIN artblocks_tokens USING (token_id)
-    WHERE project_id = $2 OR $2 IS NULL
+    WHERE project_id = $1::projectid OR $1 IS NULL
     ORDER BY artblocks_project_index, token_index
     `,
-    [PROJECT_STRIDE, projectId]
+    [projectId]
   );
-  return res.rows;
+  return res.rows.map((r) => ({
+    projectId: r.projectId,
+    tokenId: r.onChainTokenId, // return field name is legacy
+    imageUrl: `https://media.artblocks.io/${r.onChainTokenId}.png`,
+  }));
 }
 
 async function getTokenChainData({ client, tokenId }) {
