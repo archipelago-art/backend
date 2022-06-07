@@ -15,7 +15,7 @@ const {
   asksForProject,
 } = require("./api");
 const artblocks = require("../artblocks");
-const { addTransfers } = require("../erc721Transfers");
+const eth = require("../eth");
 const { testDbProvider } = require("../testUtil");
 const snapshots = require("../../scrape/snapshots");
 const { parseProjectData } = require("../../scrape/fetchArtblocksProject");
@@ -36,6 +36,10 @@ describe("db/opensea/api", () => {
   }
   function utcDateFromString(x) {
     return new Date(x + "Z");
+  }
+
+  function dummyBlockHash(blockNumber) {
+    return ethers.utils.id(`block:${blockNumber}`);
   }
 
   const dandelion = "0xE03a5189dAC8182085e4aDF66281F679fFf2291D";
@@ -95,40 +99,29 @@ describe("db/opensea/api", () => {
     };
   }
 
-  function transfer({
-    contractAddress = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-    tokenId = snapshots.THE_CUBE,
-    fromAddress = ethers.constants.AddressZero,
-    toAddress = wchargin,
-    blockNumber = 12164300,
-    blockHash = ethers.utils.id(`block:${blockNumber}`),
-    logIndex = 123,
-    transactionHash = "0x" + "fe".repeat(32),
-    transactionIndex = 77,
-  } = {}) {
-    const eventSignature = "Transfer(address,address,uint256)";
-    const transferTopic = ethers.utils.id(eventSignature);
-    function pad(value, type) {
-      return ethers.utils.defaultAbiCoder.encode([type], [value]);
-    }
+  function genesis() {
     return {
-      args: [fromAddress, toAddress, ethers.BigNumber.from(tokenId)],
-      data: "0x",
-      event: "Transfer",
-      topics: [
-        transferTopic,
-        pad(fromAddress, "address"),
-        pad(toAddress, "address"),
-        pad(tokenId, "uint256"),
-      ],
-      address: contractAddress,
-      removed: false,
+      hash: dummyBlockHash(0),
+      parentHash: ethers.constants.HashZero,
+      number: 0,
+      timestamp: ethers.BigNumber.from(Date.parse("2020-12-30") / 1000),
+    };
+  }
+  function transfer({
+    tokenId,
+    from = ethers.constants.AddressZero,
+    to = wchargin,
+    blockNumber = 0,
+    logIndex = 123,
+    tx = "0x" + "fe".repeat(32),
+  } = {}) {
+    return {
+      tokenId,
+      fromAddress: from,
+      toAddress: to,
+      blockHash: dummyBlockHash(blockNumber),
       logIndex,
-      blockHash,
-      blockNumber,
-      eventSignature,
-      transactionHash,
-      transactionIndex,
+      transactionHash: tx,
     };
   }
 
@@ -223,8 +216,9 @@ describe("db/opensea/api", () => {
         const a3 = ask({ id: "3", price: "950" });
         await addAndIngest(client, [a1, a2]);
 
-        const t = transfer();
-        await addTransfers({ client, transfers: [t] });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({ tokenId: archetypeTokenId1 });
+        await eth.addErc721Transfers({ client, transfers: [t] });
 
         const result = await askForToken({
           client,
@@ -249,8 +243,9 @@ describe("db/opensea/api", () => {
         const a3 = ask({ id: "3", price: "975" });
         await addAndIngest(client, [a1, a2, a3]);
 
-        const t = transfer();
-        await addTransfers({ client, transfers: [t] });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({ tokenId: archetypeTokenId1 });
+        await eth.addErc721Transfers({ client, transfers: [t] });
 
         const result = await asksForToken({
           client,
@@ -284,8 +279,9 @@ describe("db/opensea/api", () => {
         const a = ask({ id: "1", price: "1000" });
         const s = sale({ id: "2" });
         await addAndIngest(client, [a, s]);
-        const t = transfer();
-        await addTransfers({ client, transfers: [t] });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({ tokenId: archetypeTokenId1 });
+        await eth.addErc721Transfers({ client, transfers: [t] });
         const result = await askForToken({
           client,
           tokenId: archetypeTokenId1,
@@ -313,8 +309,9 @@ describe("db/opensea/api", () => {
         await client.query(`UPDATE opensea_asks SET active=true`);
         expect(await getActive(client, "1")).toBe(true);
 
-        const t = transfer();
-        await addTransfers({ client, transfers: [t] });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({ tokenId: archetypeTokenId1 });
+        await eth.addErc721Transfers({ client, transfers: [t] });
 
         const result = await askForToken({
           client,
@@ -342,8 +339,13 @@ describe("db/opensea/api", () => {
           sellerAddress: wchargin, // not the current holder
         });
         await addAndIngest(client, [a1, s, a2]);
-        const t = transfer({ fromAddress: wchargin, toAddress: dandelion });
-        await addTransfers({ client, transfers: [t] });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({
+          tokenId: archetypeTokenId1,
+          from: wchargin,
+          to: dandelion,
+        });
+        await eth.addErc721Transfers({ client, transfers: [t] });
         const result = await askForToken({
           client,
           tokenId: archetypeTokenId1,
@@ -372,7 +374,12 @@ describe("db/opensea/api", () => {
     it(
       "returns lowest ask across multiple tokens",
       withTestDb(async ({ client }) => {
-        const { archetypeId, squigglesId } = await exampleProjectAndToken({
+        const {
+          archetypeId,
+          archetypeTokenId1,
+          archetypeTokenId2,
+          squigglesId,
+        } = await exampleProjectAndToken({
           client,
         });
         const a1 = ask({
@@ -393,19 +400,20 @@ describe("db/opensea/api", () => {
           tokenId: snapshots.ARCH_TRIPTYCH_1,
           sellerAddress: ijd,
         });
+        await eth.addBlock({ client, block: genesis() });
         const t1 = transfer({
-          tokenId: snapshots.THE_CUBE,
-          toAddress: dandelion,
+          tokenId: archetypeTokenId1,
+          to: dandelion,
           logIndex: 123,
           transactionIndex: 77,
         });
         const t2 = transfer({
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
-          toAddress: dandelion,
+          tokenId: archetypeTokenId2,
+          to: dandelion,
           logIndex: 124,
           transactionIndex: 78,
         });
-        await addTransfers({ client, transfers: [t1, t2] });
+        await eth.addErc721Transfers({ client, transfers: [t1, t2] });
         await addAndIngest(client, [a1, a2, a3]);
         const result = await floorAskByProject({
           client,
@@ -419,16 +427,18 @@ describe("db/opensea/api", () => {
     it(
       "ignores non-active asks",
       withTestDb(async ({ client }) => {
-        const { archetypeId, squigglesId } = await exampleProjectAndToken({
-          client,
-        });
+        const { archetypeId, squigglesId, archetypeTokenId1 } =
+          await exampleProjectAndToken({
+            client,
+          });
         // Suppose that a token is sold from A to B, then transferred
         // back to A. The ask will be marked inactive, and so shouldn't
         // factor in even though the token is owned by the asker.
         const a = ask({ id: "1", price: "1000" });
         const s = sale({ id: "2" });
-        const t = transfer();
-        await addTransfers({ client, transfers: [t] });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({ tokenId: archetypeTokenId1 });
+        await eth.addErc721Transfers({ client, transfers: [t] });
         await addAndIngest(client, [a, s]);
         const result = await floorAskByProject({
           client,
@@ -442,13 +452,15 @@ describe("db/opensea/api", () => {
     it(
       "ignores expired asks, even if still marked as active in db",
       withTestDb(async ({ client }) => {
-        const { archetypeId, squigglesId } = await exampleProjectAndToken({
-          client,
-        });
+        const { archetypeId, squigglesId, archetypeTokenId1 } =
+          await exampleProjectAndToken({
+            client,
+          });
         const listingTime = "2022-03-01T00:00:00.123456";
         const a = ask({ id: "1", price: "1000", duration: 100, listingTime });
-        const t = transfer();
-        await addTransfers({ client, transfers: [t] });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({ tokenId: archetypeTokenId1 });
+        await eth.addErc721Transfers({ client, transfers: [t] });
         await addAndIngest(client, [a]);
 
         // not active because it's expired
@@ -502,14 +514,17 @@ describe("db/opensea/api", () => {
     it(
       "ignores inactive asks",
       withTestDb(async ({ client }) => {
-        const { archetypeId } = await exampleProjectAndToken({
-          client,
-        });
+        const { archetypeId, archetypeTokenId1 } = await exampleProjectAndToken(
+          {
+            client,
+          }
+        );
         const a = ask({ id: "1", price: "1000" });
         const s = sale({ id: "2" });
         await addAndIngest(client, [a, s]);
-        const t = transfer();
-        await addTransfers({ client, transfers: [t] });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({ tokenId: archetypeTokenId1 });
+        await eth.addErc721Transfers({ client, transfers: [t] });
         const result = await asksForProject({
           client,
           projectId: archetypeId,
@@ -520,14 +535,17 @@ describe("db/opensea/api", () => {
     it(
       "ignores expired asks, even if still marked active in db",
       withTestDb(async ({ client }) => {
-        const { archetypeId } = await exampleProjectAndToken({
-          client,
-        });
+        const { archetypeId, archetypeTokenId1 } = await exampleProjectAndToken(
+          {
+            client,
+          }
+        );
         const listingTime = "2022-03-01T00:00:00.123456";
         const a = ask({ id: "1", price: "1000", duration: 100, listingTime });
         await addAndIngest(client, [a]);
-        const t = transfer();
-        await addTransfers({ client, transfers: [t] });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({ tokenId: archetypeTokenId1 });
+        await eth.addErc721Transfers({ client, transfers: [t] });
 
         // not active because it's expired
         expect(await getActive(client, "1")).toBe(false);
@@ -545,10 +563,14 @@ describe("db/opensea/api", () => {
     it(
       "works in a case with some open asks",
       withTestDb(async ({ client }) => {
-        const { archetypeId, archetypeTokenId1, archetypeTokenId3 } =
-          await exampleProjectAndToken({
-            client,
-          });
+        const {
+          archetypeId,
+          archetypeTokenId1,
+          archetypeTokenId2,
+          archetypeTokenId3,
+        } = await exampleProjectAndToken({
+          client,
+        });
         const a1 = ask({
           id: "1",
           price: "500",
@@ -569,17 +591,15 @@ describe("db/opensea/api", () => {
           listingTime: dateToOpenseaString(new Date("2023-03-03")),
         });
         await addAndIngest(client, [a1, a2, a3]);
-        const t1 = transfer({ tokenId: snapshots.THE_CUBE, blockNumber: 7 });
+        const t1 = transfer({ tokenId: archetypeTokenId1, logIndex: 123 });
         const t2 = transfer({
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
-          blockNumber: 8,
-          toAddress: wchargin, // not asker
+          tokenId: archetypeTokenId2,
+          from: wchargin, // not asker
+          logIndex: 124,
         });
-        const t3 = transfer({
-          tokenId: snapshots.ARCH_TRIPTYCH_2,
-          blockNumber: 9,
-        });
-        await addTransfers({ client, transfers: [t1, t2, t3] });
+        const t3 = transfer({ tokenId: archetypeTokenId3, logIndex: 125 });
+        await eth.addBlock({ client, block: genesis() });
+        await eth.addErc721Transfers({ client, transfers: [t1, t2, t3] });
 
         const result = await asksForProject({
           client,
@@ -619,8 +639,9 @@ describe("db/opensea/api", () => {
           listingTime: dateToOpenseaString(new Date("2023-03-03")),
         });
         await addAndIngest(client, [a1, a2, a3]);
-        const t = transfer();
-        await addTransfers({ client, transfers: [t] });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({ tokenId: archetypeTokenId1 });
+        await eth.addErc721Transfers({ client, transfers: [t] });
 
         const result = await asksForProject({
           client,

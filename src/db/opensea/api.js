@@ -20,7 +20,7 @@ async function _findOwners({ client, projectIds, tokenIds }) {
           ORDER BY block_number DESC, log_index DESC
         ) AS rank,
         to_address
-      FROM erc_721_transfers
+      FROM erc721_transfers
       WHERE token_id IN (
         SELECT token_id FROM tokens
         WHERE
@@ -57,7 +57,7 @@ async function asksForToken({ client, tokenId, limit }) {
       AND (expiration_time IS NULL OR expiration_time > now())
       AND currency_id = $2
       AND seller_address = (
-        SELECT to_address FROM erc_721_transfers
+        SELECT to_address FROM erc721_transfers
         WHERE token_id = $1
         ORDER BY block_number DESC, log_index DESC
         LIMIT 1
