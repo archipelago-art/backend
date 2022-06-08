@@ -9,6 +9,24 @@ const signal = require("../util/signal");
 const BATCH_SIZE = 64;
 const WAIT_DURATION_SECONDS = 60;
 
+// If we fail to fetch a token, don't re-fetch data *for that specific token* for this long.
+const FAILED_FETCH_DELAY_SECONDS = 30;
+
+class ExpirationCache /*:: <T> */ {
+  constructor() {
+    this._items /*: Array<[number, T]> */ = [];
+  }
+  add(item, expirationTime) {
+    this._items.push([expirationTime, item]);
+  }
+  expire(expirationTime = Date.now()) {
+    this._items = this._items.filter((kv) => kv[0] > expirationTime);
+  }
+  getAll() {
+    return this._items.map((kv) => kv[1]);
+  }
+}
+
 async function watchTokenTraitsQueue(args) {
   if (args.length !== 0) {
     console.error("usage: watch-token-traits-queue");
@@ -25,9 +43,10 @@ async function watchTokenTraitsQueue(args) {
       });
       await channel.listen(listenClient);
 
+      const ecache /*: ExpirationCache<TokenId> */ = new ExpirationCache();
       while (true) {
         try {
-          const n = await watchTokenTraitsQueueOnce(pool);
+          const n = await watchTokenTraitsQueueOnce(pool, ecache);
           if (n > 0) {
             log.info`made progress; checking queue again immediately`;
             continue;
@@ -47,15 +66,18 @@ async function watchTokenTraitsQueue(args) {
   });
 }
 
-async function watchTokenTraitsQueueOnce(pool) {
+async function watchTokenTraitsQueueOnce(pool, ecache) {
   return await acqrel(pool, async (client) => {
     await client.query("BEGIN");
+    ecache.expire();
+    const excludeTokenIds = ecache.getAll();
     const tokenIds = await tokens.claimTokenTraitsQueueEntries({
       client,
       limit: BATCH_SIZE,
+      excludeTokenIds,
       alreadyInTransaction: true,
     });
-    log.info`got ${tokenIds.length} token IDs to process`;
+    log.info`got ${tokenIds.length} token IDs to process (limit:${BATCH_SIZE}, exclude:${excludeTokenIds.length})`;
     if (tokenIds.length === 0) {
       await client.query("COMMIT");
       return 0;
@@ -68,6 +90,8 @@ async function watchTokenTraitsQueueOnce(pool) {
       artblocksTokenIds.map(async ({ tokenId, artblocksTokenId }) => {
         const token = await fetchTokenData(artblocksTokenId).catch((e) => {
           log.warn`failed to fetch Art Blocks token #${artblocksTokenId}: ${e}`;
+          const expirationTime = Date.now() + FAILED_FETCH_DELAY_SECONDS * 1000;
+          ecache.add(tokenId, expirationTime);
           return { found: false };
         });
         log.debug`token ${tokenId} (Art Blocks #${artblocksTokenId}): found=${token.found}`;

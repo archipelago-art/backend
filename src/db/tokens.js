@@ -78,6 +78,7 @@ async function addBareToken({
 async function claimTokenTraitsQueueEntries({
   client,
   limit,
+  excludeTokenIds = [],
   alreadyInTransaction = false,
 }) {
   if (!alreadyInTransaction)
@@ -87,13 +88,14 @@ async function claimTokenTraitsQueueEntries({
     DELETE FROM token_traits_queue
     WHERE token_id IN (
       SELECT token_id FROM token_traits_queue
+      WHERE token_id <> ALL($2::tokenid[])
       ORDER BY create_time ASC
       LIMIT $1
       FOR UPDATE SKIP LOCKED
     )
     RETURNING token_id AS "tokenId"
     `,
-    [limit]
+    [limit, excludeTokenIds]
   );
   return res.rows.map((r) => r.tokenId);
 }

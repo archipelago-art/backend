@@ -180,6 +180,23 @@ describe("db/tokens", () => {
         expect(await getCommittedQueueSize()).toEqual(1);
         await client1.query("ROLLBACK");
         expect(await getCommittedQueueSize()).toEqual(1);
+
+        await client1.query("BEGIN");
+        await client2.query("BEGIN");
+        const excluding = await tokens.claimTokenTraitsQueueEntries({
+          client: client1,
+          limit: 2,
+          excludeTokenIds: [tokenId1],
+          alreadyInTransaction: true,
+        });
+        const notExcluding = await tokens.claimTokenTraitsQueueEntries({
+          client: client2,
+          limit: 2,
+          excludeTokenIds: [],
+          alreadyInTransaction: true,
+        });
+        expect(excluding).toEqual([]);
+        expect(notExcluding).toEqual([tokenId1]);
       });
     })
   );
