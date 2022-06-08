@@ -194,8 +194,6 @@ describe("db/artblocks", () => {
         expect(JSON.parse(eventValue)).toEqual({
           projectId: projectId,
           tokenId: tokenId,
-          slug: "archetype",
-          tokenIndex: 250,
         });
       });
     })

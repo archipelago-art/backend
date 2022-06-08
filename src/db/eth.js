@@ -2,7 +2,7 @@ const ethers = require("ethers");
 
 const log = require("../util/log")(__filename);
 
-const { marketEvents, websocketMessages } = require("./channels");
+const { websocketMessages } = require("./channels");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 
 async function getJobProgress({ client }) {
@@ -241,7 +241,6 @@ async function addErc721Transfers({
     logIndex: r.logIndex,
     transactionHash: bufToHex(r.transactionHash),
   }));
-  await marketEvents.sendMany(client, notifications);
   await websocketMessages.sendMany(client, notifications);
 
   if (!alreadyInTransaction) await client.query("COMMIT");

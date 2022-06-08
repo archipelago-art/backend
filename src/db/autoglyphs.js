@@ -62,9 +62,6 @@ async function addAutoglyphs({ client }) {
     [tokenIds, projectId, hexToBuf(CONTRACT_ADDRESS)]
   );
 
-  // Known bug: this sends an incomplete message along `newTokens` (missing
-  // `slug` and `tokenIndex`) and does not send along `websocketMessages`. Not
-  // fixing because we don't expect to run this in production again.
   await newTokensChannel.sendMany(
     client,
     tokenIds.map((tokenId) => ({ projectId, tokenId }))

@@ -52,11 +52,13 @@ async function addBareToken({
     [tokenId, projectId, tokenIndex, onChainTokenId]
   );
 
-  const newTokenEvent = { projectId, tokenId, slug, tokenIndex };
-  await channels.newTokens.send(client, newTokenEvent);
+  await channels.newTokens.send(client, { projectId, tokenId });
   await channels.websocketMessages.send(client, {
     type: "TOKEN_MINTED",
-    ...newTokenEvent,
+    projectId,
+    tokenId,
+    slug,
+    tokenIndex,
   });
 
   // Add the token to the queue of tokens that still need trait data. If we're
