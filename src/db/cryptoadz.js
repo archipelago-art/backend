@@ -209,6 +209,9 @@ This project is in the public domain. Feel free to use the toadz in any way you 
     [tokenIds, projectId, hexToBuf(contractAddress)]
   );
 
+  // Known bug: this sends an incomplete message along `newTokens` (missing
+  // `slug` and `tokenIndex`) and does not send along `websocketMessages`. Not
+  // fixing because we don't expect to run this in production again.
   await newTokensChannel.sendMany(
     client,
     tokenIds.map((tokenId) => ({ projectId, tokenId }))

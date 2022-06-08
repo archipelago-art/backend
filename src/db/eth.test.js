@@ -7,7 +7,7 @@ const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const adHocPromise = require("../util/adHocPromise");
 const artblocks = require("./artblocks");
-const { marketEvents } = require("./channels");
+const { websocketMessages } = require("./channels");
 const eth = require("./eth");
 
 describe("db/eth", () => {
@@ -290,13 +290,13 @@ describe("db/eth", () => {
         await acqrel(pool, async (listenClient) => {
           const postgresEvent = adHocPromise();
           listenClient.on("notification", (n) => {
-            if (n.channel === marketEvents.name) {
+            if (n.channel === websocketMessages.name) {
               postgresEvent.resolve(n.payload);
             } else {
               postgresEvent.reject("unexpected channel: " + n.channel);
             }
           });
-          await marketEvents.listen(listenClient);
+          await websocketMessages.listen(listenClient);
 
           await eth.addErc721Transfers({
             client,

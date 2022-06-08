@@ -54,6 +54,10 @@ async function addBareToken({
 
   const newTokenEvent = { projectId, tokenId, slug, tokenIndex };
   await channels.newTokens.send(client, newTokenEvent);
+  await channels.websocketMessages.send(client, {
+    type: "TOKEN_MINTED",
+    ...newTokenEvent,
+  });
 
   // Add the token to the queue of tokens that still need trait data. If we're
   // `alreadyInTransaction` and the caller sets the traits within the same

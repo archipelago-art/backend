@@ -6,6 +6,7 @@ const { ObjectType, newIds } = require("../id");
 const { bufToAddress, hexToBuf } = require("../util");
 
 const marketEventsChannel = channels.marketEvents;
+const websocketMessagesChannel = channels.websocketMessages;
 
 // events is an array of JSON objects from the Opensea API
 async function addRawEvents({ client, events }) {
@@ -361,6 +362,7 @@ async function ingestAsks(client, askIds) {
     expirationTime: r.expirationTime && r.expirationTime.toISOString(),
   }));
   await marketEventsChannel.sendMany(client, notifications);
+  await websocketMessagesChannel.sendMany(client, notifications);
 
   return result.rows.map((x) => x.id);
 }
@@ -483,6 +485,7 @@ async function deactivateExpiredAsks({ client }) {
 
 module.exports = {
   marketEventsChannel,
+  websocketMessagesChannel,
   addRawEvents,
   ingestEvents,
 };

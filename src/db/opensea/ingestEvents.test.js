@@ -3,11 +3,12 @@ const ethers = require("ethers");
 const { acqrel, bufToHex, hexToBuf } = require("../util");
 const adHocPromise = require("../../util/adHocPromise");
 const {
-  marketEventsChannel,
+  websocketMessagesChannel,
   addRawEvents,
   ingestEvents,
 } = require("./ingestEvents");
 const artblocks = require("../artblocks");
+const channels = require("../channels");
 const { testDbProvider } = require("../testUtil");
 const snapshots = require("../../scrape/snapshots");
 const { parseProjectData } = require("../../scrape/fetchArtblocksProject");
@@ -426,13 +427,13 @@ describe("db/opensea/ingestEvents", () => {
         await acqrel(pool, async (listenClient) => {
           const postgresEvent = adHocPromise();
           listenClient.on("notification", (n) => {
-            if (n.channel === marketEventsChannel.name) {
+            if (n.channel === websocketMessagesChannel.name) {
               postgresEvent.resolve(n.payload);
             } else {
               postgresEvent.reject("unexpected channel: " + n.channel);
             }
           });
-          await marketEventsChannel.listen(listenClient);
+          await websocketMessagesChannel.listen(listenClient);
 
           await addAndIngest(client, [ev]);
           expect(await getAsk(client, ev.id)).toEqual({

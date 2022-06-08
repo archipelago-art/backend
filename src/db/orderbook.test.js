@@ -4,7 +4,7 @@ const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const adHocPromise = require("../util/adHocPromise");
 const artblocks = require("./artblocks");
-const { marketEvents } = require("./channels");
+const { websocketMessages } = require("./channels");
 const cnfs = require("./cnfs");
 const {
   addBid,
@@ -108,13 +108,13 @@ describe("db/orderbook", () => {
         await acqrel(pool, async (listenClient) => {
           const postgresEvent = adHocPromise();
           listenClient.on("notification", (n) => {
-            if (n.channel === marketEvents.name) {
+            if (n.channel === websocketMessages.name) {
               postgresEvent.resolve(n.payload);
             } else {
               postgresEvent.reject("unexpected channel: " + n.channel);
             }
           });
-          await marketEvents.listen(listenClient);
+          await websocketMessages.listen(listenClient);
 
           const nonce = ethers.BigNumber.from("0xabcd");
           const bidId = await addBid({
@@ -174,13 +174,13 @@ describe("db/orderbook", () => {
         await acqrel(pool, async (listenClient) => {
           const postgresEvent = adHocPromise();
           listenClient.on("notification", (n) => {
-            if (n.channel === marketEvents.name) {
+            if (n.channel === websocketMessages.name) {
               postgresEvent.resolve(n.payload);
             } else {
               postgresEvent.reject("unexpected channel: " + n.channel);
             }
           });
-          await marketEvents.listen(listenClient);
+          await websocketMessages.listen(listenClient);
 
           const nonce = ethers.BigNumber.from("0xabcd");
           const bidId = await addBid({
@@ -260,13 +260,13 @@ describe("db/orderbook", () => {
         await acqrel(pool, async (listenClient) => {
           const postgresEvent = adHocPromise();
           listenClient.on("notification", (n) => {
-            if (n.channel === marketEvents.name) {
+            if (n.channel === websocketMessages.name) {
               postgresEvent.resolve(n.payload);
             } else {
               postgresEvent.reject("unexpected channel: " + n.channel);
             }
           });
-          await marketEvents.listen(listenClient);
+          await websocketMessages.listen(listenClient);
 
           const nonce = ethers.BigNumber.from("0xabcd");
           const bidId = await addBid({
@@ -340,13 +340,13 @@ describe("db/orderbook", () => {
         await acqrel(pool, async (listenClient) => {
           const postgresEvent = adHocPromise();
           listenClient.on("notification", (n) => {
-            if (n.channel === marketEvents.name) {
+            if (n.channel === websocketMessages.name) {
               postgresEvent.resolve(n.payload);
             } else {
               postgresEvent.reject("unexpected channel: " + n.channel);
             }
           });
-          await marketEvents.listen(listenClient);
+          await websocketMessages.listen(listenClient);
 
           const nonce = ethers.BigNumber.from("0xabcd");
           const bidId = await addBid({
@@ -499,13 +499,13 @@ describe("db/orderbook", () => {
         await acqrel(pool, async (listenClient) => {
           const postgresEvent = adHocPromise();
           listenClient.on("notification", (n) => {
-            if (n.channel === marketEvents.name) {
+            if (n.channel === websocketMessages.name) {
               postgresEvent.resolve(n.payload);
             } else {
               postgresEvent.reject("unexpected channel: " + n.channel);
             }
           });
-          await marketEvents.listen(listenClient);
+          await websocketMessages.listen(listenClient);
 
           const nonce = ethers.BigNumber.from("0xabcd");
           const askId = await addAsk({

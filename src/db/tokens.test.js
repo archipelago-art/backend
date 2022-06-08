@@ -3,6 +3,7 @@ const { testDbProvider } = require("./testUtil");
 
 const artblocks = require("./artblocks");
 const autoglyphs = require("./autoglyphs");
+const { websocketMessages } = require("./channels");
 const tokens = require("./tokens");
 const snapshots = require("../scrape/snapshots");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
@@ -44,7 +45,7 @@ describe("db/tokens", () => {
 
   it(
     "adds tokens to an existing project",
-    withTestDb(async ({ client }) => {
+    withTestDb(async ({ pool, client }) => {
       const [{ id: archetype }] = await addProjects(client, [
         snapshots.ARCHETYPE,
       ]);
@@ -70,12 +71,36 @@ describe("db/tokens", () => {
         });
       }
       expect(await getTokenCount()).toEqual(0);
-      const tokenId1 = await tokens.addBareToken({
-        client,
-        projectId: archetype,
-        tokenIndex: 250,
-        onChainTokenId: snapshots.THE_CUBE,
+
+      const tokenId1 = await acqrel(pool, async (listenClient) => {
+        const postgresEvent = adHocPromise();
+        listenClient.on("notification", (n) => {
+          if (n.channel === websocketMessages.name) {
+            postgresEvent.resolve(n.payload);
+          } else {
+            postgresEvent.reject("unexpected channel: " + n.channel);
+          }
+        });
+        await websocketMessages.listen(listenClient);
+
+        const tokenId1 = await tokens.addBareToken({
+          client,
+          projectId: archetype,
+          tokenIndex: 250,
+          onChainTokenId: snapshots.THE_CUBE,
+        });
+        const eventValue = await postgresEvent.promise;
+        expect(JSON.parse(eventValue)).toEqual({
+          type: "TOKEN_MINTED",
+          projectId: archetype,
+          tokenId: tokenId1,
+          slug: "archetype",
+          tokenIndex: 250,
+        });
+
+        return tokenId1;
       });
+
       expect(tokenId1).toEqual(expect.any(String));
       expect(await getTokenCount()).toEqual(1);
 

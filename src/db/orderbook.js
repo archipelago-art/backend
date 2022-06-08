@@ -1,7 +1,7 @@
 const ethers = require("ethers");
 const { idType, ObjectType, objectTypeToName, newId } = require("./id");
 const { hexToBuf, bufToAddress } = require("./util");
-const { marketEvents } = require("./channels");
+const { marketEvents, websocketMessages } = require("./channels");
 
 /**
  * type Scope = ProjectScope | TokenScope | TraitScope | CnfScope;
@@ -162,6 +162,7 @@ async function addBid({
     expirationTime: deadline && deadline.toISOString(),
   };
   await marketEvents.send(client, notification);
+  await websocketMessages.send(client, notification);
 
   await client.query("COMMIT");
   return bidId;
@@ -254,6 +255,7 @@ async function addAsk({
     expirationTime: deadline && deadline.toISOString(),
   };
   await marketEvents.send(client, notification);
+  await websocketMessages.send(client, notification);
 
   await client.query("COMMIT");
   return askId;

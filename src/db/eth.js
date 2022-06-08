@@ -2,7 +2,7 @@ const ethers = require("ethers");
 
 const log = require("../util/log")(__filename);
 
-const { marketEvents } = require("./channels");
+const { marketEvents, websocketMessages } = require("./channels");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 
 async function getJobProgress({ client }) {
@@ -228,22 +228,21 @@ async function addErc721Transfers({
     ]
   );
 
-  await marketEvents.sendMany(
-    client,
-    res.rows.map((r) => ({
-      type: "TOKEN_TRANSFERRED",
-      slug: r.slug,
-      tokenIndex: r.tokenIndex,
-      blockTimestamp: r.blockTimestamp.toISOString(),
-      tokenId: r.tokenId,
-      fromAddress: bufToAddress(r.fromAddress),
-      toAddress: bufToAddress(r.toAddress),
-      blockHash: bufToHex(r.blockHash),
-      blockNumber: r.blockNumber,
-      logIndex: r.logIndex,
-      transactionHash: bufToHex(r.transactionHash),
-    }))
-  );
+  const notifications = res.rows.map((r) => ({
+    type: "TOKEN_TRANSFERRED",
+    slug: r.slug,
+    tokenIndex: r.tokenIndex,
+    blockTimestamp: r.blockTimestamp.toISOString(),
+    tokenId: r.tokenId,
+    fromAddress: bufToAddress(r.fromAddress),
+    toAddress: bufToAddress(r.toAddress),
+    blockHash: bufToHex(r.blockHash),
+    blockNumber: r.blockNumber,
+    logIndex: r.logIndex,
+    transactionHash: bufToHex(r.transactionHash),
+  }));
+  await marketEvents.sendMany(client, notifications);
+  await websocketMessages.sendMany(client, notifications);
 
   if (!alreadyInTransaction) await client.query("COMMIT");
 }
