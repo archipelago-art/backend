@@ -541,7 +541,7 @@ async function getTokenImageData({ client, projectId }) {
   );
   return res.rows.map((r) => ({
     projectId: r.projectId,
-    tokenId: r.onChainTokenId, // return field name is legacy
+    tokenId: Number(r.onChainTokenId), // return field name is legacy
     imageUrl: `https://media.artblocks.io/${r.onChainTokenId}.png`,
   }));
 }
