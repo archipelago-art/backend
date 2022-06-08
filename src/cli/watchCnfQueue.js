@@ -1,4 +1,4 @@
-const artblocks = require("../db/artblocks");
+const channels = require("../db/channels");
 const cnfs = require("../db/cnfs");
 const { acqrel, withPool } = require("../db/util");
 const adHocPromise = require("../util/adHocPromise");
@@ -17,7 +17,7 @@ async function watchCnfQueue(args) {
   }
   await withPool(async (pool) => {
     let newEvents = adHocPromise();
-    const channel = artblocks.traitsUpdatedChannel;
+    const channel = channels.traitsUpdated;
     await acqrel(pool, async (listenClient) => {
       listenClient.on("notification", (n) => {
         if (n.channel !== channel.name) return;

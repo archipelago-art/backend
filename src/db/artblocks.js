@@ -5,9 +5,7 @@ const { ObjectType, newId, newIds } = require("./id");
 const dbTokens = require("./tokens");
 const { hexToBuf, bufToAddress } = require("./util");
 
-const newTokensChannel = channels.newTokens;
 const imageProgressChannel = channels.imageProgress;
-const traitsUpdatedChannel = channels.traitsUpdated;
 
 const PROJECT_STRIDE = 1e6;
 
@@ -690,9 +688,7 @@ module.exports = {
   CONTRACT_ARTBLOCKS_STANDARD,
   ARTBLOCKS_CONTRACT_THRESHOLD,
   PROJECT_STRIDE,
-  newTokensChannel,
   imageProgressChannel,
-  traitsUpdatedChannel,
   splitOnChainTokenId,
   addProject,
   projectIdsFromArtblocksIndices,

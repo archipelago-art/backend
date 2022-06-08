@@ -1,10 +1,10 @@
 const api = require("../api");
 const { withClient } = require("../db/util");
 const log = require("../util/log")(__filename);
+const channels = require("./channels");
 const { newId, newIds, ObjectType } = require("./id");
 const tokens = require("./tokens");
 const { hexToBuf } = require("./util");
-const { newTokensChannel } = require("./artblocks");
 const toadzSpecialTraits = require("./cryptoadzSpecialTraits.json");
 const toadzTraits = require("./cryptoadzTraits.json");
 
@@ -209,7 +209,7 @@ This project is in the public domain. Feel free to use the toadz in any way you 
     [tokenIds, projectId, hexToBuf(contractAddress)]
   );
 
-  await newTokensChannel.sendMany(
+  await channels.newTokens.sendMany(
     client,
     tokenIds.map((tokenId) => ({ projectId, tokenId }))
   );

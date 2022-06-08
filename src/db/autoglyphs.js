@@ -2,9 +2,8 @@ const { withClient } = require("../db/util");
 const log = require("../util/log")(__filename);
 const { newId, newIds, ObjectType } = require("./id");
 const { hexToBuf } = require("./util");
-const { newTokensChannel } = require("./artblocks");
+const channels = require("./channels");
 
-const MIGRATIONS_TO_DO = ["move newTokensChannel (+ others?) to common module"];
 const CONTRACT_ADDRESS = "0xd4e4078ca3495de5b1d4db434bebc5a986197782";
 
 async function addAutoglyphs({ client }) {
@@ -62,7 +61,7 @@ async function addAutoglyphs({ client }) {
     [tokenIds, projectId, hexToBuf(CONTRACT_ADDRESS)]
   );
 
-  await newTokensChannel.sendMany(
+  await channels.newTokens.sendMany(
     client,
     tokenIds.map((tokenId) => ({ projectId, tokenId }))
   );

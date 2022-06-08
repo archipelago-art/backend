@@ -2,9 +2,6 @@ const channels = require("./channels");
 const { hexToBuf } = require("./util");
 const { ObjectType, newId, newIds } = require("./id");
 
-const newTokensChannel = channels.newTokens;
-const traitsUpdatedChannel = channels.traitsUpdated;
-
 /**
  * Adds a new token to an existing project without populating any traits. This
  * is collection-agnostic: e.g., it does not do anything Art Blocks-specific.
@@ -208,7 +205,7 @@ async function setTokenTraits({
     `,
     [tokenId]
   );
-  await traitsUpdatedChannel.send(client, {});
+  await channels.traitsUpdated.send(client, {});
 
   // Remove this from the queue of tokens that still need trait data, taking
   // some care to not hang if another transaction is doing the same.

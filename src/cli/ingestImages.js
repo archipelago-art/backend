@@ -1,6 +1,7 @@
 const gcs = require("@google-cloud/storage");
 
 const artblocks = require("../db/artblocks");
+const channels = require("../db/channels");
 const { acqrel, withPool } = require("../db/util");
 const images = require("../img");
 const adHocPromise = require("../util/adHocPromise");
@@ -72,11 +73,11 @@ async function ingestImages(args) {
     let newTokens = adHocPromise();
     await acqrel(pool, async (listenClient) => {
       listenClient.on("notification", (n) => {
-        if (n.channel !== artblocks.newTokensChannel.name) return;
+        if (n.channel !== channels.newTokens.name) return;
         log.info`scheduling wake for new token event: ${n.payload}`;
         newTokens.resolve();
       });
-      await artblocks.newTokensChannel.listen(listenClient);
+      await channels.newTokens.listen(listenClient);
 
       log.info`collecting project scripts`;
       const allScripts = await acqrel(pool, (client) =>

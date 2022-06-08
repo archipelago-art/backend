@@ -2,6 +2,7 @@ const { acqrel, bufToAddress } = require("./util");
 const { testDbProvider } = require("./testUtil");
 
 const artblocks = require("./artblocks");
+const channels = require("./channels");
 const snapshots = require("../scrape/snapshots");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const adHocPromise = require("../util/adHocPromise");
@@ -172,13 +173,13 @@ describe("db/artblocks", () => {
       await acqrel(pool, async (listenClient) => {
         const postgresEvent = adHocPromise();
         listenClient.on("notification", (n) => {
-          if (n.channel === artblocks.newTokensChannel.name) {
+          if (n.channel === channels.newTokens.name) {
             postgresEvent.resolve(n.payload);
           } else {
             postgresEvent.reject("unexpected channel: " + n.channel);
           }
         });
-        await artblocks.newTokensChannel.listen(listenClient);
+        await channels.newTokens.listen(listenClient);
 
         const [{ id: projectId }] = await addProjects(client, [
           snapshots.ARCHETYPE,
