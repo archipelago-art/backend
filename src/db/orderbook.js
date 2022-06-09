@@ -1,6 +1,6 @@
 const ethers = require("ethers");
 const { idType, ObjectType, objectTypeToName, newId } = require("./id");
-const { hexToBuf, bufToAddress } = require("./util");
+const { hexToBuf, bufToAddress, bufToHex } = require("./util");
 const ws = require("./ws");
 
 /**
@@ -275,7 +275,8 @@ async function askDetails({ client, askIds }) {
       deadline,
       asker,
       nonce,
-      token_id AS "tokenId"
+      token_id AS "tokenId",
+      signature
     FROM asks
     WHERE ask_id = ANY($1::askid[])
     `,
@@ -289,6 +290,7 @@ async function askDetails({ client, askIds }) {
     asker: bufToAddress(r.asker),
     nonce: String(r.nonce),
     tokenId: r.tokenId,
+    signature: bufToHex(r.signature),
   }));
 }
 
@@ -525,7 +527,8 @@ async function askIdsForAddress({ client, address, activeOnly = true }) {
 async function bidDetails({ client, bidIds }) {
   const res = await client.query(
     `
-    SELECT bid_id AS "bidId", price, deadline, bidder, scope, nonce
+    SELECT
+      bid_id AS "bidId", price, deadline, bidder, scope, nonce, signature
     FROM bids
     WHERE bid_id = ANY($1::bidid[])
     `,
@@ -537,6 +540,7 @@ async function bidDetails({ client, bidIds }) {
     deadline: r.deadline,
     bidder: bufToAddress(r.bidder),
     nonce: String(r.nonce),
+    signature: bufToHex(r.signature),
     scope: {
       type: objectTypeToName[idType(r.scope)],
       scope: r.scope,
