@@ -99,11 +99,16 @@ describe("db/tokens", () => {
           tokenId: tokenId1,
         });
         expect(JSON.parse(await websocketMessagesEvent.promise)).toEqual({
+          messageId: expect.any(String),
+          timestamp: expect.any(String),
           type: "TOKEN_MINTED",
-          projectId: archetype,
-          tokenId: tokenId1,
-          slug: "archetype",
-          tokenIndex: 250,
+          topic: "archetype",
+          data: {
+            projectId: archetype,
+            tokenId: tokenId1,
+            slug: "archetype",
+            tokenIndex: 250,
+          },
         });
 
         return tokenId1;

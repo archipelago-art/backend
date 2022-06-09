@@ -4,7 +4,6 @@ const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const adHocPromise = require("../util/adHocPromise");
 const artblocks = require("./artblocks");
-const { websocketMessages } = require("./channels");
 const cnfs = require("./cnfs");
 const {
   addBid,
@@ -21,6 +20,7 @@ const {
 } = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
 const { acqrel } = require("./util");
+const ws = require("./ws");
 
 describe("db/orderbook", () => {
   const withTestDb = testDbProvider();
@@ -98,140 +98,142 @@ describe("db/orderbook", () => {
   describe("addBid", () => {
     it(
       "adds a bid with project scope",
-      withTestDb(async ({ pool, client }) => {
+      withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
         const price = ethers.BigNumber.from("100");
         const deadline = new Date("2099-01-01");
         const bidder = ethers.constants.AddressZero;
 
-        await acqrel(pool, async (listenClient) => {
-          const postgresEvent = adHocPromise();
-          listenClient.on("notification", (n) => {
-            if (n.channel === websocketMessages.name) {
-              postgresEvent.resolve(n.payload);
-            } else {
-              postgresEvent.reject("unexpected channel: " + n.channel);
-            }
-          });
-          await websocketMessages.listen(listenClient);
-
-          const nonce = ethers.BigNumber.from("0xabcd");
-          const bidId = await addBid({
-            client,
-            scope: { type: "PROJECT", projectId: archetype },
-            price,
-            deadline,
-            bidder,
-            nonce,
-            agreement: "0x",
-            message: "0x",
-            signature: "0x" + "fe".repeat(65),
-          });
-
-          const eventValue = await postgresEvent.promise;
-          expect(JSON.parse(eventValue)).toEqual({
-            type: "BID_PLACED",
-            bidId,
-            projectId: archetype,
-            slug: "archetype",
-            scope: {
-              type: "PROJECT",
-              projectId: archetype,
-              slug: "archetype",
-            },
-            venue: "ARCHIPELAGO",
-            bidder,
-            nonce: nonce.toString(),
-            currency: "ETH",
-            price: String(price),
-            timestamp: expect.any(String),
-            expirationTime: deadline.toISOString(),
-          });
-
-          const bid = {
-            bidId,
-            price,
-            bidder,
-            nonce: nonce.toString(),
-            deadline,
-            scope: { type: "PROJECT", scope: archetype },
-          };
-          expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
+        const nonce = ethers.BigNumber.from("0xabcd");
+        const bidId = await addBid({
+          client,
+          scope: { type: "PROJECT", projectId: archetype },
+          price,
+          deadline,
+          bidder,
+          nonce,
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
         });
+
+        const messages = await ws.getMessages({
+          client,
+          topic: "archetype",
+          since: new Date(0),
+        });
+        expect(messages).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "BID_PLACED",
+              topic: "archetype",
+              data: {
+                bidId,
+                projectId: archetype,
+                slug: "archetype",
+                scope: {
+                  type: "PROJECT",
+                  projectId: archetype,
+                  slug: "archetype",
+                },
+                venue: "ARCHIPELAGO",
+                bidder,
+                nonce: nonce.toString(),
+                currency: "ETH",
+                price: String(price),
+                timestamp: expect.any(String),
+                expirationTime: deadline.toISOString(),
+              },
+            },
+          ])
+        );
+
+        const bid = {
+          bidId,
+          price,
+          bidder,
+          nonce: nonce.toString(),
+          deadline,
+          scope: { type: "PROJECT", scope: archetype },
+        };
+        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
     it(
       "adds a bid with token scope",
-      withTestDb(async ({ pool, client }) => {
+      withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
         const price = ethers.BigNumber.from("100");
         const deadline = new Date("2099-01-01");
         const bidder = ethers.constants.AddressZero;
 
-        await acqrel(pool, async (listenClient) => {
-          const postgresEvent = adHocPromise();
-          listenClient.on("notification", (n) => {
-            if (n.channel === websocketMessages.name) {
-              postgresEvent.resolve(n.payload);
-            } else {
-              postgresEvent.reject("unexpected channel: " + n.channel);
-            }
-          });
-          await websocketMessages.listen(listenClient);
-
-          const nonce = ethers.BigNumber.from("0xabcd");
-          const bidId = await addBid({
-            client,
-            scope: { type: "TOKEN", tokenId },
-            price,
-            deadline,
-            bidder,
-            nonce,
-            agreement: "0x",
-            message: "0x",
-            signature: "0x" + "fe".repeat(65),
-          });
-
-          const eventValue = await postgresEvent.promise;
-          expect(JSON.parse(eventValue)).toEqual({
-            type: "BID_PLACED",
-            bidId,
-            projectId: archetype,
-            slug: "archetype",
-            scope: {
-              type: "TOKEN",
-              tokenIndex: 250,
-              tokenId,
-            },
-            venue: "ARCHIPELAGO",
-            bidder,
-            nonce: nonce.toString(),
-            currency: "ETH",
-            price: String(price),
-            timestamp: expect.any(String),
-            expirationTime: deadline.toISOString(),
-          });
-
-          const bid = {
-            bidId,
-            price,
-            bidder,
-            nonce: nonce.toString(),
-            deadline,
-            scope: { type: "TOKEN", scope: tokenId },
-          };
-
-          expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
+        const nonce = ethers.BigNumber.from("0xabcd");
+        const bidId = await addBid({
+          client,
+          scope: { type: "TOKEN", tokenId },
+          price,
+          deadline,
+          bidder,
+          nonce,
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
         });
+
+        const messages = await ws.getMessages({
+          client,
+          topic: "archetype",
+          since: new Date(0),
+        });
+        expect(messages).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "BID_PLACED",
+              topic: "archetype",
+              data: {
+                bidId,
+                projectId: archetype,
+                slug: "archetype",
+                scope: {
+                  type: "TOKEN",
+                  tokenIndex: 250,
+                  tokenId,
+                },
+                venue: "ARCHIPELAGO",
+                bidder,
+                nonce: nonce.toString(),
+                currency: "ETH",
+                price: String(price),
+                timestamp: expect.any(String),
+                expirationTime: deadline.toISOString(),
+              },
+            },
+          ])
+        );
+
+        const bid = {
+          bidId,
+          price,
+          bidder,
+          nonce: nonce.toString(),
+          deadline,
+          scope: { type: "TOKEN", scope: tokenId },
+        };
+
+        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
     it(
       "adds a bid with trait scope",
-      withTestDb(async ({ pool, client }) => {
+      withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
         const price = ethers.BigNumber.from("100");
@@ -257,66 +259,67 @@ describe("db/orderbook", () => {
           (t) => t.name === "Palette" && t.value === "Paddle"
         );
 
-        await acqrel(pool, async (listenClient) => {
-          const postgresEvent = adHocPromise();
-          listenClient.on("notification", (n) => {
-            if (n.channel === websocketMessages.name) {
-              postgresEvent.resolve(n.payload);
-            } else {
-              postgresEvent.reject("unexpected channel: " + n.channel);
-            }
-          });
-          await websocketMessages.listen(listenClient);
-
-          const nonce = ethers.BigNumber.from("0xabcd");
-          const bidId = await addBid({
-            client,
-            scope: { type: "TRAIT", traitId },
-            price,
-            deadline,
-            bidder,
-            nonce,
-            agreement: "0x",
-            message: "0x",
-            signature: "0x" + "fe".repeat(65),
-          });
-
-          const eventValue = await postgresEvent.promise;
-          expect(JSON.parse(eventValue)).toEqual({
-            type: "BID_PLACED",
-            bidId,
-            projectId: archetype,
-            slug: "archetype",
-            scope: {
-              type: "TRAIT",
-              traitId,
-              featureName: "Palette",
-              traitValue: "Paddle",
-            },
-            venue: "ARCHIPELAGO",
-            bidder,
-            nonce: nonce.toString(),
-            currency: "ETH",
-            price: String(price),
-            timestamp: expect.any(String),
-            expirationTime: deadline.toISOString(),
-          });
-          const bid = {
-            bidId,
-            price,
-            bidder,
-            nonce: nonce.toString(),
-            deadline,
-            scope: { type: "TRAIT", scope: traitId },
-          };
-          expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
+        const nonce = ethers.BigNumber.from("0xabcd");
+        const bidId = await addBid({
+          client,
+          scope: { type: "TRAIT", traitId },
+          price,
+          deadline,
+          bidder,
+          nonce,
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
         });
+
+        const messages = await ws.getMessages({
+          client,
+          topic: "archetype",
+          since: new Date(0),
+        });
+        expect(messages).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "BID_PLACED",
+              topic: "archetype",
+              data: {
+                bidId,
+                projectId: archetype,
+                slug: "archetype",
+                scope: {
+                  type: "TRAIT",
+                  traitId,
+                  featureName: "Palette",
+                  traitValue: "Paddle",
+                },
+                venue: "ARCHIPELAGO",
+                bidder,
+                nonce: nonce.toString(),
+                currency: "ETH",
+                price: String(price),
+                timestamp: expect.any(String),
+                expirationTime: deadline.toISOString(),
+              },
+            },
+          ])
+        );
+        const bid = {
+          bidId,
+          price,
+          bidder,
+          nonce: nonce.toString(),
+          deadline,
+          scope: { type: "TRAIT", scope: traitId },
+        };
+        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
     it(
       "adds a bid with CNF scope",
-      withTestDb(async ({ pool, client }) => {
+      withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
 
@@ -337,59 +340,60 @@ describe("db/orderbook", () => {
         const deadline = new Date("2099-01-01");
         const bidder = ethers.constants.AddressZero;
 
-        await acqrel(pool, async (listenClient) => {
-          const postgresEvent = adHocPromise();
-          listenClient.on("notification", (n) => {
-            if (n.channel === websocketMessages.name) {
-              postgresEvent.resolve(n.payload);
-            } else {
-              postgresEvent.reject("unexpected channel: " + n.channel);
-            }
-          });
-          await websocketMessages.listen(listenClient);
-
-          const nonce = ethers.BigNumber.from("0xabcd");
-          const bidId = await addBid({
-            client,
-            scope: { type: "CNF", cnfId },
-            price: ethers.BigNumber.from("100"),
-            deadline: new Date("2099-01-01"),
-            bidder: ethers.constants.AddressZero,
-            nonce,
-            agreement: "0x",
-            message: "0x",
-            signature: "0x" + "fe".repeat(65),
-          });
-
-          const eventValue = await postgresEvent.promise;
-          expect(JSON.parse(eventValue)).toEqual({
-            type: "BID_PLACED",
-            bidId,
-            projectId: archetype,
-            slug: "archetype",
-            scope: {
-              type: "CNF",
-              cnfId,
-            },
-            venue: "ARCHIPELAGO",
-            bidder,
-            nonce: nonce.toString(),
-            currency: "ETH",
-            price: String(price),
-            timestamp: expect.any(String),
-            expirationTime: deadline.toISOString(),
-          });
-
-          const bid = {
-            bidId,
-            price,
-            bidder,
-            nonce: nonce.toString(),
-            deadline,
-            scope: { type: "CNF", scope: cnfId },
-          };
-          expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
+        const nonce = ethers.BigNumber.from("0xabcd");
+        const bidId = await addBid({
+          client,
+          scope: { type: "CNF", cnfId },
+          price: ethers.BigNumber.from("100"),
+          deadline: new Date("2099-01-01"),
+          bidder: ethers.constants.AddressZero,
+          nonce,
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
         });
+
+        const messages = await ws.getMessages({
+          client,
+          topic: "archetype",
+          since: new Date(0),
+        });
+        expect(messages).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "BID_PLACED",
+              topic: "archetype",
+              data: {
+                bidId,
+                projectId: archetype,
+                slug: "archetype",
+                scope: {
+                  type: "CNF",
+                  cnfId,
+                },
+                venue: "ARCHIPELAGO",
+                bidder,
+                nonce: nonce.toString(),
+                currency: "ETH",
+                price: String(price),
+                timestamp: expect.any(String),
+                expirationTime: deadline.toISOString(),
+              },
+            },
+          ])
+        );
+
+        const bid = {
+          bidId,
+          price,
+          bidder,
+          nonce: nonce.toString(),
+          deadline,
+          scope: { type: "CNF", scope: cnfId },
+        };
+        expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
       })
     );
 
@@ -490,65 +494,67 @@ describe("db/orderbook", () => {
   describe("addAsk", () => {
     it(
       "adds an ask",
-      withTestDb(async ({ pool, client }) => {
+      withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [theCube] = await addTokens(client, [snapshots.THE_CUBE]);
         const price = ethers.BigNumber.from("100");
         const asker = ethers.constants.AddressZero;
         const deadline = new Date("2099-01-01");
-        await acqrel(pool, async (listenClient) => {
-          const postgresEvent = adHocPromise();
-          listenClient.on("notification", (n) => {
-            if (n.channel === websocketMessages.name) {
-              postgresEvent.resolve(n.payload);
-            } else {
-              postgresEvent.reject("unexpected channel: " + n.channel);
-            }
-          });
-          await websocketMessages.listen(listenClient);
 
-          const nonce = ethers.BigNumber.from("0xabcd");
-          const askId = await addAsk({
-            client,
-            tokenId: theCube,
+        const nonce = ethers.BigNumber.from("0xabcd");
+        const askId = await addAsk({
+          client,
+          tokenId: theCube,
+          price,
+          deadline,
+          asker,
+          nonce,
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+
+        const messages = await ws.getMessages({
+          client,
+          topic: "archetype",
+          since: new Date(0),
+        });
+        expect(messages).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "ASK_PLACED",
+              topic: "archetype",
+              data: {
+                askId,
+                projectId: archetype,
+                slug: "archetype",
+                tokenIndex: 250,
+                venue: "ARCHIPELAGO",
+                asker,
+                nonce: nonce.toString(),
+                currency: "ETH",
+                price: String(price),
+                timestamp: expect.any(String),
+                expirationTime: deadline.toISOString(),
+              },
+            },
+          ])
+        );
+
+        expect(await floorAsk({ client, tokenId: theCube })).toEqual(askId);
+        expect(await askDetails({ client, askIds: [askId] })).toEqual([
+          {
+            askId,
             price,
+            createTime: expect.any(Date),
             deadline,
             asker,
-            nonce,
-            agreement: "0x",
-            message: "0x",
-            signature: "0x" + "fe".repeat(65),
-          });
-
-          const eventValue = await postgresEvent.promise;
-          expect(JSON.parse(eventValue)).toEqual({
-            type: "ASK_PLACED",
-            askId,
-            projectId: archetype,
-            slug: "archetype",
-            tokenIndex: 250,
-            venue: "ARCHIPELAGO",
-            asker,
             nonce: nonce.toString(),
-            currency: "ETH",
-            price: String(price),
-            timestamp: expect.any(String),
-            expirationTime: deadline.toISOString(),
-          });
-
-          expect(await floorAsk({ client, tokenId: theCube })).toEqual(askId);
-          expect(await askDetails({ client, askIds: [askId] })).toEqual([
-            {
-              askId,
-              price,
-              createTime: expect.any(Date),
-              deadline,
-              asker,
-              nonce: nonce.toString(),
-              tokenId: theCube,
-            },
-          ]);
-        });
+            tokenId: theCube,
+          },
+        ]);
       })
     );
 

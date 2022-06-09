@@ -2,17 +2,14 @@ const ethers = require("ethers");
 
 const { acqrel, bufToHex, hexToBuf } = require("../util");
 const adHocPromise = require("../../util/adHocPromise");
-const {
-  websocketMessagesChannel,
-  addRawEvents,
-  ingestEvents,
-} = require("./ingestEvents");
+const { addRawEvents, ingestEvents } = require("./ingestEvents");
 const artblocks = require("../artblocks");
 const channels = require("../channels");
 const { testDbProvider } = require("../testUtil");
 const snapshots = require("../../scrape/snapshots");
 const { parseProjectData } = require("../../scrape/fetchArtblocksProject");
 const wellKnownCurrencies = require("../wellKnownCurrencies");
+const ws = require("../ws");
 
 describe("db/opensea/ingestEvents", () => {
   const withTestDb = testDbProvider();
@@ -424,46 +421,49 @@ describe("db/opensea/ingestEvents", () => {
       withTestDb(async ({ pool, client }) => {
         const { projectId, tokenId } = await exampleProjectAndToken({ client });
         const ev = ask();
-        await acqrel(pool, async (listenClient) => {
-          const postgresEvent = adHocPromise();
-          listenClient.on("notification", (n) => {
-            if (n.channel === websocketMessagesChannel.name) {
-              postgresEvent.resolve(n.payload);
-            } else {
-              postgresEvent.reject("unexpected channel: " + n.channel);
-            }
-          });
-          await websocketMessagesChannel.listen(listenClient);
 
-          await addAndIngest(client, [ev]);
-          expect(await getAsk(client, ev.id)).toEqual({
-            id: ev.id,
-            projectId,
-            tokenId,
-            listingTime: utcDateFromString(ev.listing_time),
-            sellerAddress: ev.seller.address,
-            price: ev.starting_price,
-            currencyId: wellKnownCurrencies.eth.currencyId,
-            expirationTime: null,
-            active: true,
-          });
-          const eventValue = await postgresEvent.promise;
-          expect(JSON.parse(eventValue)).toEqual({
-            type: "ASK_PLACED",
-            orderId: "opensea:" + String(ev.id),
-            projectId,
-            tokenId,
-            slug: "archetype",
-            tokenIndex: 250,
-            venue: "OPENSEA",
-            seller: ethers.utils.getAddress(wchargin),
-            currency: "ETH",
-            price: ev.starting_price,
-            timestamp: "2022-03-01T00:00:00.000Z",
-            expirationTime: null,
-          });
-          expect(await unconsumedIds(client)).toEqual([]);
+        await addAndIngest(client, [ev]);
+        expect(await getAsk(client, ev.id)).toEqual({
+          id: ev.id,
+          projectId,
+          tokenId,
+          listingTime: utcDateFromString(ev.listing_time),
+          sellerAddress: ev.seller.address,
+          price: ev.starting_price,
+          currencyId: wellKnownCurrencies.eth.currencyId,
+          expirationTime: null,
+          active: true,
         });
+        const messages = await ws.getMessages({
+          client,
+          topic: "archetype",
+          since: new Date(0),
+        });
+        expect(messages).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "ASK_PLACED",
+              topic: "archetype",
+              data: {
+                orderId: "opensea:" + String(ev.id),
+                projectId,
+                tokenId,
+                slug: "archetype",
+                tokenIndex: 250,
+                venue: "OPENSEA",
+                seller: ethers.utils.getAddress(wchargin),
+                currency: "ETH",
+                price: ev.starting_price,
+                timestamp: "2022-03-01T00:00:00.000Z",
+                expirationTime: null,
+              },
+            },
+          ])
+        );
+
+        expect(await unconsumedIds(client)).toEqual([]);
       })
     );
 

@@ -1,6 +1,7 @@
 const channels = require("./channels");
 const { hexToBuf } = require("./util");
 const { ObjectType, newId, newIds } = require("./id");
+const ws = require("./ws");
 
 /**
  * Adds a new token to an existing project without populating any traits. This
@@ -50,13 +51,17 @@ async function addBareToken({
   );
 
   await channels.newTokens.send(client, { projectId, tokenId });
-  await channels.websocketMessages.send(client, {
+  const message = {
     type: "TOKEN_MINTED",
+    topic: slug,
+    data: {
     projectId,
     tokenId,
     slug,
     tokenIndex,
-  });
+    }
+  };
+  await ws.sendMessages({ client, messages: [message] });
 
   // Add the token to the queue of tokens that still need trait data. If we're
   // `alreadyInTransaction` and the caller sets the traits within the same

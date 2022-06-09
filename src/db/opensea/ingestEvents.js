@@ -4,8 +4,7 @@ const log = require("../../util/log")(__filename);
 const channels = require("../channels");
 const { ObjectType, newIds } = require("../id");
 const { bufToAddress, hexToBuf } = require("../util");
-
-const websocketMessagesChannel = channels.websocketMessages;
+const ws = require("../ws");
 
 // events is an array of JSON objects from the Opensea API
 async function addRawEvents({ client, events }) {
@@ -346,21 +345,24 @@ async function ingestAsks(client, askIds) {
     [askIds]
   );
 
-  const notifications = result.rows.map((r) => ({
+  const messages = result.rows.map((r) => ({
     type: "ASK_PLACED",
-    orderId: `opensea:${r.id}`,
-    projectId: r.projectId,
-    tokenId: r.tokenId,
-    slug: r.slug,
-    tokenIndex: r.tokenIndex,
-    venue: "OPENSEA",
-    seller: bufToAddress(r.seller),
-    currency: "ETH",
-    price: r.price,
-    timestamp: r.timestamp.toISOString(),
-    expirationTime: r.expirationTime && r.expirationTime.toISOString(),
+    topic: r.slug,
+    data: {
+      orderId: `opensea:${r.id}`,
+      projectId: r.projectId,
+      tokenId: r.tokenId,
+      slug: r.slug,
+      tokenIndex: r.tokenIndex,
+      venue: "OPENSEA",
+      seller: bufToAddress(r.seller),
+      currency: "ETH",
+      price: r.price,
+      timestamp: r.timestamp.toISOString(),
+      expirationTime: r.expirationTime && r.expirationTime.toISOString(),
+    },
   }));
-  await websocketMessagesChannel.sendMany(client, notifications);
+  await ws.sendMessages({ client, messages });
 
   return result.rows.map((x) => x.id);
 }
@@ -482,7 +484,6 @@ async function deactivateExpiredAsks({ client }) {
 }
 
 module.exports = {
-  websocketMessagesChannel,
   addRawEvents,
   ingestEvents,
 };

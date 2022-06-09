@@ -7,8 +7,8 @@ const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const adHocPromise = require("../util/adHocPromise");
 const artblocks = require("./artblocks");
-const { websocketMessages } = require("./channels");
 const eth = require("./eth");
+const ws = require("./ws");
 
 describe("db/eth", () => {
   const withTestDb = testDbProvider();
@@ -287,41 +287,43 @@ describe("db/eth", () => {
         }
 
         expect(await summarizeTransfers()).toEqual([]);
-        await acqrel(pool, async (listenClient) => {
-          const postgresEvent = adHocPromise();
-          listenClient.on("notification", (n) => {
-            if (n.channel === websocketMessages.name) {
-              postgresEvent.resolve(n.payload);
-            } else {
-              postgresEvent.reject("unexpected channel: " + n.channel);
-            }
-          });
-          await websocketMessages.listen(listenClient);
-
-          await eth.addErc721Transfers({
-            client,
-            transfers: [
-              aliceMintsSquiggle,
-              bobMintsCube,
-              aliceSendsSquiggle,
-              bobReturnsSquiggleLater,
-            ],
-          });
-          const eventValue = await postgresEvent.promise;
-          expect(JSON.parse(eventValue)).toEqual({
-            type: "TOKEN_TRANSFERRED",
-            slug: "chromie-squiggle",
-            tokenIndex: 7583,
-            blockTimestamp: "1970-01-01T00:00:00.000Z",
-            tokenId: expect.any(String),
-            fromAddress: alice,
-            toAddress: bob,
-            blockHash: blocks[0].hash,
-            blockNumber: 0,
-            logIndex: 4,
-            transactionHash: dummyTx(3),
-          });
+        await eth.addErc721Transfers({
+          client,
+          transfers: [
+            aliceMintsSquiggle,
+            bobMintsCube,
+            aliceSendsSquiggle,
+            bobReturnsSquiggleLater,
+          ],
         });
+        const messages = await ws.getMessages({
+          client,
+          topic: "chromie-squiggle",
+          since: new Date(0),
+        });
+        expect(messages).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "TOKEN_TRANSFERRED",
+              topic: "chromie-squiggle",
+              data: {
+                slug: "chromie-squiggle",
+                tokenIndex: 7583,
+                blockTimestamp: "1970-01-01T00:00:00.000Z",
+                tokenId: expect.any(String),
+                fromAddress: alice,
+                toAddress: bob,
+                blockHash: blocks[0].hash,
+                blockNumber: 0,
+                logIndex: 4,
+                transactionHash: dummyTx(3),
+              },
+            },
+          ])
+        );
+
         expect(await summarizeTransfers()).toEqual([
           { ...aliceMintsSquiggle, blockNumber: 0 },
           { ...bobMintsCube, blockNumber: 0 },

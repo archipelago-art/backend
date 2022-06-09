@@ -1,7 +1,7 @@
 const ethers = require("ethers");
 const { idType, ObjectType, objectTypeToName, newId } = require("./id");
 const { hexToBuf, bufToAddress } = require("./util");
-const { websocketMessages } = require("./channels");
+const ws = require("./ws");
 
 /**
  * type Scope = ProjectScope | TokenScope | TraitScope | CnfScope;
@@ -147,21 +147,24 @@ async function addBid({
   );
   const { createTime } = insertRes.rows[0];
 
-  const notification = {
+  const wsMessage = {
     type: "BID_PLACED",
-    bidId,
-    projectId,
-    slug,
-    scope: outputScope,
-    venue: "ARCHIPELAGO",
-    bidder,
-    nonce: String(nonce),
-    currency: "ETH",
-    price: String(price),
-    timestamp: createTime.toISOString(),
-    expirationTime: deadline && deadline.toISOString(),
+    topic: slug,
+    data: {
+      bidId,
+      projectId,
+      slug,
+      scope: outputScope,
+      venue: "ARCHIPELAGO",
+      bidder,
+      nonce: String(nonce),
+      currency: "ETH",
+      price: String(price),
+      timestamp: createTime.toISOString(),
+      expirationTime: deadline && deadline.toISOString(),
+    },
   };
-  await websocketMessages.send(client, notification);
+  await ws.sendMessages({ client, messages: [wsMessage] });
 
   await client.query("COMMIT");
   return bidId;
@@ -239,21 +242,24 @@ async function addAsk({
 
   const { createTime } = insertRes.rows[0];
 
-  const notification = {
+  const wsMessage = {
     type: "ASK_PLACED",
-    askId,
-    projectId,
-    slug,
-    tokenIndex,
-    venue: "ARCHIPELAGO",
-    asker,
-    nonce: String(nonce),
-    currency: "ETH",
-    price: String(price),
-    timestamp: createTime.toISOString(),
-    expirationTime: deadline && deadline.toISOString(),
+    topic: slug,
+    data: {
+      askId,
+      projectId,
+      slug,
+      tokenIndex,
+      venue: "ARCHIPELAGO",
+      asker,
+      nonce: String(nonce),
+      currency: "ETH",
+      price: String(price),
+      timestamp: createTime.toISOString(),
+      expirationTime: deadline && deadline.toISOString(),
+    },
   };
-  await websocketMessages.send(client, notification);
+  await ws.sendMessages({ client, messages: [wsMessage] });
 
   await client.query("COMMIT");
   return askId;

@@ -2,8 +2,8 @@ const ethers = require("ethers");
 
 const log = require("../util/log")(__filename);
 
-const { websocketMessages } = require("./channels");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
+const ws = require("./ws");
 
 async function getJobProgress({ client }) {
   const res = await client.query(
@@ -228,20 +228,23 @@ async function addErc721Transfers({
     ]
   );
 
-  const notifications = res.rows.map((r) => ({
+  const messages = res.rows.map((r) => ({
     type: "TOKEN_TRANSFERRED",
-    slug: r.slug,
-    tokenIndex: r.tokenIndex,
-    blockTimestamp: r.blockTimestamp.toISOString(),
-    tokenId: r.tokenId,
-    fromAddress: bufToAddress(r.fromAddress),
-    toAddress: bufToAddress(r.toAddress),
-    blockHash: bufToHex(r.blockHash),
-    blockNumber: r.blockNumber,
-    logIndex: r.logIndex,
-    transactionHash: bufToHex(r.transactionHash),
+    topic: r.slug,
+    data: {
+      slug: r.slug,
+      tokenIndex: r.tokenIndex,
+      blockTimestamp: r.blockTimestamp.toISOString(),
+      tokenId: r.tokenId,
+      fromAddress: bufToAddress(r.fromAddress),
+      toAddress: bufToAddress(r.toAddress),
+      blockHash: bufToHex(r.blockHash),
+      blockNumber: r.blockNumber,
+      logIndex: r.logIndex,
+      transactionHash: bufToHex(r.transactionHash),
+    },
   }));
-  await websocketMessages.sendMany(client, notifications);
+  await ws.sendMessages({ client, messages });
 
   if (!alreadyInTransaction) await client.query("COMMIT");
 }
