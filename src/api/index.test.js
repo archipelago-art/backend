@@ -68,7 +68,7 @@ describe("api", () => {
             {
               micros: 75000,
               static: false,
-              target: "0x5656565656565656565656565656565656565656",
+              target: "0x8A3F65eF24021D401815792c4B65676FBF90663c",
             },
           ],
         },
@@ -98,7 +98,7 @@ describe("api", () => {
             {
               micros: 75000,
               static: false,
-              target: "0x5656565656565656565656565656565656565656",
+              target: "0x8A3F65eF24021D401815792c4B65676FBF90663c",
             },
           ],
         },
