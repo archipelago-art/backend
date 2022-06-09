@@ -159,6 +159,7 @@ describe("db/orderbook", () => {
           deadline,
           signature: "0x" + "fe".repeat(65),
           message: "0x",
+          agreement: "0x",
           scope: { type: "PROJECT", scope: archetype },
         };
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
@@ -228,6 +229,7 @@ describe("db/orderbook", () => {
           deadline,
           signature: "0x" + "fe".repeat(65),
           message: "0x",
+          agreement: "0x",
           scope: { type: "TOKEN", scope: tokenId },
         };
 
@@ -317,6 +319,7 @@ describe("db/orderbook", () => {
           deadline,
           signature: "0x" + "fe".repeat(65),
           message: "0x",
+          agreement: "0x",
           scope: { type: "TRAIT", scope: traitId },
         };
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
@@ -399,6 +402,7 @@ describe("db/orderbook", () => {
           deadline,
           signature: "0x" + "fe".repeat(65),
           message: "0x",
+          agreement: "0x",
           scope: { type: "CNF", scope: cnfId },
         };
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
@@ -434,6 +438,7 @@ describe("db/orderbook", () => {
           deadline,
           signature: "0x" + "fe".repeat(65),
           message: "0x",
+          agreement: "0x",
           scope: { type: "PROJECT", scope: archetype },
         };
         // Bid is included because it's (incorrectly) marked active (for now)
@@ -564,6 +569,7 @@ describe("db/orderbook", () => {
             nonce: nonce.toString(),
             signature: "0x" + "fe".repeat(65),
             message: "0x",
+            agreement: "0x",
             tokenId: theCube,
           },
         ]);

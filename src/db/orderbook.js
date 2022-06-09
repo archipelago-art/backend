@@ -277,7 +277,8 @@ async function askDetails({ client, askIds }) {
       nonce,
       token_id AS "tokenId",
       signature,
-      message
+      message,
+      agreement
     FROM asks
     WHERE ask_id = ANY($1::askid[])
     `,
@@ -293,6 +294,7 @@ async function askDetails({ client, askIds }) {
     tokenId: r.tokenId,
     message: bufToHex(r.message),
     signature: bufToHex(r.signature),
+    agreement: bufToHex(r.agreement),
   }));
 }
 
@@ -537,7 +539,8 @@ async function bidDetails({ client, bidIds }) {
       scope,
       nonce,
       signature,
-      message
+      message,
+      agreement
     FROM bids
     WHERE bid_id = ANY($1::bidid[])
     `,
@@ -551,6 +554,7 @@ async function bidDetails({ client, bidIds }) {
     nonce: String(r.nonce),
     signature: bufToHex(r.signature),
     message: bufToHex(r.message),
+    agreement: bufToHex(r.agreement),
     scope: {
       type: objectTypeToName[idType(r.scope)],
       scope: r.scope,
