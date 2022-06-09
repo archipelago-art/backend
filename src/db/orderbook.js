@@ -276,7 +276,8 @@ async function askDetails({ client, askIds }) {
       asker,
       nonce,
       token_id AS "tokenId",
-      signature
+      signature,
+      message
     FROM asks
     WHERE ask_id = ANY($1::askid[])
     `,
@@ -290,6 +291,7 @@ async function askDetails({ client, askIds }) {
     asker: bufToAddress(r.asker),
     nonce: String(r.nonce),
     tokenId: r.tokenId,
+    message: bufToHex(r.message),
     signature: bufToHex(r.signature),
   }));
 }
@@ -528,7 +530,14 @@ async function bidDetails({ client, bidIds }) {
   const res = await client.query(
     `
     SELECT
-      bid_id AS "bidId", price, deadline, bidder, scope, nonce, signature
+      bid_id AS "bidId",
+      price,
+      deadline,
+      bidder,
+      scope,
+      nonce,
+      signature,
+      message
     FROM bids
     WHERE bid_id = ANY($1::bidid[])
     `,
@@ -541,6 +550,7 @@ async function bidDetails({ client, bidIds }) {
     bidder: bufToAddress(r.bidder),
     nonce: String(r.nonce),
     signature: bufToHex(r.signature),
+    message: bufToHex(r.message),
     scope: {
       type: objectTypeToName[idType(r.scope)],
       scope: r.scope,
