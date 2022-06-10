@@ -5,6 +5,7 @@ const emails = require("../db/emails");
 const eth = require("../db/eth");
 const orderbook = require("../db/orderbook");
 const { bufToAddress, hexToBuf } = require("../db/util");
+const ws = require("../db/ws");
 const normalizeAspectRatio = require("../scrape/normalizeAspectRatio");
 const slugify = require("../util/slugify");
 const { sortAsciinumeric } = require("../util/sortAsciinumeric");
@@ -445,6 +446,7 @@ module.exports = {
   tokenHistory,
   transferCount,
   addEmailSignup,
+  getWebsocketMessages: ws.getMessages,
   formatImageUrl,
 
   opensea: openseaApi,
