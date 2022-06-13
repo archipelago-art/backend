@@ -178,43 +178,67 @@ async function addBid({
   return bidId;
 }
 
-async function updateActivityForNonce({ client, account, nonce, active }) {
+async function updateActivityForNonces({
+  client,
+  updates /*: Array<{ account: address, nonce: uint256, active: boolean }> */,
+}) {
+  const accounts = Array(updates.length);
+  const nonces = Array(updates.length);
+  const actives = Array(updates.length);
+  for (let i = 0; i < updates.length; i++) {
+    accounts[i] = hexToBuf(updates[i].account);
+    nonces[i] = updates[i].nonce;
+    actives[i] = updates[i].active;
+  }
   await client.query(
     `
     UPDATE bids
     SET
-      active_nonce = $3::boolean,
+      active_nonce = updates.active_nonce,
       active = (
         active_currency_balance
         AND active_market_approved
-        AND $3::boolean
+        AND updates.active_nonce
         AND active_deadline
       )
+    FROM
+      unnest($1::address[], $2::uint256[], $3::boolean[])
+        AS updates(account, nonce, active_nonce)
     WHERE
-      bidder = $1::address
-      AND nonce = $2::uint256
+      bids.bidder = updates.account
+      AND bids.nonce = bids.nonce
       AND active_deadline
     `,
-    [hexToBuf(account), nonce, active]
+    [accounts, nonces, actives]
   );
   await client.query(
     `
     UPDATE asks
     SET
-      active_nonce = $3::boolean,
+      active_nonce = updates.active_nonce,
       active = (
         (active_token_owner OR active_token_operator OR active_token_operator_for_all)
         AND (active_market_approved OR active_market_approved_for_all)
-        AND $3::boolean
+        AND updates.active_nonce
         AND active_deadline
       )
+    FROM
+      unnest($1::address[], $2::uint256[], $3::boolean[])
+        AS updates(account, nonce, active_nonce)
     WHERE
-      asker = $1::address
-      AND nonce = $2::uint256
+      asks.asker = updates.account
+      AND asks.nonce = updates.nonce
       AND active_deadline
     `,
-    [hexToBuf(account), nonce, active]
+    [accounts, nonces, actives]
   );
+}
+
+async function updateActivityForNonce({ client, account, nonce, active }) {
+  await updateActivityForNonces({
+    client,
+    updates: [{ account, nonce, active }],
+  });
 }
 
 async function addAsk({
@@ -693,6 +717,7 @@ module.exports = {
   addBid,
   addAsk,
   updateActivityForNonce,
+  updateActivityForNonces,
   askDetails,
   askDetailsForToken,
   askIdsForToken,
