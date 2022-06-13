@@ -86,14 +86,24 @@ describe("db/orderbook", () => {
     return res.rows[0].active;
   }
 
-  async function markInactive(client, askId) {
+  async function markAskInactive(client, askId) {
     await client.query(
       `
-        UPDATE asks
-        SET active = false
-        WHERE ask_id = $1::askid
-        `,
+      UPDATE asks
+      SET active = false, active_nonce = false
+      WHERE ask_id = $1::askid
+      `,
       [askId]
+    );
+  }
+  async function markBidInactive(client, bidId) {
+    await client.query(
+      `
+      UPDATE bids
+      SET active = false, active_nonce = false
+      WHERE bid_id = $1::bidid
+      `,
+      [bidId]
     );
   }
 
@@ -451,12 +461,7 @@ describe("db/orderbook", () => {
         // Bid is included because it's (incorrectly) marked active (for now)
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
         // Manually set active=false so we can test the bidDetailsForToken behavior
-        await client.query(
-          `
-          UPDATE bids SET active = false WHERE bid_id = $1::bidid
-          `,
-          [bidId]
-        );
+        await markBidInactive(client, bidId);
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([]);
       })
     );
@@ -699,7 +704,7 @@ describe("db/orderbook", () => {
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
-        await markInactive(client, ask3);
+        await markAskInactive(client, ask3);
         const floor = await floorAsk({ client, projectId: archetype });
         expect(floor).toEqual(ask2);
         const floors = await floorAsks({
@@ -753,7 +758,7 @@ describe("db/orderbook", () => {
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
-        await markInactive(client, ask3);
+        await markAskInactive(client, ask3);
         const ask4 = await addAsk({
           client,
           tokenId: arch1,
@@ -840,7 +845,7 @@ describe("db/orderbook", () => {
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
-        await markInactive(client, ask3);
+        await markAskInactive(client, ask3);
         const floorAsks = await floorAskIdsForAllTokensInProject({
           client,
           projectId: archetype,
@@ -1009,7 +1014,7 @@ describe("db/orderbook", () => {
           { projectId: archetype, askId: ask1 },
           { projectId: squiggles, askId: ask3 },
         ]);
-        await markInactive(client, ask3);
+        await markAskInactive(client, ask3);
         expect(await floorAskForEveryProject({ client })).toEqual([
           { projectId: archetype, askId: ask1 },
           { projectId: squiggles, askId: ask2 },
