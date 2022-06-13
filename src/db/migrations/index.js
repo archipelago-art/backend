@@ -128,6 +128,7 @@ const migrationModules = [
   "./0117_deprecate_legacy_chain_tracking",
   "./0118_fine_grained_activity_fields",
   "./0119_fine_grained_activity_constraints",
+  "./0120_index_bids_asks_account_nonce",
   // ...
 ];
 
