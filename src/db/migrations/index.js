@@ -125,6 +125,7 @@ const migrationModules = [
   "./0114_index_erc721_transfers_to_address_and_from_address",
   "./0115_websocket_log",
   "./0116_fix_index_erc721_transfers_from_address",
+  "./0117_deprecate_legacy_chain_tracking",
   // ...
 ];
 
