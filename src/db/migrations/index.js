@@ -127,6 +127,7 @@ const migrationModules = [
   "./0116_fix_index_erc721_transfers_from_address",
   "./0117_deprecate_legacy_chain_tracking",
   "./0118_fine_grained_activity_fields",
+  "./0119_fine_grained_activity_constraints",
   // ...
 ];
 
