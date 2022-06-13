@@ -178,6 +178,45 @@ async function addBid({
   return bidId;
 }
 
+async function updateActivityForNonce({ client, account, nonce, active }) {
+  await client.query(
+    `
+    UPDATE bids
+    SET
+      active_nonce = $3::boolean,
+      active = (
+        active_currency_balance
+        AND active_market_approved
+        AND $3::boolean
+        AND active_deadline
+      )
+    WHERE
+      bidder = $1::address
+      AND nonce = $2::uint256
+      AND active_deadline
+    `,
+    [hexToBuf(account), nonce, active]
+  );
+  await client.query(
+    `
+    UPDATE asks
+    SET
+      active_nonce = $3::boolean,
+      active = (
+        (active_token_owner OR active_token_operator OR active_token_operator_for_all)
+        AND (active_market_approved OR active_market_approved_for_all)
+        AND $3::boolean
+        AND active_deadline
+      )
+    WHERE
+      asker = $1::address
+      AND nonce = $2::uint256
+      AND active_deadline
+    `,
+    [hexToBuf(account), nonce, active]
+  );
+}
+
 async function addAsk({
   client,
   tokenId /*: tokenid */,
@@ -653,6 +692,7 @@ async function projectForCnfId(client, cnfId) {
 module.exports = {
   addBid,
   addAsk,
+  updateActivityForNonce,
   askDetails,
   askDetailsForToken,
   askIdsForToken,

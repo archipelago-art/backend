@@ -8,6 +8,7 @@ const cnfs = require("./cnfs");
 const {
   addBid,
   addAsk,
+  updateActivityForNonce,
   floorAsk,
   floorAsks,
   floorAskIdsForAllTokensInProject,
@@ -84,27 +85,6 @@ describe("db/orderbook", () => {
     );
     if (res.rowCount !== 1) throw new Error(`no such ask: ${askId}`);
     return res.rows[0].active;
-  }
-
-  async function markAskInactive(client, askId) {
-    await client.query(
-      `
-      UPDATE asks
-      SET active = false, active_nonce = false
-      WHERE ask_id = $1::askid
-      `,
-      [askId]
-    );
-  }
-  async function markBidInactive(client, bidId) {
-    await client.query(
-      `
-      UPDATE bids
-      SET active = false, active_nonce = false
-      WHERE bid_id = $1::bidid
-      `,
-      [bidId]
-    );
   }
 
   describe("addBid", () => {
@@ -460,8 +440,12 @@ describe("db/orderbook", () => {
         };
         // Bid is included because it's (incorrectly) marked active (for now)
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
-        // Manually set active=false so we can test the bidDetailsForToken behavior
-        await markBidInactive(client, bidId);
+        await updateActivityForNonce({
+          client,
+          account: bidder,
+          nonce: nonce.toString(),
+          active: false,
+        });
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([]);
       })
     );
@@ -670,14 +654,15 @@ describe("db/orderbook", () => {
           snapshots.THE_CUBE,
           snapshots.ARCH_TRIPTYCH_1,
         ]);
+        const asker = ethers.constants.AddressZero;
         const deadline = new Date("2099-01-01");
         const ask1 = await addAsk({
           client,
           tokenId: theCube,
           price: ethers.BigNumber.from("100"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("123"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
@@ -687,8 +672,8 @@ describe("db/orderbook", () => {
           tokenId: arch1,
           price: ethers.BigNumber.from("50"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("456"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
@@ -698,13 +683,18 @@ describe("db/orderbook", () => {
           tokenId: arch1,
           price: ethers.BigNumber.from("5"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("789"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
-        await markAskInactive(client, ask3);
+        await updateActivityForNonce({
+          client,
+          account: asker,
+          nonce: "789",
+          active: false,
+        });
         const floor = await floorAsk({ client, projectId: archetype });
         expect(floor).toEqual(ask2);
         const floors = await floorAsks({
@@ -724,14 +714,15 @@ describe("db/orderbook", () => {
           snapshots.THE_CUBE,
           snapshots.ARCH_TRIPTYCH_1,
         ]);
+        const asker = ethers.constants.AddressZero;
         const deadline = new Date("2099-01-01");
         const ask1 = await addAsk({
           client,
           tokenId: theCube,
           price: ethers.BigNumber.from("100"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("123"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
@@ -741,8 +732,8 @@ describe("db/orderbook", () => {
           tokenId: theCube,
           price: ethers.BigNumber.from("50"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("456"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
@@ -752,20 +743,25 @@ describe("db/orderbook", () => {
           tokenId: theCube,
           price: ethers.BigNumber.from("5"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("789"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
-        await markAskInactive(client, ask3);
+        await updateActivityForNonce({
+          client,
+          account: asker,
+          nonce: "789",
+          active: false,
+        });
         const ask4 = await addAsk({
           client,
           tokenId: arch1,
           price: ethers.BigNumber.from("5"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("987"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
@@ -811,14 +807,15 @@ describe("db/orderbook", () => {
           snapshots.ARCH_TRIPTYCH_1,
           snapshots.ARCH_TRIPTYCH_2,
         ]);
+        const asker = ethers.constants.AddressZero;
         const deadline = new Date("2099-01-01");
         const ask1 = await addAsk({
           client,
           tokenId: theCube,
           price: ethers.BigNumber.from("100"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("123"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
@@ -828,8 +825,8 @@ describe("db/orderbook", () => {
           tokenId: arch1,
           price: ethers.BigNumber.from("50"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("456"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
@@ -839,13 +836,18 @@ describe("db/orderbook", () => {
           tokenId: arch1,
           price: ethers.BigNumber.from("5"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("789"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
-        await markAskInactive(client, ask3);
+        await updateActivityForNonce({
+          client,
+          account: asker,
+          nonce: "789",
+          active: false,
+        });
         const floorAsks = await floorAskIdsForAllTokensInProject({
           client,
           projectId: archetype,
@@ -973,14 +975,15 @@ describe("db/orderbook", () => {
           snapshots.ARCH_66,
           snapshots.PERFECT_CHROMATIC,
         ]);
+        const asker = ethers.constants.AddressZero;
         const deadline = new Date("2099-01-01");
         const ask1 = await addAsk({
           client,
           tokenId: theCube,
           price: ethers.BigNumber.from("100"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("123"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
@@ -993,8 +996,8 @@ describe("db/orderbook", () => {
           tokenId: aSquiggle,
           price: ethers.BigNumber.from("50"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("456"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
@@ -1004,8 +1007,8 @@ describe("db/orderbook", () => {
           tokenId: aSquiggle,
           price: ethers.BigNumber.from("5"),
           deadline,
-          asker: ethers.constants.AddressZero,
-          nonce: ethers.BigNumber.from("0xabcd"),
+          asker,
+          nonce: ethers.BigNumber.from("789"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
@@ -1014,7 +1017,12 @@ describe("db/orderbook", () => {
           { projectId: archetype, askId: ask1 },
           { projectId: squiggles, askId: ask3 },
         ]);
-        await markAskInactive(client, ask3);
+        await updateActivityForNonce({
+          client,
+          account: asker,
+          nonce: "789",
+          active: false,
+        });
         expect(await floorAskForEveryProject({ client })).toEqual([
           { projectId: archetype, askId: ask1 },
           { projectId: squiggles, askId: ask2 },
