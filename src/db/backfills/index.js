@@ -1,6 +1,5 @@
 const backfillModules = [
   "./artblocksFetchTime",
-  "./blocks",
   "./genesisBlockNullParentHash",
   "./nonStringTraits",
   "./openseaEventTypes",

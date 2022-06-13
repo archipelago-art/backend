@@ -1,4 +1,3 @@
-const { ingestBlocks } = require("../../eth/tokenTransfers");
 const log = require("../../util/log")(__filename);
 const { acqrel, bufToHex } = require("../util");
 
