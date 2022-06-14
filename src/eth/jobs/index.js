@@ -2,6 +2,7 @@ const artblocks = require("../../db/artblocks");
 
 const makeEchoJob = require("./echo");
 const makeErc721TransfersJob = require("./erc721Transfers");
+const makeNonceCancellationsJob = require("./nonceCancellations");
 
 /*::
 interface Job {
@@ -37,6 +38,7 @@ interface Job {
 
 const AUTOGLYPHS_ADDRESS = "0xd4e4078ca3495DE5B1d4dB434BEbc5a986197782";
 const CRYPTOADZ_ADDRESS = "0x1CB1A5e65610AEFF2551A50f76a87a7d3fB649C6";
+const MARKET_TEST_ADDRESS = "0x3F8d41e0cbb175D2553Cff761107194383386EB8";
 
 const JOBS = [
   makeEchoJob(),
@@ -55,6 +57,10 @@ const JOBS = [
   makeErc721TransfersJob({
     address: CRYPTOADZ_ADDRESS,
     startBlock: 13186834,
+  }),
+  makeNonceCancellationsJob({
+    address: MARKET_TEST_ADDRESS,
+    startBlock: 14963431,
   }),
   // ...
 ];

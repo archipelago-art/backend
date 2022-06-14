@@ -206,7 +206,7 @@ async function updateActivityForNonces({
         AS updates(account, nonce, active_nonce)
     WHERE
       bids.bidder = updates.account
-      AND bids.nonce = bids.nonce
+      AND bids.nonce = updates.nonce
       AND active_deadline
     `,
     [accounts, nonces, actives]

@@ -8,6 +8,7 @@ const snapshots = require("../scrape/snapshots");
 const adHocPromise = require("../util/adHocPromise");
 const artblocks = require("./artblocks");
 const eth = require("./eth");
+const orderbook = require("./orderbook");
 const ws = require("./ws");
 
 describe("db/eth", () => {
@@ -203,6 +204,14 @@ describe("db/eth", () => {
     return result;
   }
 
+  function dummyTx(id) {
+    return ethers.utils.id(`tx:${id}`);
+  }
+  function dummyAddress(id) {
+    const hash = ethers.utils.id(`addr:${id}`);
+    return ethers.utils.getAddress(ethers.utils.hexDataSlice(hash, 12));
+  }
+
   describe("erc721_transfers", () => {
     it(
       "adds and removes transfers across different blocks",
@@ -216,13 +225,6 @@ describe("db/eth", () => {
         const blocks = realBlocks();
         await eth.addBlocks({ client, blocks });
 
-        function dummyTx(id) {
-          return ethers.utils.id(`tx:${id}`);
-        }
-        function dummyAddress(id) {
-          const hash = ethers.utils.id(`addr:${id}`);
-          return ethers.utils.getAddress(ethers.utils.hexDataSlice(hash, 12));
-        }
         const zero = ethers.constants.AddressZero;
         const alice = dummyAddress("alice");
         const bob = dummyAddress("bob");
@@ -363,6 +365,95 @@ describe("db/eth", () => {
           { ...bobMintsCube, blockNumber: 0 }, // different contract address
           { ...bobReturnsSquiggleLater, blockNumber: 2 }, // different block
         ]);
+      })
+    );
+  });
+
+  describe("nonce_cancellations", () => {
+    it(
+      "adds and removes nonce cancellations, updating order activity",
+      withTestDb(async ({ client }) => {
+        await addProjects(client, [snapshots.SQUIGGLES]);
+        const [tokenId] = await addTokens(client, [
+          snapshots.PERFECT_CHROMATIC,
+        ]);
+
+        const zero = ethers.constants.AddressZero;
+        const alice = dummyAddress("alice");
+        const market = dummyAddress("market");
+
+        const nonce = 12345;
+
+        const blocks = realBlocks();
+        await eth.addBlocks({ client, blocks });
+
+        const mintTransfer = {
+          tokenId,
+          fromAddress: zero,
+          toAddress: alice,
+          blockHash: blocks[0].hash,
+          logIndex: 1,
+          transactionHash: dummyTx(1),
+        };
+        await eth.addErc721Transfers({ client, transfers: [mintTransfer] });
+
+        const askId = await orderbook.addAsk({
+          client,
+          tokenId,
+          price: "1000",
+          deadline: new Date("2099-01-01"),
+          asker: alice,
+          nonce,
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        async function isAskActive() {
+          const res = await orderbook.floorAsk({ client, tokenId });
+          return res != null;
+        }
+
+        expect(await isAskActive()).toBe(true);
+
+        const cancellation1 = {
+          account: alice,
+          nonce,
+          blockHash: blocks[1].hash,
+          logIndex: 2,
+          transactionHash: dummyTx(2),
+        };
+        const cancellation2 = {
+          ...cancellation1,
+          blockHash: blocks[2].hash,
+          logIndex: 3,
+          transactionHash: dummyTx(3),
+        }; // duplicate
+        const n0 = await eth.addNonceCancellations({
+          client,
+          marketContract: market,
+          cancellations: [cancellation1, cancellation2],
+        });
+        expect(n0).toEqual(1);
+
+        expect(await isAskActive()).toBe(false);
+
+        // Delete the duplicate, doing nothing...
+        const n1 = await eth.deleteNonceCancellations({
+          client,
+          marketContract: market,
+          blockHash: blocks[2].hash,
+        });
+        expect(n1).toBe(0);
+        expect(await isAskActive()).toBe(false);
+
+        // ...then the original, re-activating the ask.
+        const n2 = await eth.deleteNonceCancellations({
+          client,
+          marketContract: market,
+          blockHash: blocks[1].hash,
+        });
+        expect(n2).toBe(1);
+        expect(await isAskActive()).toBe(true);
       })
     );
   });
