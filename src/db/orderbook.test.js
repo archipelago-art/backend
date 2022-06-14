@@ -13,6 +13,8 @@ const {
   floorAskIdsForAllTokensInProject,
   floorAskForEveryProject,
   askDetails,
+  askDetailsForToken,
+  askIdsForToken,
   bidDetailsForToken,
   bidIdsForAddress,
   askIdsForAddress,
@@ -557,9 +559,7 @@ describe("db/orderbook", () => {
             },
           ])
         );
-
-        expect(await floorAsk({ client, tokenId: theCube })).toEqual(askId);
-        expect(await askDetails({ client, askIds: [askId] })).toEqual([
+        const result = [
           {
             askId,
             price,
@@ -572,7 +572,15 @@ describe("db/orderbook", () => {
             agreement: "0x",
             tokenId: theCube,
           },
+        ];
+        expect(await floorAsk({ client, tokenId: theCube })).toEqual(askId);
+        expect(await askDetails({ client, askIds: [askId] })).toEqual(result);
+        expect(await askIdsForToken({ client, tokenId: theCube })).toEqual([
+          askId,
         ]);
+        expect(await askDetailsForToken({ client, tokenId: theCube })).toEqual(
+          result
+        );
       })
     );
 

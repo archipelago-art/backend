@@ -265,6 +265,20 @@ async function addAsk({
   return askId;
 }
 
+async function askIdsForToken({ client, tokenId }) {
+  const res = await client.query(
+    `
+    SELECT ask_id AS "askId"
+    FROM asks
+    WHERE active
+    AND token_id = $1
+    ORDER BY price DESC, create_time ASC
+    `,
+    [tokenId]
+  );
+  return res.rows.map((r) => r.askId);
+}
+
 async function askDetails({ client, askIds }) {
   const res = await client.query(
     `
@@ -296,6 +310,11 @@ async function askDetails({ client, askIds }) {
     signature: bufToHex(r.signature),
     agreement: bufToHex(r.agreement),
   }));
+}
+
+async function askDetailsForToken({ client, tokenId }) {
+  const askIds = await askIdsForToken({ client, tokenId });
+  return await askDetails({ client, askIds });
 }
 
 async function floorAsks({ client, projectId, tokenId, limit }) {
@@ -616,6 +635,8 @@ module.exports = {
   addBid,
   addAsk,
   askDetails,
+  askDetailsForToken,
+  askIdsForToken,
   floorAsk,
   floorAsks,
   floorAskIdsForAllTokensInProject,
