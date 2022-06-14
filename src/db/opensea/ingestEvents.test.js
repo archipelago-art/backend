@@ -447,7 +447,7 @@ describe("db/opensea/ingestEvents", () => {
               type: "ASK_PLACED",
               topic: "archetype",
               data: {
-                orderId: "opensea:" + String(ev.id),
+                askId: "opensea:" + String(ev.id),
                 projectId,
                 tokenId,
                 slug: "archetype",
