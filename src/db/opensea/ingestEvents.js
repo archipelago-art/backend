@@ -349,7 +349,7 @@ async function ingestAsks(client, askIds) {
     type: "ASK_PLACED",
     topic: r.slug,
     data: {
-      orderId: `opensea:${r.id}`,
+      askId: `opensea:${r.id}`,
       projectId: r.projectId,
       tokenId: r.tokenId,
       slug: r.slug,

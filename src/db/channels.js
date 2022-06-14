@@ -37,7 +37,7 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //  - For `type: "ASK_PLACED"`, `data` looks like:
 //
 //      {
-//        orderId: string,
+//        askId: string,
 //        projectId: string,
 //        tokenId: string,
 //        slug: string,
@@ -58,7 +58,7 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //          | { type: "PROJECT", projectId: string, slug: string }
 //          | { type: "TRAIT", traitId: string, featureName: string, traitValue: string }
 //          | { type: "CNF", cnfId: string }
-//        orderId: string,
+//        bidId: string,
 //        projectId: string,
 //        slug: string,
 //        venue: "ARCHIPELAGO" | "OPENSEA",
