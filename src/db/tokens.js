@@ -55,11 +55,11 @@ async function addBareToken({
     type: "TOKEN_MINTED",
     topic: slug,
     data: {
-    projectId,
-    tokenId,
-    slug,
-    tokenIndex,
-    }
+      projectId,
+      tokenId,
+      slug,
+      tokenIndex,
+    },
   };
   await ws.sendMessages({ client, messages: [message] });
 
