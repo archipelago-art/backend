@@ -181,6 +181,7 @@ async function deleteBlock({ client, blockHash }) {
 async function addErc721Transfers({
   client,
   transfers,
+  ignoreConflicts = false,
   alreadyInTransaction = false,
 }) {
   const n = transfers.length;
@@ -202,6 +203,8 @@ async function addErc721Transfers({
 
   if (!alreadyInTransaction) await client.query("BEGIN");
 
+  const conflictClause = ignoreConflicts ? "ON CONFLICT DO NOTHING" : "";
+
   const res = await client.query(
     `
     INSERT INTO erc721_transfers (
@@ -217,6 +220,7 @@ async function addErc721Transfers({
       unnest($1::tokenid[], $2::address[], $3::address[], $4::bytes32[], $5::int[], $6::bytes32[])
         AS i(token_id, from_address, to_address, block_hash, log_index, transaction_hash)
       LEFT OUTER JOIN eth_blocks USING (block_hash)
+    ${conflictClause}
     RETURNING (
       SELECT slug
       FROM tokens
@@ -270,6 +274,7 @@ async function addErc721Transfers({
   await ws.sendMessages({ client, messages });
 
   if (!alreadyInTransaction) await client.query("COMMIT");
+  return res.rowCount;
 }
 
 async function deleteErc721Transfers({ client, blockHash, tokenContract }) {

@@ -64,14 +64,14 @@ class Erc721TransfersJob {
       });
       if (added) newTokens++;
     }
-    await eth.addErc721Transfers({
+    const actualAdded = await eth.addErc721Transfers({
       client,
       transfers,
+      ignoreConflicts: true,
       alreadyInTransaction: true,
     });
-    const n = transfers.length;
     this._log
-      .info`up(${minBlock}..=${maxBlock}): added ${n} transfers with ${newTokens} new tokens`;
+      .info`up(${minBlock}..=${maxBlock}): added ${actualAdded}/${transfers.length} transfers with ${newTokens} new tokens`;
   }
 
   async down({ client, blockHash }) {
