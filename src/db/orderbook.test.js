@@ -155,6 +155,7 @@ describe("db/orderbook", () => {
 
         const bid = {
           bidId,
+          slug: "archetype",
           price,
           bidder,
           nonce: nonce.toString(),
@@ -225,6 +226,7 @@ describe("db/orderbook", () => {
 
         const bid = {
           bidId,
+          slug: "archetype",
           price,
           bidder,
           nonce: nonce.toString(),
@@ -315,6 +317,7 @@ describe("db/orderbook", () => {
         );
         const bid = {
           bidId,
+          slug: "archetype",
           price,
           bidder,
           nonce: nonce.toString(),
@@ -398,6 +401,7 @@ describe("db/orderbook", () => {
 
         const bid = {
           bidId,
+          slug: "archetype",
           price,
           bidder,
           nonce: nonce.toString(),
@@ -434,6 +438,7 @@ describe("db/orderbook", () => {
         });
         const bid = {
           bidId,
+          slug: "archetype",
           price,
           bidder,
           nonce: nonce.toString(),

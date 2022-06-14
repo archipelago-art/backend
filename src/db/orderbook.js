@@ -552,6 +552,7 @@ async function bidDetails({ client, bidIds }) {
     `
     SELECT
       bid_id AS "bidId",
+      slug,
       price,
       deadline,
       bidder,
@@ -561,12 +562,14 @@ async function bidDetails({ client, bidIds }) {
       message,
       agreement
     FROM bids
+    JOIN projects using (project_id)
     WHERE bid_id = ANY($1::bidid[])
     `,
     [bidIds]
   );
   return res.rows.map((r) => ({
     bidId: r.bidId,
+    slug: r.slug,
     price: ethers.BigNumber.from(r.price),
     deadline: r.deadline,
     bidder: bufToAddress(r.bidder),
