@@ -67,7 +67,6 @@ class Erc721TransfersJob {
     const actualAdded = await eth.addErc721Transfers({
       client,
       transfers,
-      ignoreConflicts: true,
       alreadyInTransaction: true,
     });
     this._log
