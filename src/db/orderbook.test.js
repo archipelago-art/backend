@@ -447,6 +447,23 @@ describe("db/orderbook", () => {
           active: false,
         });
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([]);
+        expect(
+          await ws.getMessages({
+            client,
+            topic: "archetype",
+            since: new Date(0),
+          })
+        ).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "BID_CANCELLED",
+              topic: "archetype",
+              data: { bidId, projectId: archetype, slug: "archetype" },
+            },
+          ])
+        );
       })
     );
     it(
@@ -703,6 +720,23 @@ describe("db/orderbook", () => {
           limit: 2,
         });
         expect(floors).toEqual([ask2, ask1]);
+        expect(
+          await ws.getMessages({
+            client,
+            topic: "archetype",
+            since: new Date(0),
+          })
+        ).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "ASK_CANCELLED",
+              topic: "archetype",
+              data: { askId: ask3, projectId: archetype, slug: "archetype" },
+            },
+          ])
+        );
       })
     );
 

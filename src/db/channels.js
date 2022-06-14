@@ -50,6 +50,14 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //        expirationTime: null | string(iso8601),
 //      }
 //
+//  - For `type: "ASK_CANCELLED"`, `data` looks like:
+//
+//      {
+//        askId: string,
+//        projectId: string,
+//        slug: string,
+//      }
+//
 //  - For `type: "BID_PLACED"`, `data` looks like:
 //
 //      {
@@ -67,6 +75,14 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //        price: string(wei),
 //        timestamp: string(iso8601),
 //        expirationTime: null | string(iso8601),
+//      }
+//
+//  - For `type: "BID_CANCELLED"`, `data` looks like:
+//
+//      {
+//        bidId: string,
+//        projectId: string,
+//        slug: string,
 //      }
 //
 //  - For `type: "TOKEN_MINTED"`, `data` looks like:

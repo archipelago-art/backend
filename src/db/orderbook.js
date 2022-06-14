@@ -190,7 +190,7 @@ async function updateActivityForNonces({
     nonces[i] = updates[i].nonce;
     actives[i] = updates[i].active;
   }
-  await client.query(
+  const bidUpdatesRes = await client.query(
     `
     UPDATE bids
     SET
@@ -208,10 +208,15 @@ async function updateActivityForNonces({
       bids.bidder = updates.account
       AND bids.nonce = updates.nonce
       AND active_deadline
+    RETURNING
+      bid_id AS "bidId",
+      project_id AS "projectId",
+      (SELECT slug FROM projects p WHERE p.project_id = bids.project_id) AS "slug",
+      active
     `,
     [accounts, nonces, actives]
   );
-  await client.query(
+  const askUpdatesRes = await client.query(
     `
     UPDATE asks
     SET
@@ -229,9 +234,40 @@ async function updateActivityForNonces({
       asks.asker = updates.account
       AND asks.nonce = updates.nonce
       AND active_deadline
+    RETURNING
+      ask_id AS "askId",
+      project_id AS "projectId",
+      (SELECT slug FROM projects p WHERE p.project_id = asks.project_id) AS "slug",
+      active
     `,
     [accounts, nonces, actives]
   );
+  // TODO(@wchargin): Also re-send order-placed messages on reactivation.
+  const wsMessages = [
+    ...bidUpdatesRes.rows
+      .filter((r) => !r.active)
+      .map((r) => ({
+        type: "BID_CANCELLED",
+        topic: r.slug,
+        data: {
+          bidId: r.bidId,
+          projectId: r.projectId,
+          slug: r.slug,
+        },
+      })),
+    ...askUpdatesRes.rows
+      .filter((r) => !r.active)
+      .map((r) => ({
+        type: "ASK_CANCELLED",
+        topic: r.slug,
+        data: {
+          askId: r.askId,
+          projectId: r.projectId,
+          slug: r.slug,
+        },
+      })),
+  ];
+  await ws.sendMessages({ client, messages: wsMessages });
 }
 
 async function updateActivityForNonce({ client, account, nonce, active }) {
