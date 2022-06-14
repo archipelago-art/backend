@@ -115,6 +115,29 @@ async function latestBlockHeader({ client }) {
   };
 }
 
+async function getBlockHeaders({ client, fromNumber, toNumber }) {
+  const res = await client.query(
+    `
+    SELECT
+      block_hash AS "blockHash",
+      parent_hash AS "parentHash",
+      block_number AS "blockNumber",
+      block_timestamp AS "blockTimestamp"
+    FROM eth_blocks
+    WHERE block_number >= $1 AND block_number < $2
+    ORDER BY block_number
+    `,
+    [fromNumber, toNumber]
+  );
+  return res.rows.map((r) => ({
+    blockHash: bufToHex(r.blockHash),
+    parentHash:
+      r.parentHash == null ? ethers.constants.HashZero : bufToHex(r.parentHash),
+    blockNumber: r.blockNumber,
+    blockTimestamp: r.blockTimestamp,
+  }));
+}
+
 async function blockExists({ client, blockHash }) {
   const res = await client.query(
     `
@@ -313,6 +336,7 @@ module.exports = {
   updateJobProgress,
   addBlock,
   addBlocks,
+  getBlockHeaders,
   latestBlockHeader,
   blockExists,
   findBlockHeadersSince,

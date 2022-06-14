@@ -2,6 +2,7 @@ const ethers = require("ethers");
 
 const artblocks = require("../../db/artblocks");
 const eth = require("../../db/eth");
+const safeQueryFilter = require("../../db/safeQueryFilter");
 const tokens = require("../../db/tokens");
 const { fetchProjectData } = require("../../scrape/fetchArtblocksProject");
 const log = require("../../util/log")(__filename);
@@ -33,9 +34,14 @@ class Erc721TransfersJob {
 
   async up({ client, provider, minBlock, maxBlock }) {
     const contract = this._makeContract(provider);
-    const rawTransfers = await retryEthers(() =>
-      contract.queryFilter(contract.filters.Transfer(), minBlock, maxBlock)
-    );
+    const rawTransfers = await safeQueryFilter({
+      client,
+      provider,
+      contract,
+      filter: contract.filters.Transfer(),
+      minBlock,
+      maxBlock,
+    });
     const transfers = [];
     let newTokens = 0;
     for (const transfer of rawTransfers) {
