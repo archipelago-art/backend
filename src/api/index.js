@@ -112,6 +112,39 @@ async function getTraitData({ client, traitIds }) {
   return res.rows;
 }
 
+/**
+ * Get trait membership data for a set of traits for a specific token id.
+ * The membership data will be provided for a block of 256 token indices, which
+ * will include the reference token.
+ * Returns: Promise<Array<{traitId, indices: Array<int>}>>
+ */
+async function blockAlignedTraitMembers({ client, traitIds, tokenId }) {
+  const res = await client.query(
+    `
+    WITH token_range(project_id, min_token_index) AS (
+      SELECT project_id, (token_index >> 8) << 8
+      FROM tokens WHERE token_id = $1::tokenid
+    )
+    SELECT token_index AS "tokenIndex", trait_id AS "traitId"
+    FROM trait_members
+    JOIN unnest($2::traitid[]) AS these_traits(trait_id) USING (trait_id)
+    JOIN tokens USING (token_id)
+    WHERE project_id = (SELECT project_id FROM token_range)
+    AND token_index >= (SELECT min_token_index FROM token_range)
+    AND token_index < (SELECT min_token_index + 256 FROM token_range)
+    `,
+    [tokenId, traitIds]
+  );
+  const traitToTokenIndices = new Map(traitIds.map((x) => [x, []]));
+  for (const { tokenIndex, traitId } of res.rows) {
+    traitToTokenIndices.get(traitId).push(tokenIndex);
+  }
+  return traitIds.map((x) => ({
+    traitId: x,
+    indices: traitToTokenIndices.get(x),
+  }));
+}
+
 async function _collections({ client, projectId }) {
   const res = await client.query(
     `
@@ -435,6 +468,7 @@ module.exports = {
   addCnf: cnfs.addCnf,
   getCnfTraits,
   getTraitData,
+  blockAlignedTraitMembers,
   collections,
   collection,
   collectionTokens,

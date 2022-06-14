@@ -5,6 +5,7 @@ const { testDbProvider } = require("../db/testUtil");
 const api = require(".");
 const artblocks = require("../db/artblocks");
 const autoglyphs = require("../db/autoglyphs");
+const tokens = require("../db/tokens");
 const emails = require("../db/emails");
 const eth = require("../db/eth");
 const openseaIngest = require("../db/opensea/ingestEvents");
@@ -892,6 +893,91 @@ describe("api", () => {
           },
         ],
       });
+    })
+  );
+
+  it(
+    "blockAlignedTraitMembers works",
+    withTestDb(async ({ client }) => {
+      const project = parseProjectData(
+        snapshots.ARCHETYPE,
+        await sc.project(snapshots.ARCHETYPE)
+      );
+      const projectId = await artblocks.addProject({ client, project });
+
+      function block(x) {
+        const ret = [];
+        for (let i = x * 256; i < (x + 1) * 256; i++) {
+          ret.push(i);
+        }
+        return ret;
+      }
+
+      const tokenIds = [];
+      for (let i = 0; i < 512; i++) {
+        const tokenId = await tokens.addBareToken({
+          client,
+          projectId,
+          tokenIndex: i,
+          onChainTokenId: 23000000 + i,
+        });
+        tokenIds.push(tokenId);
+        const featureData = {
+          mod2: i % 2 === 0 ? "true" : "false",
+          mod3: i % 3 === 0 ? "true" : "false",
+        };
+        await tokens.setTokenTraits({ client, tokenId, featureData });
+      }
+      const traitInfo = await api.resolveTraitIds({
+        client,
+        projectId,
+        keys: [
+          { featureName: "mod2", traitValue: "true" },
+          { featureName: "mod2", traitValue: "false" },
+          { featureName: "mod3", traitValue: "true" },
+          { featureName: "mod3", traitValue: "false" },
+        ],
+      });
+      const traitIds = traitInfo.map((x) => x.traitId);
+      // Test that we get the first block of results whether we use
+      // the 0th, 128th, or 255th token id
+      const members1 = await api.blockAlignedTraitMembers({
+        client,
+        traitIds,
+        tokenId: tokenIds[0],
+      });
+      const members2 = await api.blockAlignedTraitMembers({
+        client,
+        traitIds,
+        tokenId: tokenIds[128],
+      });
+      const members3 = await api.blockAlignedTraitMembers({
+        client,
+        traitIds,
+        tokenId: tokenIds[255],
+      });
+      const expected0 = [
+        { traitId: mod2True, indices: block(0).filter((i) => i % 2 === 0) },
+        { traitId: mod2False, indices: block(0).filter((i) => i % 2 !== 0) },
+        { traitId: mod3True, indices: block(0).filter((i) => i % 3 === 0) },
+        { traitId: mod3False, indices: block(0).filter((i) => i % 3 !== 0) },
+      ];
+      expect(members1).toEqual(expected0);
+      expect(members2).toEqual(expected0);
+      expect(members3).toEqual(expected0);
+      // also check we get the next block once we hit index 256
+      const expected256 = [
+        { traitId: mod2True, indices: block(1).filter((i) => i % 2 === 0) },
+        { traitId: mod2False, indices: block(1).filter((i) => i % 2 !== 0) },
+        { traitId: mod3True, indices: block(1).filter((i) => i % 3 === 0) },
+        { traitId: mod3False, indices: block(1).filter((i) => i % 3 !== 0) },
+      ];
+      const members4 = await api.blockAlignedTraitMembers({
+        client,
+        traitIds,
+        tokenId: tokenIds[256],
+      });
+      expect(members4).toEqual(expected256);
     })
   );
 });
