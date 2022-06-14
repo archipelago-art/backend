@@ -2,6 +2,7 @@ const ethers = require("ethers");
 
 const log = require("../util/log")(__filename);
 
+const orderbook = require("./orderbook");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 const ws = require("./ws");
 
@@ -335,6 +336,96 @@ async function getTransferCount({ client, fromAddress, toAddress }) {
   return Number(res.rows[0].count);
 }
 
+async function addNonceCancellations({
+  client,
+  marketContract,
+  cancellations,
+  alreadyInTransaction = false,
+}) {
+  if (!alreadyInTransaction) await client.query("BEGIN");
+
+  const n = cancellations.length;
+  const accounts = Array(n);
+  const nonces = Array(n);
+  const blockHashes = Array(n);
+  const logIndices = Array(n);
+  const transactionHashes = Array(n);
+  for (let i = 0; i < cancellations.length; i++) {
+    const cancellation = cancellations[i];
+    accounts[i] = hexToBuf(cancellation.account);
+    nonces[i] = String(cancellation.nonce);
+    blockHashes[i] = hexToBuf(cancellation.blockHash);
+    logIndices[i] = cancellation.logIndex;
+    transactionHashes[i] = hexToBuf(cancellation.transactionHash);
+  }
+  const insertRes = await client.query(
+    `
+    INSERT INTO nonce_cancellations(
+      market_contract, account, nonce,
+      block_hash, block_number, log_index,
+      transaction_hash
+    )
+    SELECT
+      $1::address, i.account, i.nonce,
+      i.block_hash, eth_blocks.block_number, i.log_index,
+      i.transaction_hash
+    FROM
+      unnest($2::address[], $3::uint256[], $4::bytes32[], $5::int[], $6::bytes32[])
+        AS i(account, nonce, block_hash, log_index, transaction_hash)
+      LEFT OUTER JOIN eth_blocks USING (block_hash)
+    ON CONFLICT (market_contract, account, nonce) DO NOTHING
+    `,
+    [
+      hexToBuf(marketContract),
+      accounts,
+      nonces,
+      blockHashes,
+      logIndices,
+      transactionHashes,
+    ]
+  );
+  await orderbook.updateActivityForNonces({
+    client,
+    updates: cancellations.map((c) => ({
+      account: c.account,
+      nonce: c.nonce,
+      active: false,
+    })),
+  });
+
+  if (!alreadyInTransaction) await client.query("COMMIT");
+  return insertRes.rowCount;
+}
+
+async function deleteNonceCancellations({
+  client,
+  blockHash,
+  marketContract,
+  alreadyInTransaction = false,
+}) {
+  if (!alreadyInTransaction) await client.query("BEGIN");
+
+  const deleteRes = await client.query(
+    `
+    DELETE FROM nonce_cancellations
+    WHERE block_hash = $1::bytes32 AND market_contract = $2::address
+    RETURNING account, nonce
+    `,
+    [hexToBuf(blockHash), hexToBuf(marketContract)]
+  );
+  await orderbook.updateActivityForNonces({
+    client,
+    updates: deleteRes.rows.map((r) => ({
+      account: bufToHex(r.account),
+      nonce: r.nonce,
+      active: true,
+    })),
+  });
+
+  if (!alreadyInTransaction) await client.query("COMMIT");
+  return deleteRes.rowCount;
+}
+
 module.exports = {
   getJobProgress,
   addJob,
@@ -351,4 +442,7 @@ module.exports = {
   deleteErc721Transfers,
   getTransfersForToken,
   getTransferCount,
+
+  addNonceCancellations,
+  deleteNonceCancellations,
 };
