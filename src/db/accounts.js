@@ -1,7 +1,6 @@
 require("dotenv").config();
 
 const crypto = require("crypto");
-
 const ethers = require("ethers");
 const mail = require("@sendgrid/mail");
 
@@ -131,7 +130,7 @@ async function setEmailUnconfirmed({
           {
             to: [{ email }],
             dynamicTemplateData: {
-              address: account,
+              address: bufToAddress(account),
               token: nonce,
             },
           },
