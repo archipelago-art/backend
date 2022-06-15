@@ -632,32 +632,50 @@ async function highBidIdsForAllTokensInProject({ client, projectId }) {
   return result;
 }
 
-async function bidIdsForAddress({ client, address, activeOnly = true }) {
-  const deadline = activeOnly ? new Date() : null;
+async function bidIdsForAddress({
+  client,
+  address,
+  includeTemporarilyInactive = false,
+}) {
   const res = await client.query(
     `
-      SELECT bid_id as "bidId"
-      FROM bids
-      WHERE bidder = $1
-      AND (deadline > $2 OR $2 IS NULL)
-      ORDER BY create_time ASC
+    SELECT bid_id as "bidId" FROM bids
+    WHERE
+      bidder = $1
+      AND deadline > now()
+      AND (
+        CASE
+          WHEN $2::boolean THEN active_nonce
+          ELSE active
+        END
+      )
+    ORDER BY create_time ASC
     `,
-    [hexToBuf(address), deadline]
+    [hexToBuf(address), includeTemporarilyInactive]
   );
   return res.rows.map((row) => row.bidId);
 }
 
-async function askIdsForAddress({ client, address, activeOnly = true }) {
-  const deadline = activeOnly ? new Date() : null;
+async function askIdsForAddress({
+  client,
+  address,
+  includeTemporarilyInactive = false,
+}) {
   const res = await client.query(
     `
-      SELECT ask_id as "askId"
-      FROM asks
-      WHERE asker = $1
-      AND (deadline > $2 OR $2 IS NULL)
-      ORDER BY create_time ASC
+    SELECT ask_id as "askId" FROM asks
+    WHERE
+      asker = $1
+      AND deadline > now()
+      AND (
+        CASE
+          WHEN $2::boolean THEN active_nonce
+          ELSE active
+        END
+      )
+    ORDER BY create_time ASC
     `,
-    [hexToBuf(address), deadline]
+    [hexToBuf(address), includeTemporarilyInactive]
   );
   return res.rows.map((row) => row.askId);
 }

@@ -476,15 +476,15 @@ describe("db/orderbook", () => {
       withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const deadline = new Date("2050-01-01");
-        const deadlineExpired = new Date("2020-01-01");
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
-        const price = ethers.BigNumber.from("100");
+        const priceAffordable = ethers.BigNumber.from("100");
+        const priceExpensive = ethers.BigNumber.from("200");
         const bidder = ethers.constants.AddressZero;
 
-        const bidIdCurrent = await addBid({
+        const bidIdAffordable = await addBid({
           client,
           scope: { type: "TOKEN", tokenId },
-          price,
+          price: priceAffordable,
           deadline,
           bidder: ethers.constants.AddressZero,
           nonce: ethers.BigNumber.from("0xabcd"),
@@ -493,33 +493,38 @@ describe("db/orderbook", () => {
           signature: "0x" + "fe".repeat(65),
         });
 
-        const bidIdExpired = await addBid({
+        const bidIdExpensive = await addBid({
           client,
           scope: { type: "TOKEN", tokenId },
-          price,
-          deadline: deadlineExpired,
+          price: priceExpensive,
+          deadline,
           bidder: ethers.constants.AddressZero,
           nonce: ethers.BigNumber.from("0xabcd"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
+        await client.query(
+          `
+          UPDATE bids
+          SET active_currency_balance = false, active = false
+          WHERE bid_id = $1::bidid
+          `,
+          [bidIdExpensive]
+        );
 
-        const bidIdsCurrent = await bidIdsForAddress({
+        const bidIdsAffordable = await bidIdsForAddress({
           client,
           address: bidder,
         });
-        expect(bidIdsCurrent.length).toEqual(1);
-        expect(bidIdsCurrent[0]).toEqual(bidIdCurrent);
+        expect(bidIdsAffordable).toEqual([bidIdAffordable]);
 
         const bidIdsAll = await bidIdsForAddress({
           client,
           address: bidder,
-          activeOnly: false,
+          includeTemporarilyInactive: true,
         });
-
-        expect(bidIdsAll.length).toEqual(2);
-        expect(bidIdsAll.includes(bidIdExpired)).toBe(true);
+        expect(bidIdsAll).toEqual([bidIdAffordable, bidIdExpensive]);
       })
     );
   });
@@ -624,13 +629,16 @@ describe("db/orderbook", () => {
     it(
       "gets all and active ask IDs for an address",
       withTestDb(async ({ client }) => {
-        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
-        const [theCube] = await addTokens(client, [snapshots.THE_CUBE]);
+        await addProjects(client, [snapshots.ARCHETYPE, snapshots.SQUIGGLES]);
+        const [theCube, perfectChromatic] = await addTokens(client, [
+          snapshots.THE_CUBE,
+          snapshots.PERFECT_CHROMATIC,
+        ]);
         const price = ethers.BigNumber.from("100");
         const asker = ethers.constants.AddressZero;
         const deadline = new Date("2099-01-01");
 
-        const validAskId = await addAsk({
+        const askIdOwned = await addAsk({
           client,
           tokenId: theCube,
           price,
@@ -641,28 +649,36 @@ describe("db/orderbook", () => {
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
-        const expiredAskId = await addAsk({
+        const askIdUnowned = await addAsk({
           client,
-          tokenId: theCube,
+          tokenId: perfectChromatic,
           price,
-          deadline: new Date("1970-01-01"),
+          deadline,
           asker,
           nonce: ethers.BigNumber.from("0xabcd"),
           agreement: "0x",
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
+        await client.query(
+          `
+          UPDATE asks
+          SET active_token_owner = false, active = false
+          WHERE ask_id = $1::askid
+          `,
+          [askIdUnowned]
+        );
 
         expect(await askIdsForAddress({ client, address: asker })).toEqual([
-          validAskId,
+          askIdOwned,
         ]);
         expect(
           await askIdsForAddress({
             client,
             address: asker,
-            activeOnly: false,
+            includeTemporarilyInactive: true,
           })
-        ).toEqual([validAskId, expiredAskId]);
+        ).toEqual([askIdOwned, askIdUnowned]);
       })
     );
   });
