@@ -900,7 +900,6 @@ describe("api", () => {
     })
   );
 
-  jest.setTimeout(10000); // TODO(@decentralion): fix test
   it(
     "blockAlignedTraitMembers works",
     withTestDb(async ({ client }) => {
@@ -910,26 +909,17 @@ describe("api", () => {
       );
       const projectId = await artblocks.addProject({ client, project });
 
-      function block(x) {
-        const ret = [];
-        for (let i = x * 256; i < (x + 1) * 256; i++) {
-          ret.push(i);
-        }
-        return ret;
-      }
-
-      const tokenIds = [];
-      for (let i = 0; i < 512; i++) {
+      const tokenIndexToTokenId = new Map();
+      for (const i of [0, 1, 255, 256]) {
         const tokenId = await tokens.addBareToken({
           client,
           projectId,
           tokenIndex: i,
           onChainTokenId: 23000000 + i,
         });
-        tokenIds.push(tokenId);
+        tokenIndexToTokenId.set(i, tokenId);
         const featureData = {
           mod2: i % 2 === 0 ? "true" : "false",
-          mod3: i % 3 === 0 ? "true" : "false",
         };
         await tokens.setTokenTraits({ client, tokenId, featureData });
       }
@@ -939,8 +929,6 @@ describe("api", () => {
         keys: [
           { featureName: "mod2", traitValue: "true" },
           { featureName: "mod2", traitValue: "false" },
-          { featureName: "mod3", traitValue: "true" },
-          { featureName: "mod3", traitValue: "false" },
         ],
       });
       // verify that these are in insertion order so that we can easily pluck the IDs
@@ -952,48 +940,42 @@ describe("api", () => {
       ).toEqual([
         { featureName: "mod2", traitValue: "true" },
         { featureName: "mod2", traitValue: "false" },
-        { featureName: "mod3", traitValue: "true" },
-        { featureName: "mod3", traitValue: "false" },
       ]);
       const traitIds = traitInfo.map((x) => x.traitId);
-      const [mod2True, mod2False, mod3True, mod3False] = traitIds;
+      const [mod2True, mod2False] = traitIds;
       // Test that we get the first block of results whether we use
       // the 0th, 128th, or 255th token id
       const members1 = await api.blockAlignedTraitMembers({
         client,
         traitIds,
-        tokenId: tokenIds[0],
+        tokenId: tokenIndexToTokenId.get(0),
       });
       const members2 = await api.blockAlignedTraitMembers({
         client,
         traitIds,
-        tokenId: tokenIds[128],
+        tokenId: tokenIndexToTokenId.get(1),
       });
       const members3 = await api.blockAlignedTraitMembers({
         client,
         traitIds,
-        tokenId: tokenIds[255],
+        tokenId: tokenIndexToTokenId.get(255),
       });
       const expected0 = [
-        { traitId: mod2True, indices: block(0).filter((i) => i % 2 === 0) },
-        { traitId: mod2False, indices: block(0).filter((i) => i % 2 !== 0) },
-        { traitId: mod3True, indices: block(0).filter((i) => i % 3 === 0) },
-        { traitId: mod3False, indices: block(0).filter((i) => i % 3 !== 0) },
+        { traitId: mod2True, indices: [0] },
+        { traitId: mod2False, indices: [1, 255] },
       ];
       expect(members1).toEqual(expected0);
       expect(members2).toEqual(expected0);
       expect(members3).toEqual(expected0);
       // also check we get the next block once we hit index 256
       const expected256 = [
-        { traitId: mod2True, indices: block(1).filter((i) => i % 2 === 0) },
-        { traitId: mod2False, indices: block(1).filter((i) => i % 2 !== 0) },
-        { traitId: mod3True, indices: block(1).filter((i) => i % 3 === 0) },
-        { traitId: mod3False, indices: block(1).filter((i) => i % 3 !== 0) },
+        { traitId: mod2True, indices: [256] },
+        { traitId: mod2False, indices: [] },
       ];
       const members4 = await api.blockAlignedTraitMembers({
         client,
         traitIds,
-        tokenId: tokenIds[256],
+        tokenId: tokenIndexToTokenId.get(256),
       });
       expect(members4).toEqual(expected256);
     })
