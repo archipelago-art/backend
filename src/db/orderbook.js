@@ -668,6 +668,7 @@ async function bidDetails({ client, bidIds }) {
     SELECT
       bid_id AS "bidId",
       slug,
+      name,
       price,
       deadline,
       bidder,
@@ -685,6 +686,7 @@ async function bidDetails({ client, bidIds }) {
   return res.rows.map((r) => ({
     bidId: r.bidId,
     slug: r.slug,
+    name: r.name,
     price: ethers.BigNumber.from(r.price),
     deadline: r.deadline,
     bidder: bufToAddress(r.bidder),
