@@ -689,6 +689,7 @@ describe("db/orderbook", () => {
                 askId: askIdUnowned,
                 projectId: squiggles,
                 slug: "chromie-squiggle",
+                tokenIndex: 7583,
               },
             },
           ])
@@ -779,7 +780,12 @@ describe("db/orderbook", () => {
               timestamp: expect.any(String),
               type: "ASK_CANCELLED",
               topic: "archetype",
-              data: { askId: ask3, projectId: archetype, slug: "archetype" },
+              data: {
+                askId: ask3,
+                projectId: archetype,
+                slug: "archetype",
+                tokenIndex: 36,
+              },
             },
           ])
         );

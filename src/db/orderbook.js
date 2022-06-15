@@ -238,6 +238,7 @@ async function updateActivityForNonces({
       ask_id AS "askId",
       project_id AS "projectId",
       (SELECT slug FROM projects p WHERE p.project_id = asks.project_id) AS "slug",
+      (SELECT token_index FROM tokens t WHERE t.token_id = asks.token_id) AS "tokenIndex",
       active
     `,
     [accounts, nonces, actives]
@@ -264,6 +265,7 @@ async function updateActivityForNonces({
           askId: r.askId,
           projectId: r.projectId,
           slug: r.slug,
+          tokenIndex: r.tokenIndex,
         },
       })),
   ];
@@ -306,6 +308,7 @@ async function updateActivityForTokenOwners({
       ask_id AS "askId",
       project_id AS "projectId",
       (SELECT slug FROM projects p WHERE p.project_id = asks.project_id) AS "slug",
+      (SELECT token_index FROM tokens t WHERE t.token_id = asks.token_id) AS "tokenIndex",
       active
     `,
     [Array.from(tokenIdToOwner.keys()), Array.from(tokenIdToOwner.values())]
@@ -320,6 +323,7 @@ async function updateActivityForTokenOwners({
         askId: r.askId,
         projectId: r.projectId,
         slug: r.slug,
+        tokenIndex: r.tokenIndex,
       },
     }));
   await ws.sendMessages({ client, messages: wsMessages });
