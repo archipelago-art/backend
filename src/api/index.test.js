@@ -896,6 +896,7 @@ describe("api", () => {
     })
   );
 
+  jest.setTimeout(10000); // TODO(@decentralion): fix test
   it(
     "blockAlignedTraitMembers works",
     withTestDb(async ({ client }) => {
@@ -938,7 +939,20 @@ describe("api", () => {
           { featureName: "mod3", traitValue: "false" },
         ],
       });
+      // verify that these are in insertion order so that we can easily pluck the IDs
+      expect(
+        traitInfo.map((x) => ({
+          featureName: x.featureName,
+          traitValue: x.traitValue,
+        }))
+      ).toEqual([
+        { featureName: "mod2", traitValue: "true" },
+        { featureName: "mod2", traitValue: "false" },
+        { featureName: "mod3", traitValue: "true" },
+        { featureName: "mod3", traitValue: "false" },
+      ]);
       const traitIds = traitInfo.map((x) => x.traitId);
+      const [mod2True, mod2False, mod3True, mod3False] = traitIds;
       // Test that we get the first block of results whether we use
       // the 0th, 128th, or 255th token id
       const members1 = await api.blockAlignedTraitMembers({
