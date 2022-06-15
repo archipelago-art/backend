@@ -862,7 +862,7 @@ describe("api", () => {
   it(
     "generates appropriate collection info for cryptoadz",
     withTestDb(async ({ client }) => {
-      const projectId = await addCryptoadz({ client });
+      const projectId = await addCryptoadz({ client, testMode: true });
       const res = await api.collection({ client, slug: "cryptoadz" });
       expect(res).toEqual({
         projectId,

@@ -18,7 +18,7 @@ function processToadzData(tokenIds) {
   const features = []; // {featureId, feature}
   const traits = []; // {featureId, traitId, trait}
   const traitMembers = []; // {tokenId, traitId}
-  for (let i = 0; i < 6969; i++) {
+  for (let i = 0; i < tokenIds.length; i++) {
     const toad = toadzTraits[i];
     if (toad.tokenId !== i + 1) {
       throw new Error(`tokenId mismatch: ${i + 1} vs ${toad.tokenId}`);
@@ -48,7 +48,6 @@ function processToadzData(tokenIds) {
 }
 
 async function fixCryptoadz({ client, testMode }) {
-  console.log("start");
   await client.query("BEGIN");
   const projectIdRes = await client.query(
     `
@@ -81,7 +80,7 @@ async function fixCryptoadz({ client, testMode }) {
     `,
     [toadzTokenIds]
   );
-  console.log("trait_members removed: " + removeTraitMembers.rowCount);
+  log.info`trait_members removed: ${removeTraitMembers.rowCount}`;
   const featuresToRemoveRes = await client.query(
     `
     SELECT feature_id AS "featureId"
@@ -98,7 +97,7 @@ async function fixCryptoadz({ client, testMode }) {
     `,
     [featuresToRemove]
   );
-  console.log("traits removed: " + removeTraits.rowCount);
+  log.info`traits removed: ${removeTraits.rowCount}`;
   const removeFeatures = await client.query(
     `
     DELETE FROM features
@@ -106,7 +105,7 @@ async function fixCryptoadz({ client, testMode }) {
     `,
     [projectId]
   );
-  console.log("features removed: " + removeFeatures.rowCount);
+  log.info`features removed: ${removeFeatures.rowCount}`;
   await addCryptoadzTraitsAndFeatures({
     client,
     tokenIds: toadzTokenIds,
@@ -125,7 +124,7 @@ async function addCryptoadzTraitsAndFeatures({ client, tokenIds, projectId }) {
     `,
     [projectId, pluck(features, "featureId"), pluck(features, "feature")]
   );
-  console.log("features added: " + featuresAdded.rowCount);
+  log.info`features added: ${featuresAdded.rowCount}`;
   const traitsAdded = await client.query(
     `
     INSERT INTO traits (feature_id, trait_id, value)
@@ -141,7 +140,7 @@ async function addCryptoadzTraitsAndFeatures({ client, tokenIds, projectId }) {
       pluck(traits, "trait"),
     ]
   );
-  console.log("traits added: " + traitsAdded.rowCount);
+  log.info`traits added: ${traitsAdded.rowCount}`;
   const membersAdded = await client.query(
     `
     INSERT INTO trait_members (trait_id, token_id)
@@ -149,10 +148,11 @@ async function addCryptoadzTraitsAndFeatures({ client, tokenIds, projectId }) {
     `,
     [pluck(traitMembers, "traitId"), pluck(traitMembers, "tokenId")]
   );
-  console.log("members added: " + membersAdded.rowCount);
+  log.info`members added: ${membersAdded.rowCount}`;
 }
 
-async function addCryptoadz({ client, testMode }) {
+async function addCryptoadz({ client, testMode = false }) {
+  const numTokens = testMode ? 5 : 6969;
   await client.query("BEGIN");
   const projectId = newId(ObjectType.PROJECT);
 
@@ -189,7 +189,7 @@ This project is in the public domain. Feel free to use the toadz in any way you 
     [projectId, description, hexToBuf(contractAddress)]
   );
 
-  const tokenIds = newIds(6969, ObjectType.TOKEN);
+  const tokenIds = newIds(numTokens, ObjectType.TOKEN);
   await client.query(
     `
     INSERT INTO tokens (
@@ -201,12 +201,12 @@ This project is in the public domain. Feel free to use the toadz in any way you 
     ) VALUES (
       unnest($1::tokenid[]),
       $2,
-      generate_series(1, 6969),
+      generate_series(1, $4),
       $3,
-      generate_series(1, 6969)
+      generate_series(1, $4)
     )
     `,
-    [tokenIds, projectId, hexToBuf(contractAddress)]
+    [tokenIds, projectId, hexToBuf(contractAddress), numTokens]
   );
 
   await channels.newTokens.sendMany(
