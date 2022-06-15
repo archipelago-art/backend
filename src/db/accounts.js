@@ -72,7 +72,12 @@ async function getUserDetails({ client, authToken }) {
 }
 
 // Authenticated method. Creates a new pending email confirmation.
-async function setEmailUnconfirmed({ client, authToken, email }) {
+async function setEmailUnconfirmed({
+  client,
+  authToken,
+  email,
+  sendEmail = false,
+}) {
   await client.query("BEGIN");
   const accountRes = await client.query(
     "SELECT account FROM auth_tokens WHERE auth_token = $1::uuid",
@@ -108,6 +113,24 @@ async function setEmailUnconfirmed({ client, authToken, email }) {
     );
     const { nonce } = nonceRes.rows[0];
     // TODO: send an email to the user :-)
+    if (sendEmail === true) {
+      await mail.send({
+        from: {
+          email: "noreply@archipelago.art",
+          name: "Archipelago",
+        },
+        templateId: "d-d463363574e74103a8a4ed579f1e1aa4",
+        personalizations: [
+          {
+            to: [{ email }],
+            dynamicTemplateData: {
+              address: account,
+              token: nonce,
+            },
+          },
+        ],
+      });
+    }
   }
   await client.query("COMMIT");
 }
