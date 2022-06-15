@@ -1,8 +1,15 @@
+require("dotenv").config();
+
 const crypto = require("crypto");
 
 const ethers = require("ethers");
+const mail = require("@sendgrid/mail");
 
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
+
+if (process.env.SENDGRID_TOKEN != null) {
+  mail.setApiKey(process.env.SENDGRID_TOKEN);
+}
 
 const LoginRequest = [{ type: "uint256", name: "timestamp" }];
 const domainSeparator = {
