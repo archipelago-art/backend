@@ -211,14 +211,19 @@ function feesForCollection(
   type /*: "ARTBLOCKS" | "CRYPTOADZ" | "AUTOGLYPHS" */
 ) {
   const ARCHIPELAGO_PROTOCOL_PAYEE =
-    "0x1212121212121212121212121212121212121212";
+    "0x1fC12C9f68A6B0633Ba5897A40A8e61ed9274dC9";
   const ARCHIPELAGO_FRONTEND_PAYEE =
-    "0x3434343434343434343434343434343434343434";
+    "0xA76456bb6aBC50FB38e17c042026bc27a95C3314";
   const ARTBLOCKS_ROYALTY_ORACLE = "0x8A3F65eF24021D401815792c4B65676FBF90663c";
   const CRYPTOADZ_PAYEE = "0x7878787878787878787878787878787878787878";
 
   const fees = [
-    { target: ARCHIPELAGO_PROTOCOL_PAYEE, micros: 5000, static: true }, // slight lie
+    {
+      target: ARCHIPELAGO_PROTOCOL_PAYEE,
+      micros: 5000,
+      static: true,
+      includeInOrders: false,
+    }, // slight lie
     { target: ARCHIPELAGO_FRONTEND_PAYEE, micros: 5000, static: true },
   ];
   switch (type) {

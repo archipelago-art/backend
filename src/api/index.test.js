@@ -59,12 +59,13 @@ describe("api", () => {
             {
               micros: 5000,
               static: true,
-              target: "0x1212121212121212121212121212121212121212",
+              target: "0x1fC12C9f68A6B0633Ba5897A40A8e61ed9274dC9",
+              includeInOrders: false,
             },
             {
               micros: 5000,
               static: true,
-              target: "0x3434343434343434343434343434343434343434",
+              target: "0xA76456bb6aBC50FB38e17c042026bc27a95C3314",
             },
             {
               micros: 75000,
@@ -89,12 +90,13 @@ describe("api", () => {
             {
               micros: 5000,
               static: true,
-              target: "0x1212121212121212121212121212121212121212",
+              target: "0x1fC12C9f68A6B0633Ba5897A40A8e61ed9274dC9",
+              includeInOrders: false,
             },
             {
               micros: 5000,
               static: true,
-              target: "0x3434343434343434343434343434343434343434",
+              target: "0xA76456bb6aBC50FB38e17c042026bc27a95C3314",
             },
             {
               micros: 75000,
@@ -151,7 +153,7 @@ describe("api", () => {
         tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
         fees: expect.arrayContaining([
           expect.objectContaining({
-            target: "0x1212121212121212121212121212121212121212",
+            target: "0x1fC12C9f68A6B0633Ba5897A40A8e61ed9274dC9",
           }),
         ]),
       });
@@ -844,12 +846,13 @@ describe("api", () => {
           {
             micros: 5000,
             static: true,
-            target: "0x1212121212121212121212121212121212121212",
+            target: "0x1fC12C9f68A6B0633Ba5897A40A8e61ed9274dC9",
+            includeInOrders: false,
           },
           {
             micros: 5000,
             static: true,
-            target: "0x3434343434343434343434343434343434343434",
+            target: "0xA76456bb6aBC50FB38e17c042026bc27a95C3314",
           },
         ],
       });
@@ -879,12 +882,13 @@ describe("api", () => {
           {
             micros: 5000,
             static: true,
-            target: "0x1212121212121212121212121212121212121212",
+            target: "0x1fC12C9f68A6B0633Ba5897A40A8e61ed9274dC9",
+            includeInOrders: false,
           },
           {
             micros: 5000,
             static: true,
-            target: "0x3434343434343434343434343434343434343434",
+            target: "0xA76456bb6aBC50FB38e17c042026bc27a95C3314",
           },
           {
             micros: 25000,
