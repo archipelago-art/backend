@@ -214,7 +214,7 @@ describe("db/eth", () => {
 
   describe("erc721_transfers", () => {
     it(
-      "adds and removes transfers across different blocks",
+      "adds and removes transfers across different blocks, updating ask activity",
       withTestDb(async ({ pool, client }) => {
         await addProjects(client, [snapshots.SQUIGGLES, snapshots.ARCHETYPE]);
         const [squiggle, cube] = await addTokens(client, [
@@ -237,14 +237,6 @@ describe("db/eth", () => {
           logIndex: 1,
           transactionHash: dummyTx(1),
         };
-        const bobMintsCube = {
-          tokenId: cube,
-          fromAddress: zero,
-          toAddress: bob,
-          blockHash: blocks[0].hash,
-          logIndex: 2,
-          transactionHash: dummyTx(2),
-        };
         const aliceSendsSquiggle = {
           tokenId: squiggle,
           fromAddress: alice,
@@ -252,6 +244,14 @@ describe("db/eth", () => {
           blockHash: blocks[0].hash,
           logIndex: 4,
           transactionHash: dummyTx(3),
+        };
+        const bobMintsCube = {
+          tokenId: cube,
+          fromAddress: zero,
+          toAddress: bob,
+          blockHash: blocks[2].hash,
+          logIndex: 2,
+          transactionHash: dummyTx(2),
         };
         const bobReturnsSquiggleLater = {
           tokenId: squiggle,
@@ -288,6 +288,32 @@ describe("db/eth", () => {
           }));
         }
 
+        const askId = await orderbook.addAsk({
+          client,
+          tokenId: squiggle,
+          price: "1000",
+          deadline: new Date("2099-01-01"),
+          asker: alice,
+          nonce: "999",
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        async function isAskActive() {
+          const res = await orderbook.floorAsk({ client, tokenId: squiggle });
+          return res != null;
+        }
+        // Alice doesn't start out owning the token.
+        await client.query(
+          `
+          UPDATE asks
+          SET active_token_owner = false, active = false
+          WHERE ask_id = $1::askid
+          `,
+          [askId]
+        );
+
+        expect(await isAskActive()).toBe(false);
         expect(await summarizeTransfers()).toEqual([]);
         await eth.addErc721Transfers({
           client,
@@ -298,6 +324,7 @@ describe("db/eth", () => {
             bobReturnsSquiggleLater,
           ],
         });
+        expect(await isAskActive()).toBe(true); // Bob sent to Alice
         const messages = await ws.getMessages({
           client,
           topic: "chromie-squiggle",
@@ -325,11 +352,10 @@ describe("db/eth", () => {
             },
           ])
         );
-
         expect(await summarizeTransfers()).toEqual([
           { ...aliceMintsSquiggle, blockNumber: 0 },
-          { ...bobMintsCube, blockNumber: 0 },
           { ...aliceSendsSquiggle, blockNumber: 0 },
+          { ...bobMintsCube, blockNumber: 2 },
           { ...bobReturnsSquiggleLater, blockNumber: 2 },
         ]);
         expect(
@@ -358,13 +384,15 @@ describe("db/eth", () => {
         ).toEqual(1);
         await eth.deleteErc721Transfers({
           client,
-          blockHash: blocks[0].hash,
+          blockHash: blocks[2].hash,
           tokenContract: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
         });
         expect(await summarizeTransfers()).toEqual([
-          { ...bobMintsCube, blockNumber: 0 }, // different contract address
-          { ...bobReturnsSquiggleLater, blockNumber: 2 }, // different block
+          { ...aliceMintsSquiggle, blockNumber: 0 }, // different block
+          { ...aliceSendsSquiggle, blockNumber: 0 }, // different block
+          { ...bobMintsCube, blockNumber: 2 }, // different contract address
         ]);
+        expect(await isAskActive()).toBe(false); // no longer true that Bob sent to Alice
       })
     );
   });

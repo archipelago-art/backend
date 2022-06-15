@@ -277,6 +277,54 @@ async function updateActivityForNonce({ client, account, nonce, active }) {
   });
 }
 
+/**
+ * If `updates` has multiple entries for a given token ID, the last one is taken.
+ */
+async function updateActivityForTokenOwners({
+  client,
+  updates /*: Array<{ tokenId, newOwner: address }> */,
+}) {
+  const tokenIdToOwner = new Map(
+    updates.map(({ tokenId, newOwner }) => [tokenId, hexToBuf(newOwner)])
+  );
+  const askUpdatesRes = await client.query(
+    `
+    UPDATE asks
+    SET
+      active_token_owner = (asks.asker = updates.new_owner),
+      active = (
+        ((asks.asker = updates.new_owner) OR active_token_operator OR active_token_operator_for_all)
+        AND (active_market_approved OR active_market_approved_for_all)
+        AND active_nonce
+        AND active_deadline
+      )
+    FROM
+      unnest($1::tokenid[], $2::address[])
+        AS updates(token_id, new_owner)
+    WHERE asks.token_id = updates.token_id
+    RETURNING
+      ask_id AS "askId",
+      project_id AS "projectId",
+      (SELECT slug FROM projects p WHERE p.project_id = asks.project_id) AS "slug",
+      active
+    `,
+    [Array.from(tokenIdToOwner.keys()), Array.from(tokenIdToOwner.values())]
+  );
+  // TODO(@wchargin): Also re-send order-placed messages on reactivation.
+  const wsMessages = askUpdatesRes.rows
+    .filter((r) => !r.active)
+    .map((r) => ({
+      type: "ASK_CANCELLED",
+      topic: r.slug,
+      data: {
+        askId: r.askId,
+        projectId: r.projectId,
+        slug: r.slug,
+      },
+    }));
+  await ws.sendMessages({ client, messages: wsMessages });
+}
+
 async function addAsk({
   client,
   tokenId /*: tokenid */,
@@ -774,6 +822,7 @@ module.exports = {
   addAsk,
   updateActivityForNonce,
   updateActivityForNonces,
+  updateActivityForTokenOwners,
   askDetails,
   askDetailsForToken,
   askIdsForToken,

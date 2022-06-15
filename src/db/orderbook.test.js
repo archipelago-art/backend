@@ -9,6 +9,7 @@ const {
   addBid,
   addAsk,
   updateActivityForNonce,
+  updateActivityForTokenOwners,
   floorAsk,
   floorAsks,
   floorAskIdsForAllTokensInProject,
@@ -629,13 +630,17 @@ describe("db/orderbook", () => {
     it(
       "gets all and active ask IDs for an address",
       withTestDb(async ({ client }) => {
-        await addProjects(client, [snapshots.ARCHETYPE, snapshots.SQUIGGLES]);
+        const [archetype, squiggles] = await addProjects(client, [
+          snapshots.ARCHETYPE,
+          snapshots.SQUIGGLES,
+        ]);
         const [theCube, perfectChromatic] = await addTokens(client, [
           snapshots.THE_CUBE,
           snapshots.PERFECT_CHROMATIC,
         ]);
         const price = ethers.BigNumber.from("100");
         const asker = ethers.constants.AddressZero;
+        const notAsker = "0x55FaF0e5E6e532b1C5799bDEec1A0F193E54a92D";
         const deadline = new Date("2099-01-01");
 
         const askIdOwned = await addAsk({
@@ -660,13 +665,33 @@ describe("db/orderbook", () => {
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
-        await client.query(
-          `
-          UPDATE asks
-          SET active_token_owner = false, active = false
-          WHERE ask_id = $1::askid
-          `,
-          [askIdUnowned]
+        await updateActivityForTokenOwners({
+          client,
+          updates: [
+            { tokenId: theCube, newOwner: asker },
+            { tokenId: perfectChromatic, newOwner: notAsker },
+          ],
+        });
+        expect(
+          await ws.getMessages({
+            client,
+            topic: "chromie-squiggle",
+            since: new Date(0),
+          })
+        ).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "ASK_CANCELLED",
+              topic: "chromie-squiggle",
+              data: {
+                askId: askIdUnowned,
+                projectId: squiggles,
+                slug: "chromie-squiggle",
+              },
+            },
+          ])
         );
 
         expect(await askIdsForAddress({ client, address: asker })).toEqual([

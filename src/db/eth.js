@@ -2,6 +2,7 @@ const ethers = require("ethers");
 
 const log = require("../util/log")(__filename);
 
+const Cmp = require("../util/cmp");
 const orderbook = require("./orderbook");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 const ws = require("./ws");
@@ -255,6 +256,12 @@ async function addErc721Transfers({
       transactionHashes,
     ]
   );
+  res.rows.sort(
+    Cmp.first([
+      Cmp.comparing((x) => x.blockNumber),
+      Cmp.comparing((x) => x.logIndex),
+    ])
+  );
 
   const messages = res.rows.map((r) => ({
     type: "TOKEN_TRANSFERRED",
@@ -274,6 +281,14 @@ async function addErc721Transfers({
   }));
   await ws.sendMessages({ client, messages });
 
+  await orderbook.updateActivityForTokenOwners({
+    client,
+    updates: res.rows.map((t) => ({
+      tokenId: t.tokenId,
+      newOwner: bufToHex(t.toAddress),
+    })),
+  });
+
   if (!alreadyInTransaction) await client.query("COMMIT");
   return res.rowCount;
 }
@@ -288,9 +303,31 @@ async function deleteErc721Transfers({ client, blockHash, tokenContract }) {
         SELECT token_contract FROM tokens t
         WHERE t.token_id = erc721_transfers.token_id
       ) = $2::address
+    RETURNING
+      token_id as "tokenId",
+      from_address as "fromAddress",
+      block_number AS "blockNumber",
+      log_index AS "logIndex"
     `,
     [hexToBuf(blockHash), hexToBuf(tokenContract)]
   );
+  res.rows.sort(
+    Cmp.rev(
+      Cmp.first([
+        Cmp.comparing((x) => x.blockNumber),
+        Cmp.comparing((x) => x.logIndex),
+      ])
+    )
+  );
+  await orderbook.updateActivityForTokenOwners({
+    client,
+    updates: res.rows.map((t) => ({
+      tokenId: t.tokenId,
+      // Rolling back a transfer from Alice to Bob means that Alice---the
+      // "from" address---is now the owner again.
+      newOwner: bufToHex(t.fromAddress),
+    })),
+  });
   return res.rowCount;
 }
 
