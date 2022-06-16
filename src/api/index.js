@@ -215,7 +215,13 @@ function feesForCollection(
   const ARCHIPELAGO_FRONTEND_PAYEE =
     "0xA76456bb6aBC50FB38e17c042026bc27a95C3314";
   const ARTBLOCKS_ROYALTY_ORACLE = "0x8A3F65eF24021D401815792c4B65676FBF90663c";
-  const CRYPTOADZ_PAYEE = "0x7878787878787878787878787878787878787878";
+  // CrypToadz payee determined from:
+  //   - the CrypToadz contract is 0x1CB1A5e65610AEFF2551A50f76a87a7d3fB649C6;
+  //   - its `contractURI()` returns "ipfs://QmV1SZzgaCWGvExViNRaRYg396NgEknp4cmYihcrJSPhKm"
+  //     as of mainnet block 14969134;
+  //   - that resolves to a JSON document with the top-level key-value pair
+  //     `"fee_recipient": "0x87757c7fD54D892176e9ECEc6767Bc16e04a06a8"`.
+  const CRYPTOADZ_PAYEE = "0x87757c7fD54D892176e9ECEc6767Bc16e04a06a8";
 
   const fees = [
     {

@@ -893,7 +893,7 @@ describe("api", () => {
           {
             micros: 25000,
             static: true,
-            target: "0x7878787878787878787878787878787878787878",
+            target: "0x87757c7fD54D892176e9ECEc6767Bc16e04a06a8",
           },
         ],
       });
