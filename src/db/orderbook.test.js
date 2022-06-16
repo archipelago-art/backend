@@ -21,6 +21,7 @@ const {
   bidIdsForAddress,
   askIdsForAddress,
   highBidIdsForAllTokensInProject,
+  highFloorBidsForAllProjects,
 } = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
 const { acqrel } = require("./util");
@@ -1042,6 +1043,142 @@ describe("db/orderbook", () => {
           { tokenId: tri2, bidId: bidTraitPaddle },
           { tokenId: a66, bidId: bidFloorArchetype },
         ]);
+      })
+    );
+  });
+
+  describe("highFloorBidsForAllProjects", () => {
+    it(
+      "returns the highest floor bid per project",
+      withTestDb(async ({ client }) => {
+        const [archetype, squiggles] = await addProjects(client, [
+          snapshots.ARCHETYPE,
+          snapshots.SQUIGGLES,
+        ]);
+        const [theCube, tri1, tri2, a66, aSquiggle] = await addTokens(client, [
+          snapshots.THE_CUBE,
+          snapshots.ARCH_TRIPTYCH_1,
+          snapshots.ARCH_TRIPTYCH_2,
+          snapshots.ARCH_66,
+          snapshots.PERFECT_CHROMATIC,
+        ]);
+
+        const traitPaddle = await findTraitId(
+          client,
+          theCube,
+          "Palette",
+          "Paddle"
+        );
+        const traitRandom = await findTraitId(
+          client,
+          tri1,
+          "Coloring strategy",
+          "Random"
+        );
+        const traitCube = await findTraitId(client, theCube, "Scene", "Cube");
+
+        async function makeBid({ scope, price }) {
+          return await addBid({
+            client,
+            scope,
+            price,
+            deadline: new Date("2099-01-01"),
+            bidder: ethers.constants.AddressZero,
+            nonce: ethers.BigNumber.from("0xabcd").add(price),
+            agreement: "0x",
+            message: "0x",
+            signature: "0x" + "fe".repeat(65),
+          });
+        }
+
+        // Doesn't match any Archetypes.
+        const bidFloorSquiggles = await makeBid({
+          scope: { type: "PROJECT", projectId: squiggles },
+          price: "100",
+        });
+        // Matches `theCube`, `tri1`, and `tri2` (not `a66`).
+        const bidTraitPaddle = await makeBid({
+          scope: { type: "TRAIT", traitId: traitPaddle },
+          price: "300",
+        });
+        // Matches `theCube` and `tri1`.
+        const cnfRandomOrCube = await cnfs.addCnf({
+          client,
+          clauses: [[traitRandom, traitCube]],
+        });
+        const bidCnfRandomOrCube = await makeBid({
+          scope: { type: "CNF", cnfId: cnfRandomOrCube },
+          price: "400",
+        });
+        // Matches `theCube` only.
+        const bidTokenTheCube = await makeBid({
+          scope: { type: "TOKEN", tokenId: theCube },
+          price: "500",
+        });
+
+        const res1 = await highFloorBidsForAllProjects({
+          client,
+        });
+        expect(res1).toEqual({
+          "chromie-squiggle": {
+            bidId: bidFloorSquiggles,
+            bidder: ethers.constants.AddressZero,
+            price: "100",
+            projectId: squiggles,
+          },
+        });
+
+        // Now, add an Archetype floor bid.
+        const bidFloorArchetype = await makeBid({
+          scope: { type: "PROJECT", projectId: archetype },
+          price: "200",
+        });
+
+        const res2 = await highFloorBidsForAllProjects({
+          client,
+        });
+        expect(res2).toEqual({
+          archetype: {
+            bidId: bidFloorArchetype,
+            bidder: ethers.constants.AddressZero,
+            price: "200",
+            projectId: archetype,
+          },
+          "chromie-squiggle": {
+            bidId: bidFloorSquiggles,
+            bidder: ethers.constants.AddressZero,
+            price: "100",
+            projectId: squiggles,
+          },
+        });
+
+        // Now, new floor bids.
+        const bidFloorSquigglesHigher = await makeBid({
+          scope: { type: "PROJECT", projectId: squiggles },
+          price: "150",
+        });
+        const bidFloorSquigglesLower = await makeBid({
+          scope: { type: "PROJECT", projectId: squiggles },
+          price: "90",
+        });
+
+        const res3 = await highFloorBidsForAllProjects({
+          client,
+        });
+        expect(res3).toEqual({
+          archetype: {
+            bidId: bidFloorArchetype,
+            bidder: ethers.constants.AddressZero,
+            price: "200",
+            projectId: archetype,
+          },
+          "chromie-squiggle": {
+            bidId: bidFloorSquigglesHigher,
+            bidder: ethers.constants.AddressZero,
+            price: "150",
+            projectId: squiggles,
+          },
+        });
       })
     );
   });

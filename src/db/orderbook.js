@@ -684,6 +684,32 @@ async function highBidIdsForAllTokensInProject({ client, projectId }) {
   return result;
 }
 
+async function highFloorBidsForAllProjects({ client }) {
+  const res = await client.query(
+    `
+    SELECT DISTINCT ON (b.scope)
+      b.price,
+      b.scope as "projectId",
+      b.bid_id as "bidId",
+      CONCAT('0x', encode(b.bidder, 'hex')) as "bidder",
+      p.slug
+    FROM bids b
+    JOIN projects p USING (project_id)
+    WHERE b.active AND b.scope >> 58 = 2
+    ORDER BY
+    b.scope,
+    b.price DESC
+    ;
+  `
+  );
+  let result = {};
+  for (const row of res.rows) {
+    const { slug, ...rest } = row;
+    result[slug] = rest;
+  }
+  return result;
+}
+
 async function bidIdsForAddress({
   client,
   address,
@@ -840,4 +866,5 @@ module.exports = {
   bidDetails,
   bidDetailsForToken,
   highBidIdsForAllTokensInProject,
+  highFloorBidsForAllProjects,
 };
