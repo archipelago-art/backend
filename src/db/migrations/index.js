@@ -130,6 +130,7 @@ const migrationModules = [
   "./0119_fine_grained_activity_constraints",
   "./0120_index_bids_asks_account_nonce",
   "./0121_on_chain_nonce_cancellations",
+  "./0122_on_chain_fills",
   // ...
 ];
 
