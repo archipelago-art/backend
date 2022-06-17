@@ -4,6 +4,7 @@ const log = require("../util/log")(__filename);
 
 const Cmp = require("../util/cmp");
 const { ObjectType, newIds } = require("./id");
+const { columnExists } = require("./introspection");
 const orderbook = require("./orderbook");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 const ws = require("./ws");
@@ -464,6 +465,17 @@ async function deleteNonceCancellations({
   return deleteRes.rowCount;
 }
 
+// Returns a SQL-safe identifier representing the name of the column in the
+// `fills` table that has a foreign key onto `currencies.currency_id`.
+async function fillsCurrencyIdColumnName({ client }) {
+  const hasCurrencyId = await columnExists({
+    client,
+    table: "fills",
+    column: "currency_id",
+  });
+  return hasCurrencyId ? "currency_id" : "currency";
+}
+
 async function addFills({
   client,
   marketContract,
@@ -471,6 +483,8 @@ async function addFills({
   alreadyInTransaction = false,
 }) {
   if (!alreadyInTransaction) await client.query("BEGIN");
+
+  const currencyColumn = await fillsCurrencyIdColumnName({ client });
 
   const currencyAddresses = fills.map((f) => f.currency);
   const currencyIds = await getCurrencyIds(client, currencyAddresses);
@@ -485,7 +499,7 @@ async function addFills({
       market_contract, trade_id,
       token_id, project_id, token_contract, on_chain_token_id,
       buyer, seller,
-      currency, price, proceeds, cost,
+      ${currencyColumn}, price, proceeds, cost,
       block_hash, block_number, log_index, transaction_hash
     )
     SELECT
