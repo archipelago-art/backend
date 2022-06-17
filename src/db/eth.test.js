@@ -9,6 +9,7 @@ const adHocPromise = require("../util/adHocPromise");
 const artblocks = require("./artblocks");
 const eth = require("./eth");
 const orderbook = require("./orderbook");
+const wellKnownCurrencies = require("./wellKnownCurrencies");
 const ws = require("./ws");
 
 describe("db/eth", () => {
@@ -482,6 +483,123 @@ describe("db/eth", () => {
         });
         expect(n2).toBe(1);
         expect(await isAskActive()).toBe(true);
+      })
+    );
+  });
+
+  describe("fills", () => {
+    it(
+      "records fills for known and unknown tokens and sends ws messages",
+      withTestDb(async ({ client }) => {
+        await addProjects(client, [snapshots.ARCHETYPE]);
+        const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
+
+        const alice = dummyAddress("alice");
+        const bob = dummyAddress("bob");
+        const market = dummyAddress("market");
+
+        const otherTokenContract = dummyAddress("other-token");
+        const otherOnChainTokenId = "9876";
+        const otherCurrency = dummyAddress("other-currency");
+
+        const [tradeId1, tradeId2] = [
+          ethers.utils.id("tradeid:1"),
+          ethers.utils.id("tradeid:2"),
+        ].sort();
+
+        const blocks = realBlocks();
+        await eth.addBlocks({ client, blocks });
+
+        const aliceSellsCube = {
+          tradeId: tradeId1,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+          onChainTokenId: snapshots.THE_CUBE,
+          buyer: bob.toLowerCase(),
+          seller: alice.toLowerCase(),
+          currency: wellKnownCurrencies.weth9.address,
+          price: "1000",
+          proceeds: "995",
+          cost: "1005",
+          blockHash: blocks[1].hash,
+          logIndex: 1,
+          transactionHash: dummyTx(1),
+        };
+        const bobSellsOtherToken = {
+          tradeId: tradeId2,
+          tokenContract: otherTokenContract,
+          onChainTokenId: otherOnChainTokenId,
+          buyer: alice,
+          seller: bob,
+          currency: otherCurrency,
+          price: "2345",
+          proceeds: "2345",
+          cost: "2345",
+          blockHash: blocks[2].hash,
+          logIndex: 2,
+          transactionHash: dummyTx(2),
+        };
+        const fills = [aliceSellsCube, bobSellsOtherToken];
+        await eth.addFills({ client, marketContract: market, fills });
+
+        const messages = await ws.getMessages({
+          client,
+          topic: "archetype",
+          since: new Date(0),
+        });
+        expect(messages).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "TOKEN_TRADED",
+              topic: "archetype",
+              data: {
+                tradeId: tradeId1,
+                slug: "archetype",
+                tokenIndex: 250,
+                blockTimestamp: new Date(
+                  blocks[1].timestamp * 1000
+                ).toISOString(),
+                tokenId,
+                buyer: bob,
+                seller: alice,
+                currency: wellKnownCurrencies.weth9.address,
+                price: "1000",
+                proceeds: "995",
+                cost: "1005",
+                blockHash: blocks[1].hash,
+                blockNumber: blocks[1].number,
+                logIndex: 1,
+                transactionHash: dummyTx(1),
+              },
+            },
+          ])
+        );
+        // No event for the unknown token...
+        expect(messages).not.toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: "TOKEN_TRADED",
+              data: expect.objectContaining({ tradeId: tradeId2 }),
+            }),
+          ])
+        );
+        // ...but it should still have a fill.
+        async function getTradeIds() {
+          const res = await client.query(
+            'SELECT trade_id AS "tradeId" FROM fills'
+          );
+          return res.rows.map((r) => bufToHex(r.tradeId)).sort();
+        }
+        expect(await getTradeIds()).toEqual([tradeId1, tradeId2]);
+
+        const n = await eth.deleteFills({
+          client,
+          marketContract: market,
+          blockHash: blocks[2].hash,
+        });
+        expect(n).toEqual(1);
+        expect(await getTradeIds()).toEqual([tradeId1]);
       })
     );
   });

@@ -2,6 +2,7 @@ const artblocks = require("../../db/artblocks");
 
 const makeEchoJob = require("./echo");
 const makeErc721TransfersJob = require("./erc721Transfers");
+const makeFillsJob = require("./fills");
 const makeNonceCancellationsJob = require("./nonceCancellations");
 
 /*::
@@ -59,6 +60,10 @@ const JOBS = [
     startBlock: 13186834,
   }),
   makeNonceCancellationsJob({
+    address: MARKET_TEST_ADDRESS,
+    startBlock: 14963431,
+  }),
+  makeFillsJob({
     address: MARKET_TEST_ADDRESS,
     startBlock: 14963431,
   }),

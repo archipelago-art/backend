@@ -3,6 +3,7 @@ const ethers = require("ethers");
 const log = require("../util/log")(__filename);
 
 const Cmp = require("../util/cmp");
+const { ObjectType, newIds } = require("./id");
 const orderbook = require("./orderbook");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 const ws = require("./ws");
@@ -463,6 +464,180 @@ async function deleteNonceCancellations({
   return deleteRes.rowCount;
 }
 
+async function addFills({
+  client,
+  marketContract,
+  fills,
+  alreadyInTransaction = false,
+}) {
+  if (!alreadyInTransaction) await client.query("BEGIN");
+
+  const currencyAddresses = fills.map((f) => f.currency);
+  const currencyIds = await getCurrencyIds(client, currencyAddresses);
+
+  // The `LEFT OUTER JOIN` on `tokens` may produce a `NULL` `token_id` if we
+  // don't know about the token; this is okay. The `LEFT OUTER JOIN` on
+  // `eth_blocks` will cause the insert to fail if any of the block hashes is
+  // not known, because `log_index` has a `NOT NULL` constraint.
+  const res = await client.query(
+    `
+    INSERT INTO fills (
+      market_contract, trade_id,
+      token_id, project_id, token_contract, on_chain_token_id,
+      buyer, seller,
+      currency, price, proceeds, cost,
+      block_hash, block_number, log_index, transaction_hash
+    )
+    SELECT
+      $1::address, i.trade_id,
+      t.token_id, t.project_id, i.token_contract, i.on_chain_token_id,
+      i.buyer, i.seller,
+      i.currency_id, i.price, i.proceeds, i.cost,
+      i.block_hash, b.block_number, i.log_index, i.transaction_hash
+    FROM
+      unnest(
+        $2::bytes32[],
+        $3::address[], $4::uint256[], $5::address[], $6::address[],
+        $7::currencyid[], $8::uint256[], $9::uint256[], $10::uint256[],
+        $11::bytes32[], $12::int[], $13::bytes32[]
+      ) AS i(
+        trade_id,
+        token_contract, on_chain_token_id, buyer, seller,
+        currency_id, price, proceeds, cost,
+        block_hash, log_index, transaction_hash
+      )
+      LEFT OUTER JOIN tokens t USING (token_contract, on_chain_token_id)
+      LEFT OUTER JOIN eth_blocks b ON i.block_hash = b.block_hash
+    RETURNING
+      trade_id AS "tradeId",
+      token_id AS "tokenId",
+      (
+        SELECT slug FROM projects p
+        WHERE p.project_id = fills.project_id
+      ) AS "slug",
+      (
+        SELECT token_index FROM tokens t
+        WHERE t.token_id = fills.token_id
+      ) AS "tokenIndex",
+      (
+        SELECT block_timestamp FROM eth_blocks b
+        WHERE b.block_hash = fills.block_hash
+      ) AS "blockTimestamp",
+      block_number AS "blockNumber"
+    `,
+    [
+      hexToBuf(marketContract),
+      fills.map((f) => hexToBuf(f.tradeId)),
+      //
+      fills.map((f) => hexToBuf(f.tokenContract)),
+      fills.map((f) => String(f.onChainTokenId)),
+      fills.map((f) => hexToBuf(f.buyer)),
+      fills.map((f) => hexToBuf(f.seller)),
+      //
+      currencyIds,
+      fills.map((f) => String(f.price)),
+      fills.map((f) => String(f.proceeds)),
+      fills.map((f) => String(f.cost)),
+      //
+      fills.map((f) => hexToBuf(f.blockHash)),
+      fills.map((f) => f.logIndex),
+      fills.map((f) => hexToBuf(f.transactionHash)),
+    ]
+  );
+
+  const byTradeId = new Map(fills.map((f) => [f.tradeId, f]));
+  const messages = res.rows
+    .map((r) => {
+      if (r.tokenId == null) return null;
+      const tradeId = bufToHex(r.tradeId);
+      const fill = byTradeId.get(tradeId);
+      return {
+        type: "TOKEN_TRADED",
+        topic: r.slug,
+        data: {
+          tradeId,
+          slug: r.slug,
+          tokenIndex: r.tokenIndex,
+          tokenId: r.tokenId,
+          buyer: ethers.utils.getAddress(fill.buyer),
+          seller: ethers.utils.getAddress(fill.seller),
+          currency: ethers.utils.getAddress(fill.currency),
+          price: String(fill.price),
+          proceeds: String(fill.proceeds),
+          cost: String(fill.cost),
+          blockHash: fill.blockHash,
+          blockNumber: r.blockNumber,
+          logIndex: fill.logIndex,
+          transactionHash: fill.transactionHash,
+          blockTimestamp: r.blockTimestamp.toISOString(),
+        },
+      };
+    })
+    .filter(Boolean);
+  await ws.sendMessages({ client, messages });
+
+  if (!alreadyInTransaction) await client.query("COMMIT");
+}
+
+async function getCurrencyIds(client, currencyAddresses) {
+  currencyAddresses = currencyAddresses.map((a) => ethers.utils.getAddress(a));
+  const existingRes = await client.query(
+    `
+    SELECT DISTINCT currency_id AS "currencyId", address
+    FROM currencies
+    WHERE address = ANY($1::address[])
+    `,
+    [currencyAddresses.map(hexToBuf)]
+  );
+  const addressToId = new Map();
+  for (const { currencyId, address } of existingRes.rows) {
+    addressToId.set(bufToAddress(address), currencyId);
+  }
+  const newAddressesSet = new Set();
+  const result = Array(currencyAddresses.length);
+  for (let i = 0; i < result.length; i++) {
+    const address = currencyAddresses[i];
+    const id = addressToId.get(address);
+    result[i] = id;
+    if (id == null) {
+      newAddressesSet.add(address);
+    }
+  }
+  if (newAddressesSet.size === 0) return result;
+  const newAddresses = Array.from(newAddressesSet);
+  const currencyIds = newIds(newAddresses.length, ObjectType.CURRENCY);
+  for (let i = 0; i < newAddresses.length; i++) {
+    addressToId.set(newAddresses[i], currencyIds[i]);
+  }
+  await client.query(
+    `
+    INSERT INTO currencies (
+      currency_id,
+      address,
+      symbol,
+      name,
+      decimals
+    ) VALUES (unnest($1::currencyid[]), unnest($2::address[]), '', '', 0)
+    `,
+    [currencyIds, newAddresses.map(hexToBuf)]
+  );
+  for (let i = 0; i < result.length; i++) {
+    if (result[i] == null) result[i] = addressToId.get(currencyAddresses[i]);
+  }
+  return result;
+}
+
+async function deleteFills({ client, marketContract, blockHash }) {
+  const deleteRes = await client.query(
+    `
+    DELETE FROM fills
+    WHERE block_hash = $1::bytes32 AND market_contract = $2::address
+    `,
+    [hexToBuf(blockHash), hexToBuf(marketContract)]
+  );
+  return deleteRes.rowCount;
+}
+
 module.exports = {
   getJobProgress,
   addJob,
@@ -482,4 +657,7 @@ module.exports = {
 
   addNonceCancellations,
   deleteNonceCancellations,
+
+  addFills,
+  deleteFills,
 };
