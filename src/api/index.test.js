@@ -655,6 +655,12 @@ describe("api", () => {
             number: 2,
             timestamp: ethers.BigNumber.from(Date.parse("2021-02-08") / 1000),
           },
+          {
+            hash: dummyBlockHash(3),
+            parentHash: dummyBlockHash(2),
+            number: 3,
+            timestamp: ethers.BigNumber.from(Date.parse("2021-03-16") / 1000),
+          },
         ],
       });
 
@@ -677,37 +683,61 @@ describe("api", () => {
       const cherylsVault = dummyAddress("vault.cheryl.eth");
 
       const transfers = [
-        transfer({ from: zero, to: alice, blockNumber: 0, tx: dummyTx(1) }),
-        transfer({ from: alice, to: bob, blockNumber: 1, tx: dummyTx(2) }),
-        transfer({ from: bob, to: cheryl, blockNumber: 2, tx: dummyTx(3) }),
+        // Mint event
+        transfer({ from: zero, to: alice, blockNumber: 0, tx: dummyTx(0) }),
+        // Archipelago sale from Ailce to Bob
+        transfer({ from: alice, to: bob, blockNumber: 1, tx: dummyTx(1) }),
+        // OpenSea sale from Bob to Alice
+        transfer({ from: bob, to: alice, blockNumber: 2, tx: dummyTx(2) }),
+        // Atomic sale-and-transfer from Alice to Cheryl to Cheryl's vault
+        transfer({ from: alice, to: cheryl, blockNumber: 3, tx: dummyTx(3) }),
         transfer({
           from: cheryl,
           to: cherylsVault,
-          blockNumber: 2,
+          blockNumber: 3,
           tx: dummyTx(3), // same tx as previous: manual transfer away
         }),
       ];
 
+      const marketContract = dummyAddress("market");
+      const archipelagoFills = [
+        {
+          tradeId: ethers.utils.id("tradeid:1"),
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+          onChainTokenId: snapshots.THE_CUBE,
+          seller: alice,
+          buyer: bob,
+          currency: wellKnownCurrencies.weth9.address,
+          price: "1000",
+          proceeds: "995",
+          cost: "1005",
+          blockHash: dummyBlockHash(1),
+          logIndex: transfers[1].logIndex,
+          transactionHash: dummyTx(1),
+        },
+      ];
+
       const openseaSales = [
         openseaSale({
-          from: alice,
-          to: bob,
-          listingTime: new Date("2021-01-01T00:00:00Z"),
+          from: bob,
+          to: alice,
+          listingTime: new Date("2020-06-06T00:00:00Z"),
           transactionHash: dummyTx(2),
-          transactionTimestamp: new Date("2021-01-02T00:00:00Z"),
+          transactionTimestamp: new Date("2021-02-08T00:00:00Z"),
           price: String(10n ** 18n),
         }),
         openseaSale({
-          from: bob,
+          from: alice,
           to: cheryl,
           listingTime: new Date("2021-02-07T00:00:00Z"),
           transactionHash: dummyTx(3),
-          transactionTimestamp: new Date("2021-02-08T00:00:00Z"),
+          transactionTimestamp: new Date("2021-03-16T00:00:00Z"),
           price: String(2n * 10n ** 18n),
         }),
       ];
 
       await eth.addErc721Transfers({ client, transfers });
+      await eth.addFills({ client, marketContract, fills: archipelagoFills });
       await openseaIngest.addRawEvents({ client, events: openseaSales });
       await openseaIngest.ingestEvents({ client });
 
@@ -718,18 +748,29 @@ describe("api", () => {
           type: "TRANSFER",
           blockNumber: 0,
           logIndex: 101,
-          transactionHash: dummyTx(1),
+          transactionHash: dummyTx(0),
           blockHash: dummyBlockHash(0),
           timestamp: new Date("2020-12-30"),
           from: ethers.constants.AddressZero,
           to: alice,
         },
-        // Usual happy case: transaction with combined transfer and sale
+        // Usual happy case: transaction with combined transfer and sale.
         {
-          type: "OPENSEA_SALE",
+          type: "SALE",
+          venue: "ARCHIPELAGO",
           from: alice,
           to: bob,
           timestamp: new Date("2021-01-02T00:00:00Z"),
+          transactionHash: dummyTx(1),
+          priceWei: "1000",
+        },
+        // Same happy case with an OpenSea sale.
+        {
+          type: "OPENSEA_SALE",
+          venue: "OPENSEA",
+          from: bob,
+          to: alice,
+          timestamp: new Date("2021-02-08T00:00:00Z"),
           transactionHash: dummyTx(2),
           priceWei: String(10n ** 18n),
         },
@@ -737,29 +778,30 @@ describe("api", () => {
         // represented individually
         {
           type: "TRANSFER",
-          blockNumber: 2,
-          logIndex: 103,
+          blockNumber: 3,
+          logIndex: 104,
           transactionHash: dummyTx(3),
-          blockHash: dummyBlockHash(2),
-          timestamp: new Date("2021-02-08T00:00:00Z"),
-          from: bob,
+          blockHash: dummyBlockHash(3),
+          timestamp: new Date("2021-03-16T00:00:00Z"),
+          from: alice,
           to: cheryl,
         },
         {
           type: "TRANSFER",
-          blockNumber: 2,
-          logIndex: 104,
+          blockNumber: 3,
+          logIndex: 105,
           transactionHash: dummyTx(3),
-          blockHash: dummyBlockHash(2),
-          timestamp: new Date("2021-02-08T00:00:00Z"),
+          blockHash: dummyBlockHash(3),
+          timestamp: new Date("2021-03-16T00:00:00Z"),
           from: cheryl,
           to: cherylsVault,
         },
         {
           type: "OPENSEA_SALE",
-          from: bob,
+          venue: "OPENSEA",
+          from: alice,
           to: cheryl,
-          timestamp: new Date("2021-02-08T00:00:00Z"),
+          timestamp: new Date("2021-03-16T00:00:00Z"),
           transactionHash: dummyTx(3),
           priceWei: String(2n * 10n ** 18n),
         },

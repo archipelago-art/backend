@@ -7,6 +7,7 @@ const { ObjectType, newIds } = require("./id");
 const { columnExists } = require("./introspection");
 const orderbook = require("./orderbook");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
+const wellKnownCurrencies = require("./wellKnownCurrencies");
 const ws = require("./ws");
 
 async function getJobProgress({ client }) {
@@ -652,6 +653,34 @@ async function deleteFills({ client, marketContract, blockHash }) {
   return deleteRes.rowCount;
 }
 
+async function fillsByToken({ client, tokenId }) {
+  const res = await client.query(
+    `
+    SELECT
+      seller AS "from",
+      buyer AS "to",
+      block_timestamp AS "timestamp",
+      transaction_hash AS "transactionHash",
+      price AS "priceWei"
+    FROM fills JOIN eth_blocks USING (block_hash)
+    WHERE token_id = $1::tokenid AND currency_id IN ($2, $3)
+    ORDER BY fills.block_number, fills.log_index
+    `,
+    [
+      tokenId,
+      wellKnownCurrencies.eth.currencyId,
+      wellKnownCurrencies.weth9.currencyId,
+    ]
+  );
+  return res.rows.map((r) => ({
+    from: bufToAddress(r.from),
+    to: bufToAddress(r.to),
+    timestamp: r.timestamp,
+    transactionHash: bufToHex(r.transactionHash),
+    priceWei: r.priceWei,
+  }));
+}
+
 module.exports = {
   getJobProgress,
   addJob,
@@ -674,4 +703,5 @@ module.exports = {
 
   addFills,
   deleteFills,
+  fillsByToken,
 };

@@ -392,6 +392,7 @@ async function tokenHistory({ client, tokenId }) {
     client,
     tokenId,
   });
+  const archipelagoSales = await eth.fillsByToken({ client, tokenId });
   const openseaSales = await openseaApi.salesByToken({ client, tokenId });
 
   // Map from transaction hash to `{ transfers, openseaSales }` in that
@@ -401,7 +402,7 @@ async function tokenHistory({ client, tokenId }) {
   function txEventsEntry(tx) {
     let result = txEvents.get(tx);
     if (result == null) {
-      result = { transfers: [], openseaSales: [] };
+      result = { transfers: [], sales: [] };
       txEvents.set(tx, result);
     }
     return result;
@@ -409,32 +410,40 @@ async function tokenHistory({ client, tokenId }) {
   for (const t of transfers) {
     txEventsEntry(t.transactionHash).transfers.push(t);
   }
+  for (const s of archipelagoSales) {
+    txEventsEntry(s.transactionHash).sales.push({ venue: "ARCHIPELAGO", ...s });
+  }
   for (const s of openseaSales) {
-    txEventsEntry(s.transactionHash).openseaSales.push(s);
+    txEventsEntry(s.transactionHash).sales.push({ venue: "OPENSEA", ...s });
   }
 
   const result = [];
   function addTransfer(transfer) {
     result.push({ type: "TRANSFER", ...transfer });
   }
-  function addOpenseaSale(openseaSale) {
-    result.push({ type: "OPENSEA_SALE", ...openseaSale });
+  function addSale(sale) {
+    result.push({
+      // TODO(@wchargin): Standardize as `type: "SALE"` once the frontend can
+      // support that.
+      type: sale.venue === "OPENSEA" ? "OPENSEA_SALE" : "SALE",
+      ...sale,
+    });
   }
   for (const events of txEvents.values()) {
     // When a transaction has exactly one transfer and exactly one sale, and
     // the two have the same sender and recipient, only add the sale.
-    if (events.transfers.length === 1 && events.openseaSales.length === 1) {
+    if (events.transfers.length === 1 && events.sales.length === 1) {
       const transfer = events.transfers[0];
-      const sale = events.openseaSales[0];
+      const sale = events.sales[0];
       if (transfer.from === sale.from && transfer.to === sale.to) {
-        addOpenseaSale(sale);
+        addSale(sale);
         continue;
       }
     }
     // Otherwise, add all the transfers (in `logIndex` order), followed by all
     // the OpenSea events (in OpenSea event order: arbitrary but stable).
     events.transfers.forEach(addTransfer);
-    events.openseaSales.forEach(addOpenseaSale);
+    events.sales.forEach(addSale);
   }
   return result;
 }
