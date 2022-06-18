@@ -847,6 +847,37 @@ async function projectForCnfId(client, cnfId) {
   return res.rows[0].id;
 }
 
+async function bidsSharingScope({
+  client,
+  scope,
+  address,
+  activeOnly = true,
+} = {}) {
+  const res = await client.query(
+    `
+    SELECT
+      bid_id as "bidId",
+      price,
+      CONCAT('0x', encode(bidder, 'hex')) as "bidder",
+      deadline,
+      create_time as "createTime"
+    FROM bids
+      WHERE (active = $1 OR $1 IS FALSE)
+      AND scope = $2
+      AND (bidder = $3 OR $3 IS NULL)
+    ORDER BY price DESC;
+    `,
+    [activeOnly, scope, address ? hexToBuf(address) : null]
+  );
+  return res.rows.map((r) => ({
+    bidId: r.bidId,
+    price: String(r.price),
+    bidder: r.bidder,
+    deadline: r.deadline.toISOString(),
+    createTime: r.createTime.toISOString(),
+  }));
+}
+
 module.exports = {
   addBid,
   addAsk,
@@ -867,4 +898,5 @@ module.exports = {
   bidDetailsForToken,
   highBidIdsForAllTokensInProject,
   highFloorBidsForAllProjects,
+  bidsSharingScope,
 };

@@ -22,6 +22,7 @@ const {
   askIdsForAddress,
   highBidIdsForAllTokensInProject,
   highFloorBidsForAllProjects,
+  bidsSharingScope,
 } = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
 const { acqrel } = require("./util");
@@ -1249,6 +1250,97 @@ describe("db/orderbook", () => {
         expect(await floorAskForEveryProject({ client })).toEqual([
           { projectId: archetype, askId: ask1 },
           { projectId: squiggles, askId: ask2 },
+        ]);
+      })
+    );
+  });
+  describe("bidsSharingScope", () => {
+    it(
+      "returns shared bids with with token scope",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const [tokenId, tokenId2] = await addTokens(client, [
+          snapshots.THE_CUBE,
+          snapshots.ARCH_TRIPTYCH_1,
+        ]);
+        const price = ethers.BigNumber.from("100");
+        const deadline = new Date("2099-01-01");
+        const bidder = ethers.constants.AddressZero;
+
+        const nonce = ethers.BigNumber.from("0xabcd");
+        const bidId = await addBid({
+          client,
+          scope: { type: "TOKEN", tokenId },
+          price,
+          deadline,
+          bidder,
+          nonce,
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+
+        expect(await bidsSharingScope({ client, scope: tokenId })).toEqual([
+          {
+            bidId,
+            price: String(price),
+            bidder,
+            deadline: deadline.toISOString(),
+            createTime: expect.any(String),
+          },
+        ]);
+
+        const bidder2 = "0x" + "a".repeat(40);
+        const bidId2 = await addBid({
+          client,
+          scope: { type: "TOKEN", tokenId },
+          price: ethers.BigNumber.from("150"),
+          deadline,
+          bidder: bidder2,
+          nonce,
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        const bidId3 = await addBid({
+          client,
+          scope: { type: "TOKEN", tokenId: tokenId2 },
+          price: ethers.BigNumber.from("120"),
+          deadline,
+          bidder: bidder2,
+          nonce,
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(65),
+        });
+        expect(await bidsSharingScope({ client, scope: tokenId })).toEqual(
+          expect.arrayContaining([
+            {
+              bidId: bidId2,
+              price: "150",
+              bidder: bidder2,
+              deadline: deadline.toISOString(),
+              createTime: expect.any(String),
+            },
+            {
+              bidId,
+              price: String(price),
+              bidder,
+              deadline: deadline.toISOString(),
+              createTime: expect.any(String),
+            },
+          ])
+        );
+        expect(
+          await bidsSharingScope({ client, scope: tokenId, address: bidder })
+        ).toEqual([
+          {
+            bidId,
+            price: String(price),
+            bidder,
+            deadline: deadline.toISOString(),
+            createTime: expect.any(String),
+          },
         ]);
       })
     );
