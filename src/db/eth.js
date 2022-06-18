@@ -683,6 +683,151 @@ async function fillsByToken({ client, tokenId }) {
   }));
 }
 
+async function addErc20Deltas({
+  client,
+  currencyId,
+  deltas /*: Array<{ account: address, blockHash: bytes32, delta: BigNumberish }> */:
+    inputs,
+  alreadyInTransaction = true,
+}) {
+  if (!alreadyInTransaction) await client.query("BEGIN");
+
+  // keys: block hashes, as lowercase `bytes32` strings
+  // values: `Map<LowercaseAddress, BigNumber>`s representing total deltas
+  const blockToDeltas = new Map();
+  // keys: accounts as lowercase addresses
+  // values: objects with
+  //    - `delta`: `BigNumber` representing total delta across all blocks
+  //    - `minDelta`: most negative cumulative value of `delta` at any point
+  //    - `maxDelta`: m.m.
+  const accountUpdates = new Map();
+
+  function updateSum(map, account, delta) {
+    const existing = map.get(account) || ethers.constants.Zero;
+    map.set(account, existing.add(delta));
+  }
+  for (const input of inputs) {
+    const blockHash = input.blockHash.toLowerCase();
+    const account = input.account.toLowerCase();
+    const delta = ethers.BigNumber.from(input.delta);
+    let blockDeltas = blockToDeltas.get(blockHash);
+    if (blockDeltas == null)
+      blockToDeltas.set(blockHash, (blockDeltas = new Map()));
+    updateSum(blockDeltas, account, delta);
+
+    let accountUpdate = accountUpdates.get(account);
+    if (accountUpdate == null) {
+      accountUpdate = {
+        delta: ethers.constants.Zero,
+        minDelta: ethers.constants.Zero,
+        maxDelta: ethers.constants.Zero,
+      };
+      accountUpdates.set(account, accountUpdate);
+    }
+    accountUpdate.delta = accountUpdate.delta.add(delta);
+    if (accountUpdate.delta.lt(accountUpdate.minDelta))
+      accountUpdate.minDelta = accountUpdate.delta;
+    if (accountUpdate.delta.gt(accountUpdate.maxDelta))
+      accountUpdate.maxDelta = accountUpdate.delta;
+  }
+
+  const blockHashes = [];
+  const accounts = [];
+  const deltas = [];
+  for (const [block, totalDeltas] of blockToDeltas) {
+    for (const [account, totalDelta] of totalDeltas) {
+      if (totalDelta.isZero()) continue;
+      blockHashes.push(hexToBuf(block));
+      accounts.push(hexToBuf(account));
+      deltas.push(String(totalDelta));
+    }
+  }
+  await client.query(
+    `
+    INSERT INTO erc20_deltas (currency_id, account, block_hash, delta)
+    VALUES (
+      $1::currencyid,
+      unnest($2::address[]),
+      unnest($3::bytes32[]),
+      unnest($4::numeric(78, 0)[])
+    )
+    `,
+    [currencyId, accounts, blockHashes, deltas]
+  );
+
+  const insertRes = await client.query(
+    `
+    INSERT INTO erc20_balances (currency_id, account, balance)
+    SELECT $1::currencyid, account, delta
+    FROM unnest($2::address[], $3::numeric(78, 0)[]) AS inputs(account, delta)
+    ON CONFLICT (currency_id, account) DO UPDATE
+      SET balance = (erc20_balances.balance + EXCLUDED.balance)::uint256
+    RETURNING account, balance
+    `,
+    [
+      currencyId,
+      Array.from(accountUpdates.keys(), hexToBuf),
+      Array.from(accountUpdates.values(), (x) => String(x.delta)),
+    ]
+  );
+  // Make sure no intermediate step took us out of `uint256` range, since that
+  // could make it impossible to roll back a block.
+  for (const row of insertRes.rows) {
+    const account = bufToAddress(row.account);
+    const update = accountUpdates.get(account.toLowerCase());
+    const finalBalance = ethers.BigNumber.from(row.balance);
+    const initialBalance = finalBalance.sub(update.delta);
+    const min = initialBalance.add(update.minDelta);
+    const max = initialBalance.add(update.maxDelta);
+    if (min.lt(ethers.constants.Zero)) {
+      throw new Error(
+        `account ${account} balance of currency ${currencyId} dropped below zero to ${min}`
+      );
+    }
+    if (max.gt(ethers.constants.MaxUint256)) {
+      throw new Error(
+        `account ${account} balance of currency ${currencyId} rose above MaxUint256 to ${max}`
+      );
+    }
+  }
+
+  if (!alreadyInTransaction) await client.query("COMMIT");
+}
+
+async function deleteErc20Deltas({
+  client,
+  currencyId,
+  blockHash,
+  alreadyInTransaction = true,
+}) {
+  if (!alreadyInTransaction) await client.query("BEGIN");
+  const deleteRes = await client.query(
+    `
+    DELETE FROM erc20_deltas
+    WHERE currency_id = $1::currencyid AND block_hash = $2::bytes32
+    RETURNING account, delta
+    `,
+    [currencyId, hexToBuf(blockHash)]
+  );
+  const updateRes = await client.query(
+    `
+    UPDATE erc20_balances
+    SET balance = balance - delta
+    FROM unnest($2::address[], $3::numeric(78, 0)[]) AS inputs(account, delta)
+    WHERE
+      currency_id = $1::currencyid
+      AND erc20_balances.account = inputs.account
+    `,
+    [
+      currencyId,
+      deleteRes.rows.map((r) => r.account),
+      deleteRes.rows.map((r) => r.delta),
+    ]
+  );
+  if (!alreadyInTransaction) await client.query("COMMIT");
+  return updateRes.rowCount;
+}
+
 module.exports = {
   getJobs,
   addJob,
@@ -708,4 +853,7 @@ module.exports = {
   addFills,
   deleteFills,
   fillsByToken,
+
+  addErc20Deltas,
+  deleteErc20Deltas,
 };

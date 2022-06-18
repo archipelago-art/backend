@@ -6,6 +6,7 @@ const { testDbProvider } = require("./testUtil");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const adHocPromise = require("../util/adHocPromise");
+const Cmp = require("../util/cmp");
 const artblocks = require("./artblocks");
 const eth = require("./eth");
 const orderbook = require("./orderbook");
@@ -642,6 +643,150 @@ describe("db/eth", () => {
         });
         expect(n).toEqual(1);
         expect(await getTradeIds()).toEqual([tradeId1]);
+      })
+    );
+  });
+
+  describe("erc20_deltas and erc20_balances", () => {
+    it(
+      "records deltas and updates balances",
+      withTestDb(async ({ client }) => {
+        const [alice, bob] = [dummyAddress("alice"), dummyAddress("bob")].sort(
+          Cmp.comparing((x) => x.toLowerCase())
+        );
+        const market = dummyAddress("market");
+
+        const weth = wellKnownCurrencies.weth9.currencyId;
+
+        const blocks = realBlocks();
+        await eth.addBlocks({ client, blocks });
+
+        const aliceDepositsWeth = [
+          {
+            account: alice,
+            blockHash: blocks[0].hash,
+            delta: 100,
+          },
+        ];
+        const alicePaysBob = [
+          {
+            account: alice,
+            blockHash: blocks[1].hash,
+            delta: -50,
+          },
+          {
+            account: bob,
+            blockHash: blocks[1].hash,
+            delta: 50,
+          },
+        ];
+        const bobWithdrawsWeth = [
+          {
+            account: bob,
+            blockHash: blocks[1].hash,
+            delta: -25,
+          },
+        ];
+
+        async function checkBalances(currencyId) {
+          // Get balances from `erc20_balances` and also verify that the deltas
+          // in `erc20_deltas` still add up to the balances.
+          const res = await client.query(
+            `
+            SELECT account, balance, coalesce(delta_sum, '0') AS "deltaSum"
+            FROM
+              (
+                SELECT account, balance FROM erc20_balances
+                WHERE currency_id = $1::currencyid
+              ) AS by_balance
+              FULL OUTER JOIN
+              (
+                SELECT account, sum(delta) AS delta_sum FROM erc20_deltas
+                WHERE currency_id = $1::currencyid
+                GROUP BY account
+              ) AS by_delta
+              USING (account)
+            ORDER BY account
+            `,
+            [currencyId]
+          );
+          const result = {};
+          for (const { account, balance, deltaSum } of res.rows) {
+            if (balance !== deltaSum) {
+              throw new Error(
+                `${bufToAddress(account)}: ${balance} !== ${deltaSum}`
+              );
+            }
+            result[bufToAddress(account)] = Number(balance); // for convenience
+          }
+          return result;
+        }
+        expect(await checkBalances(weth)).toEqual({});
+
+        const deltas = [
+          ...aliceDepositsWeth,
+          ...alicePaysBob,
+          ...bobWithdrawsWeth,
+        ];
+        await eth.addErc20Deltas({ client, currencyId: weth, deltas });
+        expect(await checkBalances(weth)).toEqual({ [alice]: 50, [bob]: 25 });
+        await eth.deleteErc20Deltas({
+          client,
+          currencyId: weth,
+          blockHash: blocks[1].hash,
+        });
+        expect(await checkBalances(weth)).toEqual({ [alice]: 100, [bob]: 0 });
+      })
+    );
+
+    it(
+      "throws if any intermediate balance would overflow/underflow uint256",
+      withTestDb(async ({ client }) => {
+        const weth = wellKnownCurrencies.weth9.currencyId;
+        const block = realBlocks()[0];
+        await eth.addBlocks({ client, blocks: [block] });
+
+        const alice = dummyAddress("alice");
+        function delta(d) {
+          return {
+            account: alice,
+            blockHash: block.hash,
+            delta: d,
+          };
+        }
+
+        async function expectFailure(deltas, message) {
+          await client.query("BEGIN");
+          await expect(() =>
+            eth.addErc20Deltas({
+              client,
+              currencyId: weth,
+              deltas,
+              alreadyInTransaction: true,
+            })
+          ).rejects.toThrow(message);
+          await client.query("ROLLBACK");
+        }
+
+        const underflow = [
+          delta(100), // balance: 100
+          delta(-80), // balance: 20
+          delta(-80), // balance: -60 => underflow!
+          delta(100), // balance: 40
+        ];
+        await expectFailure(underflow, "dropped below zero to -60");
+
+        const overflow = [
+          delta(ethers.constants.MaxUint256.sub(100)), // balance: max - 100
+          delta(80), // balance: max - 20
+          delta(80), // balance: max + 60 => overflow!
+          delta(-100), // balance: max - 20
+        ];
+        await expectFailure(
+          overflow,
+          "rose above MaxUint256 to " +
+            ethers.constants.MaxUint256.add(60).toString()
+        );
       })
     );
   });
