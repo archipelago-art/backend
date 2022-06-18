@@ -132,6 +132,7 @@ const migrationModules = [
   "./0121_on_chain_nonce_cancellations",
   "./0122_on_chain_fills",
   "./0123_fills_rename_currency_to_currency_id",
+  "./0124_data_oriented_jobs",
   // ...
 ];
 
