@@ -145,14 +145,15 @@ async function setEmailUnconfirmed({
 // 2. Delete all other pending confirmations from the same account.
 // 3. If `authToken` is not a valid auth token for that account, mint and
 //    return a new auth token.
-async function confirmEmail({ client, authToken, nonce }) {
+async function confirmEmail({ client, address, authToken, nonce }) {
   await client.query("BEGIN");
   const confirmationRes = await client.query(
     `
     SELECT account, email FROM pending_email_confirmations
     WHERE nonce = $1::uuid
+    AND account = $2::address
     `,
-    [nonce]
+    [nonce, hexToBuf(address)]
   );
   if (confirmationRes.rows.length === 0) throw new Error("invalid email nonce");
   const accountBuf = confirmationRes.rows[0].account;

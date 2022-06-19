@@ -95,6 +95,7 @@ describe("db/accounts", () => {
 
       const confirmRes = await accounts.confirmEmail({
         client,
+        address: account,
         authToken,
         nonce,
       });
@@ -149,7 +150,12 @@ describe("db/accounts", () => {
         preferences: null,
       });
       const nonce1 = await getUniqueNonce();
-      await accounts.confirmEmail({ client, authToken, nonce: nonce1 });
+      await accounts.confirmEmail({
+        client,
+        address: account,
+        authToken,
+        nonce: nonce1,
+      });
       expect(await getDetails()).toEqual({
         account,
         email: email1,
@@ -157,7 +163,12 @@ describe("db/accounts", () => {
       });
 
       const email2 = "alice.two@example.com";
-      await accounts.setEmailUnconfirmed({ client, authToken, email: email2 });
+      await accounts.setEmailUnconfirmed({
+        client,
+        address: account,
+        authToken,
+        email: email2,
+      });
       // Neither yet changed nor cleared.
       expect(await getDetails()).toEqual({
         account,
@@ -166,7 +177,12 @@ describe("db/accounts", () => {
       });
 
       const nonce2 = await getUniqueNonce();
-      await accounts.confirmEmail({ client, authToken, nonce: nonce2 });
+      await accounts.confirmEmail({
+        client,
+        address: account,
+        authToken,
+        nonce: nonce2,
+      });
       expect(await getDetails()).toEqual({
         account,
         email: email2,
@@ -206,6 +222,7 @@ describe("db/accounts", () => {
 
       const confirmRes = await accounts.confirmEmail({
         client,
+        address: account,
         authToken: null,
         nonce,
       });
