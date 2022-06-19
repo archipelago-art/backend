@@ -133,6 +133,7 @@ const migrationModules = [
   "./0122_on_chain_fills",
   "./0123_fills_rename_currency_to_currency_id",
   "./0124_data_oriented_jobs",
+  "./0125_jobs_type_and_args_not_null",
   // ...
 ];
 
