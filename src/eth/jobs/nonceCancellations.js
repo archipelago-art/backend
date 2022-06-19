@@ -13,9 +13,8 @@ const CANCELLATIONS_ABI = [
 ];
 
 class NonceCancellationsJob {
-  constructor({ address, startBlock }) {
+  constructor({ address }) {
     this._address = ethers.utils.getAddress(address);
-    this._startBlock = startBlock != null ? startBlock : -1;
     this._log = log.child(this._address);
   }
 
@@ -25,10 +24,6 @@ class NonceCancellationsJob {
 
   name() {
     return `nonceCancellations(${this._address})`;
-  }
-
-  startBlock() {
-    return this._startBlock;
   }
 
   blockBatchSize() {

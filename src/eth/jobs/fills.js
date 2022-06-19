@@ -14,9 +14,8 @@ const FILLS_ABI = [
 ];
 
 class FillsJob {
-  constructor({ address, startBlock }) {
+  constructor({ address }) {
     this._address = ethers.utils.getAddress(address);
-    this._startBlock = startBlock != null ? startBlock : -1;
     this._log = log.child(this._address);
   }
 
@@ -26,10 +25,6 @@ class FillsJob {
 
   name() {
     return `fills(${this._address})`;
-  }
-
-  startBlock() {
-    return this._startBlock;
   }
 
   blockBatchSize() {

@@ -5,10 +5,6 @@ class EchoJob {
     return "echo";
   }
 
-  startBlock() {
-    return 0;
-  }
-
   blockBatchSize() {
     return 1e6;
   }

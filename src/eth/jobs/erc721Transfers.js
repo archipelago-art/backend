@@ -10,9 +10,8 @@ const retryEthers = require("../../util/retryEthers");
 const ERC_721_ABI = require("../erc721Abi");
 
 class Erc721TransfersJob {
-  constructor({ address, startBlock }) {
+  constructor({ address }) {
     this._address = ethers.utils.getAddress(address);
-    this._startBlock = startBlock != null ? startBlock : -1;
     this._log = log.child(this._address);
   }
 
@@ -22,10 +21,6 @@ class Erc721TransfersJob {
 
   name() {
     return `erc721Transfers(${this._address})`;
-  }
-
-  startBlock() {
-    return this._startBlock;
   }
 
   blockBatchSize() {

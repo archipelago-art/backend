@@ -44,22 +44,62 @@ describe("db/eth", () => {
   it(
     "gets and sets job progress",
     withTestDb(async ({ client }) => {
-      expect(await eth.getJobProgress({ client })).toEqual([]);
+      expect(await eth.getJobs({ client })).toEqual([]);
 
-      await eth.addJob({ client, jobId: 0, lastBlockNumber: 123 });
-      await eth.addJob({ client, jobId: 1, lastBlockNumber: -1 });
+      await eth.addJob({
+        client,
+        jobId: 0,
+        lastBlockNumber: 123,
+        type: "addFoos",
+        args: { fooFilter: "large" },
+      });
+      await eth.addJob({
+        client,
+        jobId: 1,
+        lastBlockNumber: -1,
+        type: "addBars",
+        args: "barestring",
+      });
 
-      expect(await eth.getJobProgress({ client })).toEqual([
-        { jobId: 0, lastBlockNumber: 123 },
-        { jobId: 1, lastBlockNumber: -1 },
+      expect(await eth.getJobs({ client })).toEqual([
+        {
+          jobId: 0,
+          lastBlockNumber: 123,
+          type: "addFoos",
+          args: { fooFilter: "large" },
+        },
+        { jobId: 1, lastBlockNumber: -1, type: "addBars", args: "barestring" },
       ]);
 
-      await eth.updateJobProgress({ client, jobId: 1, lastBlockNumber: 7 });
-      await eth.updateJobProgress({ client, jobId: 2, lastBlockNumber: 999 });
+      expect(
+        await eth.updateJobProgress({ client, jobId: 1, lastBlockNumber: 7 })
+      ).toBe(true);
+      expect(
+        await eth.updateJobProgress({ client, jobId: 2, lastBlockNumber: 999 })
+      ).toBe(false);
 
-      expect(await eth.getJobProgress({ client })).toEqual([
-        { jobId: 0, lastBlockNumber: 123 },
-        { jobId: 1, lastBlockNumber: 7 },
+      expect(
+        await eth.updateJobSpec({
+          client,
+          jobId: 1,
+          type: "addBarsV2",
+          args: null,
+        })
+      ).toBe(true);
+
+      expect(await eth.getJobs({ client })).toEqual([
+        {
+          jobId: 0,
+          lastBlockNumber: 123,
+          type: "addFoos",
+          args: { fooFilter: "large" },
+        },
+        {
+          jobId: 1,
+          lastBlockNumber: 7,
+          type: "addBarsV2",
+          args: null,
+        },
       ]);
     })
   );

@@ -5,17 +5,14 @@ const makeErc721TransfersJob = require("./erc721Transfers");
 const makeFillsJob = require("./fills");
 const makeNonceCancellationsJob = require("./nonceCancellations");
 
+const AUTOGLYPHS_ADDRESS = "0xd4e4078ca3495DE5B1d4dB434BEbc5a986197782";
+const CRYPTOADZ_ADDRESS = "0x1CB1A5e65610AEFF2551A50f76a87a7d3fB649C6";
+const MARKET_TEST_ADDRESS = "0x3F8d41e0cbb175D2553Cff761107194383386EB8";
+
 /*::
 interface Job {
   /// A cosmetic name for the job, like "echo" or "erc721Transfers(0xa7d8d9...)".
   name(): string;
-
-  /// The block number at which ingestion should start. A value of 0 indicates
-  /// that the whole chain should be processed. A positive value indicates that
-  /// it is known that there are no events until that block, so some history
-  /// can be skipped. (E.g., if tracking transfers on a contract, this might be
-  /// the block in which that contract was deployed.)
-  startBlock(): number;
 
   /// The maximum number of blocks that can be processed (with `up`) in a
   /// reasonable amount of time. A typical value is 2000, since that's
@@ -37,47 +34,77 @@ interface Job {
 }
 */
 
-const AUTOGLYPHS_ADDRESS = "0xd4e4078ca3495DE5B1d4dB434BEbc5a986197782";
-const CRYPTOADZ_ADDRESS = "0x1CB1A5e65610AEFF2551A50f76a87a7d3fB649C6";
-const MARKET_TEST_ADDRESS = "0x3F8d41e0cbb175D2553Cff761107194383386EB8";
+// Each value is a function that takes a JSON object `args` and returns a `Job`
+// implementation.
+const JOB_IMPLS = {
+  echo: makeEchoJob,
+  erc721Transfers: makeErc721TransfersJob,
+  nonceCancellations: makeNonceCancellationsJob,
+  fills: makeFillsJob,
+};
 
-const JOBS = [
-  makeEchoJob(),
-  makeErc721TransfersJob({
-    address: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
+/*::
+interface JobSpec {
+  /// A key into `JOB_IMPLS`.
+  type: string,
+
+  /// The arguments to be passed to the job creation function.
+  args: JsonValue,
+
+  /// The block number at which ingestion should start. A value of 0 indicates
+  /// that the whole chain should be processed. A positive value indicates that
+  /// it is known that there are no events until that block, so some history
+  /// can be skipped. (E.g., if tracking transfers on a contract, this might be
+  /// the block in which that contract was deployed.)
+  startBlock(): number;
+}
+*/
+
+const JOB_SPECS = [
+  {
+    type: "echo",
+    args: {},
+    startBlock: 0,
+  },
+  {
+    type: "erc721Transfers",
+    args: { address: artblocks.CONTRACT_ARTBLOCKS_LEGACY },
     startBlock: 11341469,
-  }),
-  makeErc721TransfersJob({
-    address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+  },
+  {
+    type: "erc721Transfers",
+    args: { address: artblocks.CONTRACT_ARTBLOCKS_STANDARD },
     startBlock: 11438389,
-  }),
-  makeErc721TransfersJob({
-    address: AUTOGLYPHS_ADDRESS,
+  },
+  {
+    type: "erc721Transfers",
+    args: { address: AUTOGLYPHS_ADDRESS },
     startBlock: 7510386,
-  }),
-  makeErc721TransfersJob({
-    address: CRYPTOADZ_ADDRESS,
+  },
+  {
+    type: "erc721Transfers",
+    args: { address: CRYPTOADZ_ADDRESS },
     startBlock: 13186834,
-  }),
-  makeNonceCancellationsJob({
-    address: MARKET_TEST_ADDRESS,
+  },
+  {
+    type: "nonceCancellations",
+    args: { address: MARKET_TEST_ADDRESS },
     startBlock: 14963431,
-  }),
-  makeFillsJob({
-    address: MARKET_TEST_ADDRESS,
+  },
+  {
+    type: "fills",
+    args: { address: MARKET_TEST_ADDRESS },
     startBlock: 14963431,
-  }),
+  },
   // ...
 ];
 
-function getJob(index) {
-  const job = JOBS[index];
-  if (job == null) throw new Error("no job for index " + index);
-  return job;
+function getJobSpecs() {
+  return JOB_SPECS.slice();
 }
 
-function getAllJobs() {
-  return JOBS.slice();
+function makeJobImpl(type, args) {
+  return JOB_IMPLS[type](args);
 }
 
-module.exports = { getJob, getAllJobs };
+module.exports = { getJobSpecs, makeJobImpl };

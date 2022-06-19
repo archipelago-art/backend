@@ -5,7 +5,7 @@ const { acqrel, withPool } = require("../db/util");
 const log = require("../util/log")(__filename);
 const retryEthers = require("../util/retryEthers");
 const signal = require("../util/signal");
-const { getJob } = require("./jobs");
+const { makeJobImpl } = require("./jobs");
 
 function childLog(prefix) {
   return log.child(prefix);
@@ -271,15 +271,15 @@ async function addNewHeaders({
 
 async function applyJobs({ pool, provider }) {
   const log = childLog("applyJobs");
-  const [localHead, jobProgress] = await Promise.all([
+  const [localHead, jobs] = await Promise.all([
     acqrel(pool, (client) => dbEth.latestBlockHeader({ client })),
-    acqrel(pool, (client) => dbEth.getJobProgress({ client })),
+    acqrel(pool, (client) => dbEth.getJobs({ client })),
   ]);
-  log.debug`got local head at #${localHead.blockNumber} with ${jobProgress.length} job statuses`;
+  log.debug`got local head at #${localHead.blockNumber} with ${jobs.length} job statuses`;
 
   const errors = [];
   let moreJobs = false;
-  for (const { jobId, lastBlockNumber } of jobProgress) {
+  for (const { jobId, lastBlockNumber, type, args } of jobs) {
     if (lastBlockNumber > localHead.blockNumber) {
       log.warn`job #${jobId} is at ${lastBlockNumber} ahead of local head ${localHead.blockNumber}; skipping`;
       continue;
@@ -288,7 +288,7 @@ async function applyJobs({ pool, provider }) {
       log.debug`job #${jobId} up to date at ${lastBlockNumber}; skipping`;
       continue;
     }
-    const job = getJob(jobId);
+    const job = makeJobImpl(type, args);
     const minBlock = lastBlockNumber + 1;
     const maxLength = job.blockBatchSize();
     let maxBlock /* inclusive */ = localHead.blockNumber;
@@ -373,11 +373,9 @@ async function rollForwardJobForRange({
 
 async function rollBackJobsForBlock({ pool, blockHash, blockNumber }) {
   log.info`rolling back jobs for ${blockHash} at #${blockNumber}`;
-  const jobProgress = await acqrel(pool, (client) =>
-    dbEth.getJobProgress({ client })
-  );
-  for (const { jobId, lastBlockNumber } of jobProgress) {
-    const job = getJob(jobId);
+  const jobs = await acqrel(pool, (client) => dbEth.getJobs({ client }));
+  for (const { jobId, lastBlockNumber, type, args } of jobs) {
+    const job = makeJobImpl(type, args);
     if (lastBlockNumber > blockNumber) {
       throw new Error(
         `job ${jobId}:${job.name()} is at #${lastBlockNumber} > #${blockNumber}; can't roll back`

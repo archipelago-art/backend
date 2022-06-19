@@ -9,10 +9,14 @@ const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 const wellKnownCurrencies = require("./wellKnownCurrencies");
 const ws = require("./ws");
 
-async function getJobProgress({ client }) {
+async function getJobs({ client }) {
   const res = await client.query(
     `
-    SELECT job_id AS "jobId", last_block_number AS "lastBlockNumber"
+    SELECT
+      job_id AS "jobId",
+      last_block_number AS "lastBlockNumber",
+      job_type AS "type",
+      job_args AS "args"
     FROM eth_job_progress
     ORDER BY job_id
     `
@@ -20,13 +24,13 @@ async function getJobProgress({ client }) {
   return res.rows;
 }
 
-async function addJob({ client, jobId, lastBlockNumber }) {
+async function addJob({ client, jobId, lastBlockNumber, type, args }) {
   await client.query(
     `
-    INSERT INTO eth_job_progress (job_id, last_block_number)
-    VALUES ($1, $2)
+    INSERT INTO eth_job_progress (job_id, last_block_number, job_type, job_args)
+    VALUES ($1, $2, $3, $4)
     `,
-    [jobId, lastBlockNumber]
+    [jobId, lastBlockNumber, type, JSON.stringify(args)]
   );
 }
 
@@ -38,6 +42,18 @@ async function updateJobProgress({ client, jobId, lastBlockNumber }) {
     WHERE job_id = $1
     `,
     [jobId, lastBlockNumber]
+  );
+  return res.rowCount > 0;
+}
+
+async function updateJobSpec({ client, jobId, type, args }) {
+  const res = await client.query(
+    `
+    UPDATE eth_job_progress
+    SET job_type = $2, job_args = $3
+    WHERE job_id = $1
+    `,
+    [jobId, type, JSON.stringify(args)]
   );
   return res.rowCount > 0;
 }
@@ -668,9 +684,11 @@ async function fillsByToken({ client, tokenId }) {
 }
 
 module.exports = {
-  getJobProgress,
+  getJobs,
   addJob,
   updateJobProgress,
+  updateJobSpec,
+
   addBlock,
   addBlocks,
   getBlockHeaders,
