@@ -858,7 +858,7 @@ async function bidsSharingScope({
     SELECT
       bid_id as "bidId",
       price,
-      CONCAT('0x', encode(bidder, 'hex')) as "bidder",
+      bidder,
       deadline,
       create_time as "createTime"
     FROM bids
@@ -872,7 +872,7 @@ async function bidsSharingScope({
   return res.rows.map((r) => ({
     bidId: r.bidId,
     price: String(r.price),
-    bidder: r.bidder,
+    bidder: bufToAddress(r.bidder),
     deadline: r.deadline.toISOString(),
     createTime: r.createTime.toISOString(),
   }));
@@ -888,8 +888,8 @@ async function fillsForAddress({ client, address }) {
       p.image_template as "imageTemplate",
       t.token_index as "tokenIndex",
       t.token_id as "tokenId",
-      CONCAT('Ox', encode(f.buyer, 'hex')) as "buyer",
-      CONCAT('Ox', encode(f.seller, 'hex')) as "seller",
+      f.buyer,
+      f.seller,
       f.price,
       f.block_number as "blockNumber",
       f.trade_id as "tradeId"
@@ -908,8 +908,8 @@ async function fillsForAddress({ client, address }) {
     imageTemplate: r.imageTemplate,
     tokenIndex: r.tokenIndex,
     tokenId: r.tokenId,
-    buyer: r.buyer,
-    seller: r.seller,
+    buyer: bufToAddress(r.buyer),
+    seller: bufToAddress(r.seller),
     price: String(r.price),
     blockNumber: r.blockNumber,
   }));

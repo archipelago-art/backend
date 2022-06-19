@@ -1326,7 +1326,7 @@ describe("db/orderbook", () => {
           },
         ]);
 
-        const bidder2 = "0x" + "a".repeat(40);
+        const bidder2 = dummyAddress("bidder2");
         const bidId2 = await addBid({
           client,
           scope: { type: "TOKEN", tokenId },
@@ -1338,7 +1338,7 @@ describe("db/orderbook", () => {
           message: "0x",
           signature: "0x" + "fe".repeat(65),
         });
-        const bidId3 = await addBid({
+        await addBid({
           client,
           scope: { type: "TOKEN", tokenId: tokenId2 },
           price: ethers.BigNumber.from("120"),
@@ -1373,7 +1373,7 @@ describe("db/orderbook", () => {
           {
             bidId,
             price: String(price),
-            bidder,
+            bidder: ethers.utils.getAddress(bidder),
             deadline: deadline.toISOString(),
             createTime: expect.any(String),
           },
@@ -1434,7 +1434,6 @@ describe("db/orderbook", () => {
         const result = await fillsForAddress({ client, address: alice });
         expect(result).toEqual([
           {
-            // TODO (@ijd): fix flaky test
             tradeId: expect.any(String),
             projectId: expect.any(String),
             name: "Archetype",
@@ -1442,8 +1441,8 @@ describe("db/orderbook", () => {
             imageTemplate: "{baseUrl}/artblocks/{sz}/23/{hi}/{lo}",
             tokenIndex: 250,
             tokenId: expect.any(String),
-            buyer: expect.any(String),
-            seller: expect.any(String), // wtf is going on here w/ lowercasing?
+            buyer: bob,
+            seller: alice,
             price: "1000",
             blockNumber: 1,
           },
