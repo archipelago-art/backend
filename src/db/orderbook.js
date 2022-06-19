@@ -860,7 +860,7 @@ async function bidsSharingScope({
       price,
       CONCAT('0x', encode(bidder, 'hex')) as "bidder",
       deadline,
-      create_time as "createTime",
+      create_time as "createTime"
     FROM bids
       WHERE (active = $1 OR $1 IS FALSE)
       AND scope = $2
@@ -884,13 +884,15 @@ async function fillsForAddress({ client, address }) {
     SELECT
       p.project_id as "projectId",
       p.name,
+      p.slug,
       p.image_template as "imageTemplate",
       t.token_index as "tokenIndex",
       t.token_id as "tokenId",
       CONCAT('Ox', encode(f.buyer, 'hex')) as "buyer",
       CONCAT('Ox', encode(f.seller, 'hex')) as "seller",
       f.price,
-      f.block_number as "blockNumber"
+      f.block_number as "blockNumber",
+      f.trade_id as "tradeId"
     FROM fills f
       JOIN projects p using (project_id)
       JOIN tokens t using (token_id)
@@ -899,8 +901,10 @@ async function fillsForAddress({ client, address }) {
     [hexToBuf(address)]
   );
   return res.rows.map((r) => ({
+    tradeId: bufToHex(r.tradeId),
     projectId: r.projectId,
     name: r.name,
+    slug: r.slug,
     imageTemplate: r.imageTemplate,
     tokenIndex: r.tokenIndex,
     tokenId: r.tokenId,

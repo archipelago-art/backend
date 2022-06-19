@@ -1435,8 +1435,10 @@ describe("db/orderbook", () => {
         expect(result).toEqual([
           {
             // TODO (@ijd): fix flaky test
+            tradeId: expect.any(String),
             projectId: expect.any(String),
             name: "Archetype",
+            slug: "archetype",
             imageTemplate: "{baseUrl}/artblocks/{sz}/23/{hi}/{lo}",
             tokenIndex: 250,
             tokenId: expect.any(String),
