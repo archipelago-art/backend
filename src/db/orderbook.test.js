@@ -1,5 +1,6 @@
 const ethers = require("ethers");
 
+const eth = require("./eth");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
 const adHocPromise = require("../util/adHocPromise");
@@ -23,10 +24,45 @@ const {
   highBidIdsForAllTokensInProject,
   highFloorBidsForAllProjects,
   bidsSharingScope,
+  fillsForAddress,
 } = require("./orderbook");
 const { testDbProvider } = require("./testUtil");
 const { acqrel } = require("./util");
+const wellKnownCurrencies = require("./wellKnownCurrencies");
 const ws = require("./ws");
+
+function dummyAddress(id) {
+  const hash = ethers.utils.id(`addr:${id}`);
+  return ethers.utils.getAddress(ethers.utils.hexDataSlice(hash, 12));
+}
+function dummyTx(id) {
+  return ethers.utils.id(`tx:${id}`);
+}
+
+// A few blocks from Ethereum mainnet, for testing.
+function realBlocks() {
+  const result = [];
+  function pushBlock(hash, timestamp) {
+    const parentHash =
+      result[result.length - 1]?.hash ?? ethers.constants.HashZero;
+    const number = result.length;
+    const block = { hash, parentHash, number, timestamp };
+    result.push(block);
+  }
+  pushBlock(
+    "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3",
+    0
+  );
+  pushBlock(
+    "0x88e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb6",
+    1438269988
+  );
+  pushBlock(
+    "0xb495a1d7e6663152ae92708da4843337b958146015a2802f4193a410044698c9",
+    1438270017
+  );
+  return result;
+}
 
 describe("db/orderbook", () => {
   const withTestDb = testDbProvider();
@@ -1340,6 +1376,74 @@ describe("db/orderbook", () => {
             bidder,
             deadline: deadline.toISOString(),
             createTime: expect.any(String),
+          },
+        ]);
+      })
+    );
+  });
+  describe("fillsForAddress", () => {
+    it(
+      "returns fills",
+      withTestDb(async ({ client }) => {
+        await addProjects(client, [snapshots.ARCHETYPE]);
+        await addTokens(client, [snapshots.THE_CUBE]);
+
+        const alice = dummyAddress("alice");
+        const bob = dummyAddress("bob");
+        const charlie = dummyAddress("charlie");
+        const market = dummyAddress("market");
+
+        const [tradeId1, tradeId2] = [
+          ethers.utils.id("tradeid:1"),
+          ethers.utils.id("tradeid:2"),
+        ].sort();
+
+        const blocks = realBlocks();
+        await eth.addBlocks({ client, blocks });
+
+        const aliceSellsCube = {
+          tradeId: tradeId1,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+          onChainTokenId: snapshots.THE_CUBE,
+          buyer: bob,
+          seller: alice,
+          currency: wellKnownCurrencies.weth9.address,
+          price: "1000",
+          proceeds: "995",
+          cost: "1005",
+          blockHash: blocks[1].hash,
+          logIndex: 1,
+          transactionHash: dummyTx(1),
+        };
+        const bobSellsCube = {
+          tradeId: tradeId2,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+          onChainTokenId: snapshots.THE_CUBE,
+          buyer: charlie,
+          seller: bob,
+          currency: wellKnownCurrencies.weth9.address,
+          price: "1000",
+          proceeds: "995",
+          cost: "1005",
+          blockHash: blocks[1].hash,
+          logIndex: 2,
+          transactionHash: dummyTx(2),
+        };
+        const fills = [aliceSellsCube, bobSellsCube];
+        await eth.addFills({ client, marketContract: market, fills });
+        const result = await fillsForAddress({ client, address: alice });
+        expect(result).toEqual([
+          {
+            // TODO (@ijd): fix flaky test
+            projectId: expect.any(String),
+            name: "Archetype",
+            imageTemplate: "{baseUrl}/artblocks/{sz}/23/{hi}/{lo}",
+            tokenIndex: 250,
+            tokenId: expect.any(String),
+            buyer: expect.any(String),
+            seller: expect.any(String), // wtf is going on here w/ lowercasing?
+            price: "1000",
+            blockNumber: 1,
           },
         ]);
       })
