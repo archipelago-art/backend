@@ -8,7 +8,7 @@ const makeWeth9TransfersJob = require("./weth9Transfers");
 
 const AUTOGLYPHS_ADDRESS = "0xd4e4078ca3495DE5B1d4dB434BEbc5a986197782";
 const CRYPTOADZ_ADDRESS = "0x1CB1A5e65610AEFF2551A50f76a87a7d3fB649C6";
-const MARKET_TEST_ADDRESS = "0x3F8d41e0cbb175D2553Cff761107194383386EB8";
+const MARKET_MAINNET_ADDRESS = "0x555598409fe9a72f0a5e423245c34555f6445555";
 
 /*::
 interface Job {
@@ -90,13 +90,13 @@ const JOB_SPECS = [
   },
   {
     type: "nonceCancellations",
-    args: { address: MARKET_TEST_ADDRESS },
-    startBlock: 14963431,
+    args: { address: MARKET_MAINNET_ADDRESS },
+    startBlock: 14997767,
   },
   {
     type: "fills",
-    args: { address: MARKET_TEST_ADDRESS },
-    startBlock: 14963431,
+    args: { address: MARKET_MAINNET_ADDRESS },
+    startBlock: 14997767,
   },
   {
     type: "weth9Transfers",
