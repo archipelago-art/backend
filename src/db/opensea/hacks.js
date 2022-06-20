@@ -74,7 +74,29 @@ async function deactivateLegacyListings({ client, deactivationDate }) {
   return res.rowCount;
 }
 
+async function reingestCancellations({ client }) {
+  const res = await client.query(
+    `
+    SELECT
+      event_id
+    FROM opensea_events_raw
+    WHERE json->>'event_type' = 'cancelled'
+    AND json->>'total_price' IS NULL
+    AND json->>'ending_price' IS NOT NULL
+    `
+  );
+  const evs = res.rows;
+  await client.query(
+    `
+    INSERT INTO opensea_events_ingestion_queue (event_id, event_type)
+    VALUES (unnest($1::text[]), 'cancelled')
+    `,
+    [evs.map((x) => x.event_id)]
+  );
+}
+
 module.exports = {
   floorAsksByProject,
   deactivateLegacyListings,
+  reingestCancellations,
 };

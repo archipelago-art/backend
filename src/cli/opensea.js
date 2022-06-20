@@ -3,6 +3,7 @@ const { downloadEventsForTokens, syncProject } = require("../opensea/download");
 const {
   floorAsksByProject,
   deactivateLegacyListings,
+  reingestCancellations,
 } = require("../db/opensea/hacks");
 const log = require("../util/log")(__filename);
 const { ingestEvents } = require("../db/opensea/ingestEvents");
@@ -106,6 +107,17 @@ async function cliDeactivateLegacyListings(args) {
   });
 }
 
+async function cliIngestNullPriceCancellations(args) {
+  if (args.length !== 0) {
+    throw new Error("usage: ingest null price cancellations");
+  }
+  // Opensea started reporting some cancellations with null total_price but a valid
+  // ending_price. We should ingest these.
+  await withClient(async (client) => {
+    await reingestCancellations({ client });
+  });
+}
+
 async function cliFixFloors(args) {
   if (args.length > 2) {
     throw new Error("usage: fix-floors [limit] [projectSlug]");
@@ -186,6 +198,7 @@ async function cli(outerArgs, self) {
     ["clear-progress", cliClearProgress],
     ["add-progress", cliAddProgress],
     ["deactivate-legacy-listings", cliDeactivateLegacyListings],
+    ["ingest-null-price-cancellations", cliIngestNullPriceCancellations],
     ["fix-floors", cliFixFloors],
     ["sync", cliSync],
     ["sync-project", cliSyncProject],
