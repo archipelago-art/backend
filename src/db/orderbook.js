@@ -344,9 +344,9 @@ async function updateActivityForCurrencyBalances({
     SET
       active_currency_balance = (price <= updates.new_balance),
       active = (
-        active_currency_balance
+        (price <= updates.new_balance)
         AND active_market_approved
-        AND (price <= updates.new_balance)
+        AND active_nonce
         AND active_deadline
       )
     FROM
