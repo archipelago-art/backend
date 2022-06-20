@@ -1,4 +1,6 @@
 const ethers = require("ethers");
+
+const log = require("../util/log")(__filename);
 const { idType, ObjectType, objectTypeToName, newId } = require("./id");
 const { hexToBuf, bufToAddress, bufToHex } = require("./util");
 const ws = require("./ws");
@@ -175,6 +177,7 @@ async function addBid({
   await ws.sendMessages({ client, messages: [wsMessage] });
 
   await client.query("COMMIT");
+  log.debug`addBid: added bid ${bidId}`;
   return bidId;
 }
 
@@ -270,6 +273,7 @@ async function updateActivityForNonces({
       })),
   ];
   await ws.sendMessages({ client, messages: wsMessages });
+  log.debug`updateActivityForNonces: updated ${bidUpdatesRes.rowCount} bids, ${askUpdatesRes.rowCount} asks`;
 }
 
 async function updateActivityForNonce({ client, account, nonce, active }) {
@@ -327,6 +331,7 @@ async function updateActivityForTokenOwners({
       },
     }));
   await ws.sendMessages({ client, messages: wsMessages });
+  log.debug`updateActivityForTokenOwners: updated ${askUpdatesRes.rowCount} asks`;
 }
 
 async function updateActivityForCurrencyBalances({
@@ -375,6 +380,7 @@ async function updateActivityForCurrencyBalances({
       },
     }));
   await ws.sendMessages({ client, messages: wsMessages });
+  log.debug`updateActivityForCurrencyBalances: updated ${bidUpdatesRes.rowCount} bids`;
 }
 
 async function addAsk({
@@ -477,6 +483,7 @@ async function addAsk({
   await ws.sendMessages({ client, messages: [wsMessage] });
 
   await client.query("COMMIT");
+  log.debug`addBid: added ask ${askId}`;
   return askId;
 }
 

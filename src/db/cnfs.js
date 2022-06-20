@@ -1,6 +1,7 @@
 const ethers = require("ethers");
 
 const Cmp = require("../util/cmp");
+const log = require("../util/log")(__filename);
 const uniqInPlace = require("../util/uniqInPlace");
 const { ObjectType, newId } = require("./id");
 
@@ -74,6 +75,7 @@ async function addCnf({
       );
     }
     await client.query("ROLLBACK");
+    log.debug`addCnf: found existing CNF ${oldCnfId}`;
     return oldCnfId;
   }
 
@@ -121,6 +123,7 @@ async function addCnf({
   );
 
   await client.query("COMMIT");
+  log.debug`addCnf: added CNF ${cnfId}`;
   return cnfId;
 }
 
