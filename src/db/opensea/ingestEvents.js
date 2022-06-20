@@ -374,6 +374,7 @@ async function cancellationsToSkip(client, events) {
     SELECT event_id AS id FROM opensea_events_raw
     WHERE event_id = ANY($1::text[])
     AND json->>'total_price' IS NULL
+    AND json->>'ending_price' IS NULL
     `,
     [ids]
   );
@@ -397,7 +398,7 @@ async function ingestCancellations(client, cancellationIds) {
       tokens.token_id,
       (json->'transaction'->>'timestamp')::timestamp AT TIME ZONE 'UTC' AS transaction_timestamp,
       json->'transaction'->>'transaction_hash' AS transaction_hash,
-      (json->>'total_price')::uint256 AS price
+      COALESCE(json->>'total_price', json->>'ending_price')::uint256 AS price
     FROM opensea_events_raw
     JOIN tokens
       ON hexaddr(json->'asset'->>'address') = token_contract
