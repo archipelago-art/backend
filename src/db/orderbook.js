@@ -7,7 +7,7 @@ const { idType, ObjectType, objectTypeToName, newId } = require("./id");
 const { hexToBuf, bufToAddress, bufToHex } = require("./util");
 const ws = require("./ws");
 
-const DEFAULT_MARKET = "0x3F8d41e0cbb175D2553Cff761107194383386EB8";
+const DEFAULT_MARKET = "0x555598409fE9A72f0A5e423245c34555F6445555";
 
 /**
  * type Scope = ProjectScope | TokenScope | TraitScope | CnfScope;
