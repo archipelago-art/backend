@@ -178,7 +178,12 @@ describe("db/orderbook", () => {
           domainInfo,
           bidStruct
         );
-        const badSignature = swizzleBytes(goodSignature);
+        const badSigner = new ethers.Wallet(ethers.constants.MaxUint256.sub(1));
+        const badSignature = await sdk.market.sign712.bid(
+          badSigner,
+          domainInfo,
+          bidStruct
+        );
 
         const bidStructBadAgreement = {
           ...bidStruct,
