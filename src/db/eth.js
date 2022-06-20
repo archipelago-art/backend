@@ -757,11 +757,19 @@ async function addErc20Deltas({
 
   const insertRes = await client.query(
     `
+    WITH new_balances AS (
+      SELECT account, (coalesce(balance, 0)::numeric + delta)::uint256 AS "balance"
+      FROM
+        unnest($2::address[], $3::numeric(78, 0)[]) AS inputs(account, delta)
+        LEFT OUTER JOIN (
+          SELECT account, balance FROM erc20_balances
+          WHERE currency_id = $1::currencyid
+        ) AS erc20_balances USING (account)
+    )
     INSERT INTO erc20_balances (currency_id, account, balance)
-    SELECT $1::currencyid, account, delta
-    FROM unnest($2::address[], $3::numeric(78, 0)[]) AS inputs(account, delta)
+    SELECT $1::currencyid, account, balance FROM new_balances
     ON CONFLICT (currency_id, account) DO UPDATE
-      SET balance = (erc20_balances.balance + EXCLUDED.balance)::uint256
+      SET balance = EXCLUDED.balance::uint256
     RETURNING account, balance
     `,
     [

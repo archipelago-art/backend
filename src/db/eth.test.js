@@ -730,6 +730,29 @@ describe("db/eth", () => {
         ];
         await eth.addErc20Deltas({ client, currencyId: weth, deltas });
         expect(await checkBalances(weth)).toEqual({ [alice]: 50, [bob]: 25 });
+
+        // Should be able to commit a set of updates for which some of the
+        // total deltas are negative, as long as the balances stay non-negative.
+        const bobWithdrawsMoreWeth = [
+          {
+            account: bob,
+            blockHash: blocks[2].hash,
+            delta: -25,
+          },
+        ];
+        await eth.addErc20Deltas({
+          client,
+          currencyId: weth,
+          deltas: bobWithdrawsMoreWeth,
+        });
+        expect(await checkBalances(weth)).toEqual({ [alice]: 50, [bob]: 0 });
+
+        await eth.deleteErc20Deltas({
+          client,
+          currencyId: weth,
+          blockHash: blocks[2].hash,
+        });
+        expect(await checkBalances(weth)).toEqual({ [alice]: 50, [bob]: 25 });
         await eth.deleteErc20Deltas({
           client,
           currencyId: weth,
