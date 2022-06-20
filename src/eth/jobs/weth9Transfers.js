@@ -23,7 +23,7 @@ class Weth9TransfersJob {
   }
 
   blockBatchSize() {
-    return 2000;
+    return 500;
   }
 
   async up({ client, provider, minBlock, maxBlock }) {
