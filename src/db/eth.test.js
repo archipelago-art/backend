@@ -12,6 +12,8 @@ const orderbook = require("./orderbook");
 const wellKnownCurrencies = require("./wellKnownCurrencies");
 const ws = require("./ws");
 
+const SIG_DIRTY = "0x" + "fe".repeat(64) + "01";
+
 describe("db/eth", () => {
   const withTestDb = testDbProvider();
   const sc = new snapshots.SnapshotCache();
@@ -338,7 +340,7 @@ describe("db/eth", () => {
           nonce: "999",
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         async function isAskActive() {
           const res = await orderbook.floorAsk({ client, tokenId: squiggle });
@@ -475,7 +477,7 @@ describe("db/eth", () => {
           nonce,
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         async function isAskActive() {
           const res = await orderbook.floorAsk({ client, tokenId });

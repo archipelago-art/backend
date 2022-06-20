@@ -31,6 +31,9 @@ const { acqrel } = require("./util");
 const wellKnownCurrencies = require("./wellKnownCurrencies");
 const ws = require("./ws");
 
+const SIG_DIRTY = "0x" + "fe".repeat(64) + "01";
+const SIG_CLEAN = "0x" + "fe".repeat(64) + "1c";
+
 function dummyAddress(id) {
   const hash = ethers.utils.id(`addr:${id}`);
   return ethers.utils.getAddress(ethers.utils.hexDataSlice(hash, 12));
@@ -146,7 +149,7 @@ describe("db/orderbook", () => {
           nonce,
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
 
         const messages = await ws.getMessages({
@@ -190,7 +193,7 @@ describe("db/orderbook", () => {
           bidder,
           nonce: nonce.toString(),
           deadline,
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_CLEAN,
           message: "0x",
           agreement: "0x",
           scope: { type: "PROJECT", scope: archetype },
@@ -218,7 +221,7 @@ describe("db/orderbook", () => {
           nonce,
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
 
         const messages = await ws.getMessages({
@@ -262,7 +265,7 @@ describe("db/orderbook", () => {
           bidder,
           nonce: nonce.toString(),
           deadline,
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_CLEAN,
           message: "0x",
           agreement: "0x",
           scope: { type: "TOKEN", scope: tokenId },
@@ -310,7 +313,7 @@ describe("db/orderbook", () => {
           nonce,
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
 
         const messages = await ws.getMessages({
@@ -354,7 +357,7 @@ describe("db/orderbook", () => {
           bidder,
           nonce: nonce.toString(),
           deadline,
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_CLEAN,
           message: "0x",
           agreement: "0x",
           scope: { type: "TRAIT", scope: traitId },
@@ -396,7 +399,7 @@ describe("db/orderbook", () => {
           nonce,
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
 
         const messages = await ws.getMessages({
@@ -439,7 +442,7 @@ describe("db/orderbook", () => {
           bidder,
           nonce: nonce.toString(),
           deadline,
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_CLEAN,
           message: "0x",
           agreement: "0x",
           scope: { type: "CNF", scope: cnfId },
@@ -467,7 +470,7 @@ describe("db/orderbook", () => {
           nonce,
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         const bid = {
           bidId,
@@ -477,7 +480,7 @@ describe("db/orderbook", () => {
           bidder,
           nonce: nonce.toString(),
           deadline,
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_CLEAN,
           message: "0x",
           agreement: "0x",
           scope: { type: "PROJECT", scope: archetype },
@@ -529,7 +532,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("0xabcd"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_CLEAN,
         });
 
         const bidIdExpensive = await addBid({
@@ -541,7 +544,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("0xabcd"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_CLEAN,
         });
         await client.query(
           `
@@ -588,7 +591,7 @@ describe("db/orderbook", () => {
           nonce,
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
 
         const messages = await ws.getMessages({
@@ -627,7 +630,7 @@ describe("db/orderbook", () => {
             deadline,
             asker,
             nonce: nonce.toString(),
-            signature: "0x" + "fe".repeat(65),
+            signature: SIG_CLEAN,
             message: "0x",
             agreement: "0x",
             tokenId: theCube,
@@ -659,7 +662,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("0xabcd"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_CLEAN,
         });
         const active = await isAskActive(client, askId);
         expect(active).toBe(true); // for now...
@@ -690,7 +693,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("0xabcd"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         const askIdUnowned = await addAsk({
           client,
@@ -701,7 +704,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("0xabcd"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         await updateActivityForTokenOwners({
           client,
@@ -767,7 +770,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("123"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         const ask2 = await addAsk({
           client,
@@ -778,7 +781,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("456"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         const ask3 = await addAsk({
           client,
@@ -789,7 +792,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("789"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         await updateActivityForNonce({
           client,
@@ -849,7 +852,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("123"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         const ask2 = await addAsk({
           client,
@@ -860,7 +863,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("456"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         const ask3 = await addAsk({
           client,
@@ -871,7 +874,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("789"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         await updateActivityForNonce({
           client,
@@ -888,7 +891,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("987"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         const floor = await floorAsk({ client, tokenId: theCube });
         expect(floor).toEqual(ask2);
@@ -942,7 +945,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("123"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         const ask2 = await addAsk({
           client,
@@ -953,7 +956,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("456"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         const ask3 = await addAsk({
           client,
@@ -964,7 +967,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("789"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         await updateActivityForNonce({
           client,
@@ -1024,7 +1027,7 @@ describe("db/orderbook", () => {
             nonce: ethers.BigNumber.from("0xabcd").add(price),
             agreement: "0x",
             message: "0x",
-            signature: "0x" + "fe".repeat(65),
+            signature: SIG_DIRTY,
           });
         }
 
@@ -1124,7 +1127,7 @@ describe("db/orderbook", () => {
             nonce: ethers.BigNumber.from("0xabcd").add(price),
             agreement: "0x",
             message: "0x",
-            signature: "0x" + "fe".repeat(65),
+            signature: SIG_DIRTY,
           });
         }
 
@@ -1246,7 +1249,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("123"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         expect(await floorAskForEveryProject({ client })).toEqual([
           { projectId: archetype, askId: ask1 },
@@ -1260,7 +1263,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("456"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         const ask3 = await addAsk({
           client,
@@ -1271,7 +1274,7 @@ describe("db/orderbook", () => {
           nonce: ethers.BigNumber.from("789"),
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         expect(await floorAskForEveryProject({ client })).toEqual([
           { projectId: archetype, askId: ask1 },
@@ -1313,7 +1316,7 @@ describe("db/orderbook", () => {
           nonce,
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
 
         expect(await bidsSharingScope({ client, scope: tokenId })).toEqual([
@@ -1336,7 +1339,7 @@ describe("db/orderbook", () => {
           nonce,
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         await addBid({
           client,
@@ -1347,7 +1350,7 @@ describe("db/orderbook", () => {
           nonce,
           agreement: "0x",
           message: "0x",
-          signature: "0x" + "fe".repeat(65),
+          signature: SIG_DIRTY,
         });
         expect(await bidsSharingScope({ client, scope: tokenId })).toEqual(
           expect.arrayContaining([

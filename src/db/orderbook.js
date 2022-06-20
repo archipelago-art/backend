@@ -150,7 +150,7 @@ async function addBid({
       String(nonce),
       hexToBuf(agreement),
       hexToBuf(message),
-      hexToBuf(signature),
+      hexToBuf(ethers.utils.joinSignature(signature)),
     ]
   );
   const { createTime } = insertRes.rows[0];
@@ -403,7 +403,7 @@ async function addAsk({
       String(nonce),
       hexToBuf(agreement),
       hexToBuf(message),
-      hexToBuf(signature),
+      hexToBuf(ethers.utils.joinSignature(signature)),
     ]
   );
 
