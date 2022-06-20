@@ -62,6 +62,7 @@ class NonceCancellationsJob {
       client,
       blockHash,
       marketContract: this._address,
+      alreadyInTransaction: true,
     });
     this._log.info`down(${blockHash}): deleted ${n} nonce cancellations`;
   }
