@@ -1,9 +1,13 @@
 const ethers = require("ethers");
 
+const sdk = require("@archipelago-art/contracts");
+
 const log = require("../util/log")(__filename);
 const { idType, ObjectType, objectTypeToName, newId } = require("./id");
 const { hexToBuf, bufToAddress, bufToHex } = require("./util");
 const ws = require("./ws");
+
+const DEFAULT_MARKET = "0x3F8d41e0cbb175D2553Cff761107194383386EB8";
 
 /**
  * type Scope = ProjectScope | TokenScope | TraitScope | CnfScope;
@@ -14,6 +18,9 @@ const ws = require("./ws");
  */
 async function addBid({
   client,
+  noVerify = false,
+  chainId = 1,
+  marketAddress = DEFAULT_MARKET,
   scope /*: Scope */,
   price /*: ethers.BigNumber */,
   deadline /*: Date */,
@@ -25,6 +32,32 @@ async function addBid({
 }) {
   await client.query("BEGIN");
   let projectId, scopeId;
+
+  // Verify signatures and hash integrity.
+  if (!noVerify) {
+    const [agreementStruct] = ethers.utils.defaultAbiCoder.decode(
+      [sdk.market.abi.OrderAgreement],
+      agreement
+    );
+    const [bidStruct] = ethers.utils.defaultAbiCoder.decode(
+      [sdk.market.abi.Bid],
+      message
+    );
+    const agreementStructHash = sdk.market.hash.orderAgreement(agreementStruct);
+    if (bidStruct.agreementHash !== agreementStructHash) {
+      throw new Error(
+        `bid agreement hash: want ${agreementStructHash}, got ${bidStruct.agreementHash}`
+      );
+    }
+    const recoveredSigner = sdk.market.verify712.bid(
+      signature,
+      { chainId, marketAddress },
+      bidStruct
+    );
+    if (recoveredSigner !== bidder) {
+      throw new Error(`bid signer: want ${bidder}, got ${recoveredSigner}`);
+    }
+  }
 
   switch (scope.type) {
     case "PROJECT": {
@@ -998,6 +1031,7 @@ async function fillsForAddress({ client, address }) {
 }
 
 module.exports = {
+  DEFAULT_MARKET,
   addBid,
   addAsk,
   updateActivityForNonce,

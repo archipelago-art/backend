@@ -1,5 +1,7 @@
 const ethers = require("ethers");
 
+const sdk = require("@archipelago-art/contracts");
+
 const eth = require("./eth");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
@@ -7,6 +9,7 @@ const adHocPromise = require("../util/adHocPromise");
 const artblocks = require("./artblocks");
 const cnfs = require("./cnfs");
 const {
+  DEFAULT_MARKET,
   addBid,
   addAsk,
   updateActivityForNonce,
@@ -132,6 +135,101 @@ describe("db/orderbook", () => {
 
   describe("addBid", () => {
     it(
+      "requires a valid signature and order agreement hash",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
+        const price = ethers.BigNumber.from("100");
+        const deadline = new Date("2099-01-01");
+        const bidder = ethers.constants.AddressZero;
+
+        function swizzleBytes(bytes) {
+          const b0 = ethers.BigNumber.from(255).sub(
+            ethers.utils.hexDataSlice(bytes, 0, 1)
+          );
+          return ethers.utils.hexConcat([
+            b0,
+            ethers.utils.hexDataSlice(bytes, 1),
+          ]);
+        }
+
+        const agreementStruct = {
+          currencyAddress: wellKnownCurrencies.weth9.address,
+          price: "1000",
+          tokenAddress: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+          requiredRoyalties: [ethers.constants.HashZero], // TODO
+        };
+        const agreementHash = sdk.market.hash.orderAgreement(agreementStruct);
+        const bidStruct = {
+          agreementHash,
+          nonce: "0xabcd",
+          deadline: Math.floor(+deadline / 1000),
+          extraRoyalties: [],
+          trait: ethers.utils.defaultAbiCoder.encode(
+            ["uint256"],
+            [snapshots.THE_CUBE]
+          ),
+          traitOracle: ethers.constants.AddressZero,
+        };
+        const signer = new ethers.Wallet(ethers.constants.MaxUint256);
+        const domainInfo = { chainId: 7, marketAddress: DEFAULT_MARKET };
+        const goodSignature = await sdk.market.sign712.bid(
+          signer,
+          domainInfo,
+          bidStruct
+        );
+        const badSignature = swizzleBytes(goodSignature);
+
+        const bidStructBadAgreement = {
+          ...bidStruct,
+          agreementHash: swizzleBytes(agreementHash),
+        };
+        const goodSignatureBadAgreement = await sdk.market.sign712.bid(
+          signer,
+          domainInfo,
+          bidStructBadAgreement
+        );
+
+        async function go(bidStruct, signature) {
+          try {
+            return await addBid({
+              client,
+              noVerify: false,
+              chainId: 7,
+              marketAddress: DEFAULT_MARKET,
+              scope: { type: "TOKEN", tokenId },
+              price: agreementStruct.price,
+              deadline,
+              bidder: signer.address,
+              nonce: ethers.BigNumber.from(bidStruct.nonce),
+              agreement: ethers.utils.defaultAbiCoder.encode(
+                [sdk.market.abi.OrderAgreement],
+                [agreementStruct]
+              ),
+              message: ethers.utils.defaultAbiCoder.encode(
+                [sdk.market.abi.Bid],
+                [bidStruct]
+              ),
+              signature,
+            });
+          } finally {
+            await client.query("ROLLBACK");
+          }
+        }
+
+        await expect(go(bidStruct, badSignature)).rejects.toThrow(
+          /bid signer: want 0x.*, got 0x.*/
+        );
+        await expect(
+          go(bidStructBadAgreement, goodSignatureBadAgreement)
+        ).rejects.toThrow(/bid agreement hash: want 0x.*, got 0x.*/);
+        await expect(go(bidStruct, goodSignature)).resolves.toEqual(
+          expect.any(String)
+        );
+      })
+    );
+
+    it(
       "adds a bid with project scope",
       withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
@@ -143,6 +241,7 @@ describe("db/orderbook", () => {
         const nonce = ethers.BigNumber.from("0xabcd");
         const bidId = await addBid({
           client,
+          noVerify: true,
           scope: { type: "PROJECT", projectId: archetype },
           price,
           deadline,
@@ -215,6 +314,7 @@ describe("db/orderbook", () => {
         const nonce = ethers.BigNumber.from("0xabcd");
         const bidId = await addBid({
           client,
+          noVerify: true,
           scope: { type: "TOKEN", tokenId },
           price,
           deadline,
@@ -307,6 +407,7 @@ describe("db/orderbook", () => {
         const nonce = ethers.BigNumber.from("0xabcd");
         const bidId = await addBid({
           client,
+          noVerify: true,
           scope: { type: "TRAIT", traitId },
           price,
           deadline,
@@ -393,6 +494,7 @@ describe("db/orderbook", () => {
         const nonce = ethers.BigNumber.from("0xabcd");
         const bidId = await addBid({
           client,
+          noVerify: true,
           scope: { type: "CNF", cnfId },
           price: ethers.BigNumber.from("100"),
           deadline: new Date("2099-01-01"),
@@ -464,6 +566,7 @@ describe("db/orderbook", () => {
         const nonce = ethers.BigNumber.from("0xabcd");
         const bidId = await addBid({
           client,
+          noVerify: true,
           scope: { type: "PROJECT", projectId: archetype },
           price: ethers.BigNumber.from("100"),
           deadline,
@@ -526,6 +629,7 @@ describe("db/orderbook", () => {
 
         const bidIdAffordable = await addBid({
           client,
+          noVerify: true,
           scope: { type: "TOKEN", tokenId },
           price: priceAffordable,
           deadline,
@@ -538,6 +642,7 @@ describe("db/orderbook", () => {
 
         const bidIdExpensive = await addBid({
           client,
+          noVerify: true,
           scope: { type: "TOKEN", tokenId },
           price: priceExpensive,
           deadline,
@@ -552,7 +657,11 @@ describe("db/orderbook", () => {
           updates: [{ account: bidder, newBalance: priceExpensive.sub(1) }],
         });
         expect(
-          await ws.getMessages({ client, topic: "archetype", since: new Date(0), })
+          await ws.getMessages({
+            client,
+            topic: "archetype",
+            since: new Date(0),
+          })
         ).toEqual(
           expect.arrayContaining([
             {
@@ -1034,6 +1143,7 @@ describe("db/orderbook", () => {
         async function makeBid({ scope, price }) {
           return await addBid({
             client,
+            noVerify: true,
             scope,
             price,
             deadline: new Date("2099-01-01"),
@@ -1134,6 +1244,7 @@ describe("db/orderbook", () => {
         async function makeBid({ scope, price }) {
           return await addBid({
             client,
+            noVerify: true,
             scope,
             price,
             deadline: new Date("2099-01-01"),
@@ -1323,6 +1434,7 @@ describe("db/orderbook", () => {
         const nonce = ethers.BigNumber.from("0xabcd");
         const bidId = await addBid({
           client,
+          noVerify: true,
           scope: { type: "TOKEN", tokenId },
           price,
           deadline,
@@ -1346,6 +1458,7 @@ describe("db/orderbook", () => {
         const bidder2 = dummyAddress("bidder2");
         const bidId2 = await addBid({
           client,
+          noVerify: true,
           scope: { type: "TOKEN", tokenId },
           price: ethers.BigNumber.from("150"),
           deadline,
@@ -1357,6 +1470,7 @@ describe("db/orderbook", () => {
         });
         await addBid({
           client,
+          noVerify: true,
           scope: { type: "TOKEN", tokenId: tokenId2 },
           price: ethers.BigNumber.from("120"),
           deadline,
