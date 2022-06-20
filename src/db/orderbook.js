@@ -329,6 +329,54 @@ async function updateActivityForTokenOwners({
   await ws.sendMessages({ client, messages: wsMessages });
 }
 
+async function updateActivityForCurrencyBalances({
+  client,
+  updates /*: Array<{ account: address, newBalance: uint256 }> */,
+}) {
+  const bidUpdatesRes = await client.query(
+    `
+    UPDATE bids
+    SET
+      active_currency_balance = (price <= updates.new_balance),
+      active = (
+        active_currency_balance
+        AND active_market_approved
+        AND (price <= updates.new_balance)
+        AND active_deadline
+      )
+    FROM
+      unnest($1::address[], $2::uint256[])
+        AS updates(account, new_balance)
+    WHERE
+      bids.bidder = updates.account
+      AND active_deadline
+    RETURNING
+      bid_id AS "bidId",
+      project_id AS "projectId",
+      (SELECT slug FROM projects p WHERE p.project_id = bids.project_id) AS "slug",
+      active AS "nowActive",
+      (SELECT active FROM bids b2 WHERE b2.bid_id = bids.bid_id) AS "wasActive"
+    `,
+    [
+      updates.map((u) => hexToBuf(u.account)),
+      updates.map((u) => String(u.newBalance)),
+    ]
+  );
+  // TODO(@wchargin): Also re-send order-placed messages on reactivation.
+  const wsMessages = bidUpdatesRes.rows
+    .filter((r) => r.wasActive && !r.active)
+    .map((r) => ({
+      type: "BID_CANCELLED",
+      topic: r.slug,
+      data: {
+        bidId: r.bidId,
+        projectId: r.projectId,
+        slug: r.slug,
+      },
+    }));
+  await ws.sendMessages({ client, messages: wsMessages });
+}
+
 async function addAsk({
   client,
   tokenId /*: tokenid */,
@@ -921,6 +969,7 @@ module.exports = {
   updateActivityForNonce,
   updateActivityForNonces,
   updateActivityForTokenOwners,
+  updateActivityForCurrencyBalances,
   askDetails,
   askDetailsForToken,
   askIdsForToken,

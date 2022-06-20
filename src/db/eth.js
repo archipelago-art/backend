@@ -799,6 +799,14 @@ async function addErc20Deltas({
     }
   }
 
+  await orderbook.updateActivityForCurrencyBalances({
+    client,
+    updates: insertRes.rows.map((r) => ({
+      account: bufToAddress(r.account),
+      newBalance: r.balance,
+    })),
+  });
+
   if (!alreadyInTransaction) await client.query("COMMIT");
 }
 
@@ -825,6 +833,7 @@ async function deleteErc20Deltas({
     WHERE
       currency_id = $1::currencyid
       AND erc20_balances.account = inputs.account
+    RETURNING erc20_balances.account, balance
     `,
     [
       currencyId,
@@ -832,6 +841,13 @@ async function deleteErc20Deltas({
       deleteRes.rows.map((r) => r.delta),
     ]
   );
+  await orderbook.updateActivityForCurrencyBalances({
+    client,
+    updates: updateRes.rows.map((r) => ({
+      account: bufToAddress(r.account),
+      newBalance: r.balance,
+    })),
+  });
   if (!alreadyInTransaction) await client.query("COMMIT");
   return updateRes.rowCount;
 }

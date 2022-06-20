@@ -11,6 +11,7 @@ const {
   addAsk,
   updateActivityForNonce,
   updateActivityForTokenOwners,
+  updateActivityForCurrencyBalances,
   floorAsk,
   floorAsks,
   floorAskIdsForAllTokensInProject,
@@ -528,7 +529,7 @@ describe("db/orderbook", () => {
           scope: { type: "TOKEN", tokenId },
           price: priceAffordable,
           deadline,
-          bidder: ethers.constants.AddressZero,
+          bidder,
           nonce: ethers.BigNumber.from("0xabcd"),
           agreement: "0x",
           message: "0x",
@@ -540,19 +541,32 @@ describe("db/orderbook", () => {
           scope: { type: "TOKEN", tokenId },
           price: priceExpensive,
           deadline,
-          bidder: ethers.constants.AddressZero,
+          bidder,
           nonce: ethers.BigNumber.from("0xabcd"),
           agreement: "0x",
           message: "0x",
           signature: SIG_CLEAN,
         });
-        await client.query(
-          `
-          UPDATE bids
-          SET active_currency_balance = false, active = false
-          WHERE bid_id = $1::bidid
-          `,
-          [bidIdExpensive]
+        await updateActivityForCurrencyBalances({
+          client,
+          updates: [{ account: bidder, newBalance: priceExpensive.sub(1) }],
+        });
+        expect(
+          await ws.getMessages({ client, topic: "archetype", since: new Date(0), })
+        ).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "BID_CANCELLED",
+              topic: "archetype",
+              data: {
+                bidId: bidIdExpensive,
+                projectId: archetype,
+                slug: "archetype",
+              },
+            },
+          ])
         );
 
         const bidIdsAffordable = await bidIdsForAddress({
