@@ -534,7 +534,7 @@ describe("db/eth", () => {
     it(
       "records fills for known and unknown tokens and sends ws messages",
       withTestDb(async ({ client }) => {
-        await addProjects(client, [snapshots.ARCHETYPE]);
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
 
         const alice = dummyAddress("alice");
@@ -635,6 +635,16 @@ describe("db/eth", () => {
           return res.rows.map((r) => bufToHex(r.tradeId)).sort();
         }
         expect(await getTradeIds()).toEqual([tradeId1, tradeId2]);
+
+        expect(
+          await eth.lastFillsByProject({ client, projectId: archetype })
+        ).toEqual([
+          {
+            tokenId,
+            saleTime: new Date(blocks[1].timestamp * 1000),
+            priceWei: "1000",
+          },
+        ]);
 
         const n = await eth.deleteFills({
           client,

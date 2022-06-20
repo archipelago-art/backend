@@ -459,6 +459,10 @@ async function transferCount({ client, fromAddress, toAddress }) {
   };
 }
 
+async function lastSalesByProject({ client, projectId }) {
+  return await eth.lastFillsByProject({ client, projectId });
+}
+
 // Adds a new email address to the signups list. Returns `true` if this made a
 // change or `false` if the email already existed in the database. Idempotent.
 async function addEmailSignup({ client, email }) {
@@ -499,6 +503,7 @@ module.exports = {
   tokenSummariesByAccount,
   tokenHistory,
   transferCount,
+  lastSalesByProject,
   addEmailSignup,
   getWebsocketMessages: ws.getMessages,
   formatImageUrl,

@@ -683,6 +683,33 @@ async function fillsByToken({ client, tokenId }) {
   }));
 }
 
+/**
+ * Get the most recent sale (timestamp and price) for each token in the
+ * project. Sales not in ETH/WETH are ignored. Tokens with no ETH/WETH sales
+ * are omitted from the output.
+ */
+async function lastFillsByProject({ client, projectId }) {
+  const res = await client.query(
+    `
+    SELECT DISTINCT ON (token_id)
+      token_id AS "tokenId",
+      block_timestamp AS "saleTime",
+      price AS "priceWei"
+    FROM fills JOIN eth_blocks USING (block_hash)
+    WHERE
+      project_id = $1::projectid
+      AND currency_id IN ($2::currencyid, $3::currencyid)
+    ORDER BY token_id, fills.block_number DESC, fills.log_index DESC
+    `,
+    [
+      projectId,
+      wellKnownCurrencies.eth.currencyId,
+      wellKnownCurrencies.weth9.currencyId,
+    ]
+  );
+  return res.rows;
+}
+
 async function addErc20Deltas({
   client,
   currencyId,
@@ -877,6 +904,7 @@ module.exports = {
   addFills,
   deleteFills,
   fillsByToken,
+  lastFillsByProject,
 
   addErc20Deltas,
   deleteErc20Deltas,
