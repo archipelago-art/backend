@@ -30,9 +30,6 @@ async function addBid({
   message /*: bytes: ABI-encoded [Bid] */,
   signature /*: bytes65 */,
 }) {
-  await client.query("BEGIN");
-  let projectId, scopeId;
-
   // Verify signatures and hash integrity.
   if (!noVerify) {
     const [agreementStruct] = ethers.utils.defaultAbiCoder.decode(
@@ -58,6 +55,9 @@ async function addBid({
       throw new Error(`bid signer: want ${bidder}, got ${recoveredSigner}`);
     }
   }
+
+  await client.query("BEGIN");
+  let projectId, scopeId;
 
   switch (scope.type) {
     case "PROJECT": {
