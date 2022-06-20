@@ -24,28 +24,13 @@ async function addBid({
   signature /*: bytes65 */,
 }) {
   await client.query("BEGIN");
-  let projectId, scopeId, outputScope, slug;
-
-  async function getSlug(projectId) {
-    const slugRes = await client.query(
-      `
-      SELECT slug
-      FROM projects
-      WHERE project_id = $1
-      `,
-      [projectId]
-    );
-
-    return slugRes.rows[0].slug;
-  }
+  let projectId, scopeId;
 
   switch (scope.type) {
     case "PROJECT": {
       await checkProjectExists(client, scope.projectId);
       projectId = scope.projectId;
       scopeId = projectId;
-      slug = await getSlug(scope.projectId);
-      outputScope = { type: "PROJECT", projectId, slug };
       break;
     }
     case "TOKEN": {
@@ -60,42 +45,21 @@ async function addBid({
         [scope.tokenId]
       );
       const tokenIndex = tokenIndexRes.rows[0].tokenIndex;
-      outputScope = { type: "TOKEN", tokenId: scope.tokenId, tokenIndex };
       break;
     }
     case "TRAIT": {
       projectId = await projectForTraitId(client, scope.traitId);
       scopeId = scope.traitId;
-      const traitsRes = await client.query(
-        `
-          SELECT features.name, traits.value
-          FROM traits JOIN features USING (feature_id)
-          WHERE trait_id = $1
-        `,
-        [scope.traitId]
-      );
-      const { name: featureName, value: traitValue } = traitsRes.rows[0];
-      outputScope = {
-        type: "TRAIT",
-        traitId: scope.traitId,
-        featureName,
-        traitValue,
-      };
       break;
     }
     case "CNF": {
       projectId = await projectForCnfId(client, scope.cnfId);
       scopeId = scope.cnfId;
-      outputScope = {
-        type: "CNF",
-        cnfId: scope.cnfId,
-      };
       break;
     }
     default:
       throw new Error(`Unrecognized scope type: ${scope.type}`);
   }
-  slug = slug ?? (await getSlug(projectId));
 
   await client.query(
     `
@@ -155,30 +119,111 @@ async function addBid({
       hexToBuf(ethers.utils.joinSignature(signature)),
     ]
   );
-  const { createTime } = insertRes.rows[0];
 
-  const wsMessage = {
-    type: "BID_PLACED",
-    topic: slug,
-    data: {
-      bidId,
-      projectId,
-      slug,
-      scope: outputScope,
-      venue: "ARCHIPELAGO",
-      bidder,
-      nonce: String(nonce),
-      currency: "ETH",
-      price: String(price),
-      timestamp: createTime.toISOString(),
-      expirationTime: deadline && deadline.toISOString(),
-    },
-  };
-  await ws.sendMessages({ client, messages: [wsMessage] });
+  await sendBidActivityMessages({ client, bidIds: [bidId] });
 
   await client.query("COMMIT");
   log.debug`addBid: added bid ${bidId}`;
   return bidId;
+}
+
+async function sendBidActivityMessages({ client, bidIds }) {
+  const res = await client.query(
+    `
+    SELECT
+      bid_id AS "bidId",
+      active,
+      project_id AS "projectId",
+      slug,
+      scope,
+      token_info.token_index AS "tokenIndex",
+      trait_info.feature_id AS "featureId",
+      trait_info.feature_name AS "featureName",
+      trait_info.trait_value AS "traitValue",
+      bidder,
+      nonce,
+      price,
+      create_time AS "createTime",
+      deadline
+    FROM
+      bids
+      JOIN projects USING (project_id)
+      LEFT OUTER JOIN (
+        SELECT trait_id, feature_id, name AS feature_name, value AS trait_value
+        FROM traits JOIN features USING (feature_id)
+      ) AS trait_info ON bids.scope = trait_info.trait_id
+      LEFT OUTER JOIN (
+        SELECT token_id, token_index FROM tokens
+      ) AS token_info ON bids.scope = token_info.token_id
+    WHERE 
+      bid_id = ANY($1::bidid[])
+    `,
+    [bidIds]
+  );
+
+  const messages = [];
+  for (const row of res.rows) {
+    if (row.active) {
+      let outputScope = {};
+      switch (idType(row.scope)) {
+        case ObjectType.TOKEN:
+          outputScope = {
+            type: "TOKEN",
+            tokenId: row.scope,
+            tokenIndex: row.tokenIndex,
+          };
+          break;
+        case ObjectType.PROJECT:
+          outputScope = {
+            type: "PROJECT",
+            projectId: row.scope,
+            slug: row.slug,
+          };
+          break;
+        case ObjectType.TRAIT:
+          outputScope = {
+            type: "TRAIT",
+            traitId: row.scope,
+            featureName: row.featureName,
+            traitValue: row.traitValue,
+          };
+          break;
+        case ObjectType.CNF:
+          outputScope = {
+            type: "CNF",
+            cnfId: row.scope,
+          };
+          break;
+        default:
+          throw new Error(
+            `unexpected type for bid scope: ${row.scope} => ${idType(
+              row.scope
+            )}`
+          );
+      }
+      messages.push({
+        type: "BID_PLACED",
+        topic: row.slug,
+        data: {
+          bidId: row.bidId,
+          projectId: row.projectId,
+          slug: row.slug,
+          scope: outputScope,
+          venue: "ARCHIPELAGO",
+          bidder: bufToAddress(row.bidder),
+          nonce: row.nonce,
+          currency: "ETH",
+          price: row.price,
+          timestamp: row.createTime.toISOString(),
+          expirationTime: row.deadline && row.deadline.toISOString(),
+        },
+      });
+    } else {
+      throw new Error("not yet implemented");
+    }
+  }
+
+  await ws.sendMessages({ client, messages });
 }
 
 async function updateActivityForNonces({
