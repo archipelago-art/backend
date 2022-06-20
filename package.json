@@ -18,6 +18,7 @@
     "prettier": "2.4.1"
   },
   "dependencies": {
+    "@archipelago-art/contracts": "github:archipelago-art/contracts",
     "@google-cloud/bigquery": "^5.12.0",
     "@google-cloud/storage": "^5.15.4",
     "@sendgrid/mail": "^7.7.0",
