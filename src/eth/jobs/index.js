@@ -4,6 +4,7 @@ const makeEchoJob = require("./echo");
 const makeErc721TransfersJob = require("./erc721Transfers");
 const makeFillsJob = require("./fills");
 const makeNonceCancellationsJob = require("./nonceCancellations");
+const makeWeth9TransfersJob = require("./weth9Transfers");
 
 const AUTOGLYPHS_ADDRESS = "0xd4e4078ca3495DE5B1d4dB434BEbc5a986197782";
 const CRYPTOADZ_ADDRESS = "0x1CB1A5e65610AEFF2551A50f76a87a7d3fB649C6";
@@ -41,6 +42,7 @@ const JOB_IMPLS = {
   erc721Transfers: makeErc721TransfersJob,
   nonceCancellations: makeNonceCancellationsJob,
   fills: makeFillsJob,
+  weth9Transfers: makeWeth9TransfersJob,
 };
 
 /*::
@@ -95,6 +97,11 @@ const JOB_SPECS = [
     type: "fills",
     args: { address: MARKET_TEST_ADDRESS },
     startBlock: 14963431,
+  },
+  {
+    type: "weth9Transfers",
+    args: {},
+    startBlock: 4719568,
   },
   // ...
 ];
