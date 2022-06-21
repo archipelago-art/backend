@@ -97,11 +97,9 @@ async function cliDeactivateLegacyListings(args) {
   }
   // OpenSea made a contract upgrade on this date which expired all previous asks.
   // https://opensea.io/blog/announcements/announcing-a-contract-upgrade/
-  const deactivationDate = new Date("2022-02-18 18:03:00+00");
   await withClient(async (client) => {
     const changed = await deactivateLegacyListings({
       client,
-      deactivationDate,
     });
     log.info`deactivated ${changed} asks`;
   });
