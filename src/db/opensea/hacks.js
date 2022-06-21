@@ -67,8 +67,9 @@ async function deactivateLegacyListings({ client, deactivationDate }) {
     `
     UPDATE opensea_asks
     SET active = false
-    WHERE active AND listing_time < 2022-02-18 18:03:00+00
-    `
+    WHERE active AND listing_time < $1
+    `,
+    [deactivationDate]
   );
   return res.rowCount;
 }
