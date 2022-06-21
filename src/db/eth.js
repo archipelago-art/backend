@@ -715,6 +715,7 @@ async function addErc20Deltas({
   currencyId,
   deltas /*: Array<{ account: address, blockHash: bytes32, delta: BigNumberish }> */:
     inputs,
+  skipActivityUpdates = false,
   alreadyInTransaction = true,
 }) {
   if (!alreadyInTransaction) await client.query("BEGIN");
@@ -826,13 +827,14 @@ async function addErc20Deltas({
     }
   }
 
-  await orderbook.updateActivityForCurrencyBalances({
-    client,
-    updates: insertRes.rows.map((r) => ({
-      account: bufToAddress(r.account),
-      newBalance: r.balance,
-    })),
-  });
+  if (!skipActivityUpdates)
+    await orderbook.updateActivityForCurrencyBalances({
+      client,
+      updates: insertRes.rows.map((r) => ({
+        account: bufToAddress(r.account),
+        newBalance: r.balance,
+      })),
+    });
 
   if (!alreadyInTransaction) await client.query("COMMIT");
 }
@@ -841,6 +843,7 @@ async function deleteErc20Deltas({
   client,
   currencyId,
   blockHash,
+  skipActivityUpdates = false,
   alreadyInTransaction = true,
 }) {
   if (!alreadyInTransaction) await client.query("BEGIN");
@@ -868,13 +871,15 @@ async function deleteErc20Deltas({
       deleteRes.rows.map((r) => r.delta),
     ]
   );
-  await orderbook.updateActivityForCurrencyBalances({
-    client,
-    updates: updateRes.rows.map((r) => ({
-      account: bufToAddress(r.account),
-      newBalance: r.balance,
-    })),
-  });
+  if (!skipActivityUpdates) {
+    await orderbook.updateActivityForCurrencyBalances({
+      client,
+      updates: updateRes.rows.map((r) => ({
+        account: bufToAddress(r.account),
+        newBalance: r.balance,
+      })),
+    });
+  }
   if (!alreadyInTransaction) await client.query("COMMIT");
   return updateRes.rowCount;
 }

@@ -81,6 +81,7 @@ class Weth9TransfersJob {
       client,
       currencyId: WETH9.currencyId,
       deltas,
+      skipActivityUpdates: true,
       alreadyInTransaction: true,
     });
     log.info`up(${minBlock}..=${maxBlock}): added ${deltas.length} deltas`;
@@ -91,6 +92,7 @@ class Weth9TransfersJob {
       client,
       currencyId: WETH9.currencyId,
       blockHash,
+      skipActivityUpdates: true,
       alreadyInTransaction: true,
     });
     log.info`down(${blockHash}): updated balances for ${n} accounts`;
