@@ -799,6 +799,46 @@ async function highBidIdsForAllTokensInProject({ client, projectId }) {
   return result;
 }
 
+// Returns a list of `{ tokenId, bidId }`. Tokens without a bid will not appear
+// in the result.
+async function highBidIdsForTokensOwnedBy({ client, account /*: address */ }) {
+  // Compared to `highBidIdsForAllTokensInProject`, we take a different plan:
+  // since tokens may be from many different projects, scopes will overlap
+  // less, so we directly compute the highest bid for each token rather than
+  // buffering through scopes.
+  const res = await client.query(
+    `
+    WITH owned_tokens(token_id) AS (
+      SELECT token_id FROM (
+        SELECT DISTINCT ON (token_id) token_id, to_address
+        FROM erc721_transfers
+        WHERE to_address = $1::address OR from_address = $1::address
+        ORDER BY token_id, block_number DESC, log_index DESC
+      ) q
+      WHERE to_address = $1::address
+    )
+    SELECT DISTINCT ON (token_id)
+      token_id AS "tokenId",
+      bid_id AS "bidId"
+    FROM
+      owned_tokens AS ot,
+      LATERAL (
+        SELECT token_id
+        UNION ALL
+        SELECT project_id FROM tokens t WHERE t.token_id = ot.token_id
+        UNION ALL
+        SELECT trait_id FROM trait_members WHERE trait_members.token_id = ot.token_id
+        UNION ALL
+        SELECT cnf_id FROM cnf_members WHERE cnf_members.token_id = ot.token_id
+      ) AS scopes(scope)
+      JOIN bids USING (scope)
+    ORDER BY token_id, bids.price DESC, bids.create_time ASC
+    `,
+    [hexToBuf(account)]
+  );
+  return res.rows;
+}
+
 async function highFloorBidsForAllProjects({ client }) {
   const res = await client.query(
     `
@@ -1051,6 +1091,7 @@ module.exports = {
   bidDetails,
   bidDetailsForToken,
   highBidIdsForAllTokensInProject,
+  highBidIdsForTokensOwnedBy,
   highFloorBidsForAllProjects,
   bidsSharingScope,
   fillsForAddress,

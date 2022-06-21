@@ -372,6 +372,24 @@ async function tokenSummariesByAccount({ client, account }) {
     [hexToBuf(account)]
   );
 
+  function index(fk, fv = (x) => x) {
+    return (xs) => new Map(xs.map((x) => [fk(x), fv(x)]));
+  }
+  // prettier-ignore
+  const highBidIds = await orderbook
+    .highBidIdsForTokensOwnedBy({ client, account })
+    .then(index((x) => x.tokenId, (x) => x.bidId));
+  const highBidDetailsById = await orderbook
+    .bidDetails({ client, bidIds: Array.from(new Set(highBidIds.values())) })
+    .then(index((x) => x.bidId));
+  function highBidForToken(tokenId) {
+    const bidId = highBidIds.get(tokenId);
+    if (bidId == null) return null;
+    const details = highBidDetailsById.get(bidId);
+    const { price, deadline, bidder, scope } = details;
+    return { bidId, price: String(price), deadline, bidder, scope };
+  }
+
   return res.rows.map((x) => ({
     name: x.name,
     slug: x.slug,
@@ -384,6 +402,7 @@ async function tokenSummariesByAccount({ client, account }) {
     artistName: x.artistName,
     aspectRatio: x.aspectRatio,
     contractAddress: bufToAddress(x.contractAddress),
+    bid: highBidForToken(x.tokenId),
   }));
 }
 

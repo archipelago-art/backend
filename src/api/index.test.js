@@ -9,6 +9,7 @@ const tokens = require("../db/tokens");
 const emails = require("../db/emails");
 const eth = require("../db/eth");
 const openseaIngest = require("../db/opensea/ingestEvents");
+const orderbook = require("../db/orderbook");
 const wellKnownCurrencies = require("../db/wellKnownCurrencies");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const snapshots = require("../scrape/snapshots");
@@ -480,11 +481,11 @@ describe("api", () => {
         return ethers.utils.getAddress(ethers.utils.hexDataSlice(hash, 12));
       }
 
-      const archetype = parseProjectData(
+      const project = parseProjectData(
         snapshots.ARCHETYPE,
         await sc.project(snapshots.ARCHETYPE)
       );
-      await artblocks.addProject({ client, project: archetype });
+      const archetype = await artblocks.addProject({ client, project });
 
       const theCube = await sc.token(snapshots.THE_CUBE);
       const tokenId = await artblocks.addToken({
@@ -548,6 +549,22 @@ describe("api", () => {
       ];
       await eth.addErc721Transfers({ client, transfers });
 
+      const price = "1000";
+      const deadline = new Date("2099-01-01");
+      const bidder = alice;
+      const bidId = await orderbook.addBid({
+        client,
+        noVerify: true,
+        scope: { type: "PROJECT", projectId: archetype },
+        price,
+        deadline,
+        bidder,
+        nonce: ethers.BigNumber.from("0xabcd"),
+        agreement: "0x",
+        message: "0x",
+        signature: "0x" + "fe".repeat(64) + "1c",
+      });
+
       const tokens = await api.tokenSummariesByAccount({
         client,
         account: cherylsVault,
@@ -563,6 +580,13 @@ describe("api", () => {
         artistName: "Kjetil Golid",
         aspectRatio: 1,
         contractAddress: "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270",
+        bid: {
+          bidId,
+          price,
+          deadline,
+          bidder,
+          scope: { type: "PROJECT", scope: archetype },
+        },
       });
     })
   );
