@@ -276,7 +276,7 @@ async function updateActivityForNonces({
   const actives = Array(updates.length);
   for (let i = 0; i < updates.length; i++) {
     accounts[i] = hexToBuf(updates[i].account);
-    nonces[i] = updates[i].nonce;
+    nonces[i] = String(ethers.BigNumber.from(updates[i].nonce));
     actives[i] = updates[i].active;
   }
   const bidUpdatesRes = await client.query(
@@ -832,6 +832,7 @@ async function highBidIdsForTokensOwnedBy({ client, account /*: address */ }) {
         SELECT cnf_id FROM cnf_members WHERE cnf_members.token_id = ot.token_id
       ) AS scopes(scope)
       JOIN bids USING (scope)
+    WHERE bids.active AND (bids.deadline > now())
     ORDER BY token_id, bids.price DESC, bids.create_time ASC
     `,
     [hexToBuf(account)]

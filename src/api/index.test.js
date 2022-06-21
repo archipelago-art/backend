@@ -549,7 +549,7 @@ describe("api", () => {
       ];
       await eth.addErc721Transfers({ client, transfers });
 
-      const price = "1000";
+      const price = 1000;
       const deadline = new Date("2099-01-01");
       const bidder = alice;
       const bidId = await orderbook.addBid({
@@ -563,6 +563,24 @@ describe("api", () => {
         agreement: "0x",
         message: "0x",
         signature: "0x" + "fe".repeat(64) + "1c",
+      });
+      await orderbook.addBid({
+        client,
+        noVerify: true,
+        scope: { type: "PROJECT", projectId: archetype },
+        price: price * 2,
+        deadline,
+        bidder,
+        nonce: ethers.BigNumber.from("0xdcba"),
+        agreement: "0x",
+        message: "0x",
+        signature: "0x" + "fe".repeat(64) + "1c",
+      });
+      await orderbook.updateActivityForNonce({
+        client,
+        account: bidder,
+        nonce: ethers.BigNumber.from("0xdcba"),
+        active: false,
       });
 
       const tokens = await api.tokenSummariesByAccount({
@@ -582,7 +600,7 @@ describe("api", () => {
         contractAddress: "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270",
         bid: {
           bidId,
-          price,
+          price: String(price),
           deadline,
           bidder,
           scope: { type: "PROJECT", scope: archetype },
