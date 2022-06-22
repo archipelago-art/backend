@@ -20,6 +20,7 @@ const commands = [
   ["token-feed-wss", require("./tokenFeedWss")],
   ["watch-cnf-queue", require("./watchCnfQueue")],
   ["watch-token-traits-queue", require("./watchTokenTraitsQueue")],
+  ["deactivate-expired-orders", require("./deactivateExpiredOrders")],
   ["opensea", require("./opensea")],
   ["follow-chain", require("./followChain")],
   ["add-historical-blocks", require("./addHistoricalBlocks")],
