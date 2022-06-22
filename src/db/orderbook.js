@@ -365,15 +365,11 @@ async function updateActivityForNonces({
     [accounts, nonces, actives]
   );
 
-  await sendBidActivityMessages({
-    client,
-    bidIds: bidUpdatesRes.rows.map((r) => r.bidId),
-  });
-  await sendAskActivityMessages({
-    client,
-    askIds: askUpdatesRes.rows.map((r) => r.askId),
-  });
-  log.debug`updateActivityForNonces: updated ${bidUpdatesRes.rowCount} bids, ${askUpdatesRes.rowCount} asks`;
+  const bidIds = bidUpdatesRes.rows.map((r) => r.bidId);
+  const askIds = askUpdatesRes.rows.map((r) => r.askId);
+  await sendBidActivityMessages({ client, bidIds });
+  await sendAskActivityMessages({ client, askIds });
+  log.debug`updateActivityForNonces: updated ${bidIds.length} bids, ${askIds.length} asks`;
 }
 
 async function updateActivityForNonce({ client, account, nonce, active }) {
@@ -412,11 +408,9 @@ async function updateActivityForTokenOwners({
     `,
     [Array.from(tokenIdToOwner.keys()), Array.from(tokenIdToOwner.values())]
   );
-  await sendAskActivityMessages({
-    client,
-    askIds: askUpdatesRes.rows.map((r) => r.askId),
-  });
-  log.debug`updateActivityForTokenOwners: updated ${askUpdatesRes.rowCount} asks`;
+  const askIds = askUpdatesRes.rows.map((r) => r.askId);
+  await sendAskActivityMessages({ client, askIds });
+  log.debug`updateActivityForTokenOwners: updated ${askIds.length} asks`;
 }
 
 async function updateActivityForCurrencyBalances({
@@ -447,11 +441,9 @@ async function updateActivityForCurrencyBalances({
       updates.map((u) => String(u.newBalance)),
     ]
   );
-  await sendBidActivityMessages({
-    client,
-    bidIds: bidUpdatesRes.rows.map((r) => r.bidId),
-  });
-  log.debug`updateActivityForCurrencyBalances: updated ${bidUpdatesRes.rowCount} bids`;
+  const bidIds = bidUpdatesRes.rows.map((r) => r.bidId);
+  await sendBidActivityMessages({ client, bidIds });
+  log.debug`updateActivityForCurrencyBalances: updated ${bidIds.length} bids`;
 }
 
 async function addAsk({
