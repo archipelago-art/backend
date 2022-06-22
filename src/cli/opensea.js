@@ -1,5 +1,10 @@
 const { withClient, bufToHex } = require("../db/util");
-const { downloadEventsForTokens, syncProject } = require("../opensea/download");
+const {
+  downloadEventsForTokens,
+  syncProject,
+  removeDroppedAsks,
+  removeAllDroppedAsks,
+} = require("../opensea/download");
 const {
   floorAsksByProject,
   deactivateLegacyListings,
@@ -118,6 +123,37 @@ async function cliIngestNullPriceCancellations(args) {
   });
 }
 
+async function cliRemoveDroppedAsks(args) {
+  if (args.length !== 2) {
+    throw new Error("usage: remove-dropped-asks slug token-index");
+  }
+  const slug = args[0];
+  const index = args[1];
+  const apiKey = process.env.OPENSEA_API_KEY;
+  await withClient(async (client) => {
+    const tokenIdRes = await client.query(
+      `
+      SELECT token_id AS "tokenId"
+      FROM tokens JOIN projects USING (project_id)
+      WHERE slug=$1 AND token_index=$2
+      `,
+      [slug, index]
+    );
+    const tokenId = tokenIdRes.rows[0].tokenId;
+    await removeDroppedAsks({ client, tokenId, apiKey });
+  });
+}
+
+async function cliRemoveAllDroppedAsks(args) {
+  if (args.length !== 0) {
+    throw new Error("usage: remove-all-dropped-asks");
+  }
+  const apiKey = process.env.OPENSEA_API_KEY;
+  await withClient(async (client) => {
+    await removeAllDroppedAsks({ client, apiKey });
+  });
+}
+
 async function cliFixFloors(args) {
   if (args.length > 2) {
     throw new Error("usage: fix-floors [limit] [projectSlug]");
@@ -202,6 +238,8 @@ async function cli(outerArgs, self) {
     ["fix-floors", cliFixFloors],
     ["sync", cliSync],
     ["sync-project", cliSyncProject],
+    ["remove-dropped-asks", cliRemoveDroppedAsks],
+    ["remove-all-dropped-asks", cliRemoveAllDroppedAsks],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {

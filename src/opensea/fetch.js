@@ -203,6 +203,16 @@ async function fetchAssets({ contractAddress, tokenIds, apiKey }) {
   return results;
 }
 
+async function fetchListings({ contractAddress, onChainTokenId, apiKey }) {
+  const url = `https://api.opensea.io/api/v1/asset/${contractAddress}/${onChainTokenId}/listings`;
+  const result = await fetchUrl(
+    url,
+    new URLSearchParams({ limit: 50 }),
+    apiKey
+  );
+  return result;
+}
+
 async function sleepMs(ms) {
   await new Promise((res) => void setTimeout(res, ms));
 }
@@ -212,4 +222,5 @@ module.exports = {
   fetchEvents,
   fetchAssetsPage,
   fetchAssets,
+  fetchListings,
 };

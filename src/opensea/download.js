@@ -6,7 +6,8 @@ const {
 } = require("../db/opensea/progress");
 const log = require("../util/log")(__filename);
 const { initializeArtblocksProgress } = require("./artblocksProgress");
-const { fetchEvents } = require("./fetch");
+const { fetchEvents, fetchListings } = require("./fetch");
+const { bufToAddress } = require("../db/util");
 
 async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
   for (const { contract, onChainTokenId, slug, tokenIndex } of tokenSpecs) {
@@ -39,6 +40,68 @@ async function downloadEventsForTokens({ client, tokenSpecs, apiKey }) {
     } else {
       log.info`No new events for ${slug} #${tokenIndex}`;
     }
+  }
+}
+
+async function removeDroppedAsks({ client, tokenId, apiKey }) {
+  const res1 = await client.query(
+    `
+    SELECT
+      on_chain_token_id AS "onChainTokenId",
+      tokens.token_contract AS "contractAddress",
+      slug,
+      token_index AS "tokenIndex"
+    FROM tokens JOIN projects USING (project_id)
+    WHERE token_id=$1
+    `,
+    [tokenId]
+  );
+  if (res1.rows.length !== 1) {
+    throw new Error("can't find token, bad slug?");
+  }
+  let { onChainTokenId, contractAddress, slug, tokenIndex } = res1.rows[0];
+  contractAddress = bufToAddress(contractAddress);
+  const res2 = await client.query(
+    `
+    SELECT event_id AS id, listing_time AS "listingTime", price
+    FROM opensea_asks
+    WHERE token_id=$1 AND active
+    `,
+    [tokenId]
+  );
+  const asks = res2.rows;
+  const { listings: legacyListings, seaport_listings: seaportListings } =
+    await fetchListings({ contractAddress, onChainTokenId, apiKey });
+  const validPrices = new Set();
+  for (const { base_price: price } of legacyListings) {
+    validPrices.add(price);
+  }
+  for (const { current_price: price } of seaportListings) {
+    validPrices.add(price);
+  }
+  const droppedAsks = asks.filter((x) => !validPrices.has(x.price));
+  for (const { id, listingTime, price } of droppedAsks) {
+    const displayPrice = Number(BigInt(price) / 10n ** 16n) / 100;
+    log.info`dropping ${id}, for ${slug} #${tokenIndex}, price ${displayPrice}, listed ${listingTime}`;
+  }
+  await client.query(
+    `
+    UPDATE opensea_asks
+    SET active = false
+    WHERE event_id=ANY($1::text[])
+    `,
+    [droppedAsks.map((x) => x.id)]
+  );
+}
+
+async function removeAllDroppedAsks({ client, apiKey }) {
+  const tokensWithAsks = await client.query(
+    `SELECT DISTINCT token_id AS id
+    FROM opensea_asks
+    WHERE active`
+  );
+  for (const { id } of tokensWithAsks.rows) {
+    await removeDroppedAsks({ client, tokenId: id, apiKey });
   }
 }
 
@@ -98,4 +161,6 @@ module.exports = {
   syncProject,
   syncAllProjects,
   downloadEventsForTokens,
+  removeDroppedAsks,
+  removeAllDroppedAsks,
 };
