@@ -188,7 +188,7 @@ async function sendBidActivityMessages({ client, bidIds }) {
       LEFT OUTER JOIN (
         SELECT token_id, token_index FROM tokens
       ) AS token_info ON bids.scope = token_info.token_id
-    WHERE 
+    WHERE
       bid_id = ANY($1::bidid[])
     `,
     [bidIds]
