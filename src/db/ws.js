@@ -98,6 +98,9 @@ async function sendMessages({ client, messages }) {
  * over a WebSocket.
  */
 async function getMessages({ client, topic, since }) {
+  if (topic === undefined) {
+    throw new Error("must explicitly set `topic` to a string or `null`");
+  }
   const res = await client.query(
     `
     SELECT
@@ -107,7 +110,9 @@ async function getMessages({ client, topic, since }) {
       topic AS "topic",
       data AS "data"
     FROM websocket_log
-    WHERE topic = $1::text AND create_time > $2::timestamptz
+    WHERE
+      (topic = $1::text OR $1 IS NULL)
+      AND create_time > $2::timestamptz
     ORDER BY create_time, message_id
     `,
     [topic, since]

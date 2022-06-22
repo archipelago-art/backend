@@ -75,6 +75,17 @@ describe("db/ws", () => {
         expect(storedMessages).toEqual(
           receivedMessages.filter((m) => m.topic === "spectral")
         ); // in order!
+
+        const allStoredMessages = await ws.getMessages({
+          client,
+          topic: null,
+          since: new Date(0),
+        });
+        expect(allStoredMessages).toEqual(receivedMessages); // in order!
+
+        await expect(() =>
+          ws.getMessages({ client, since: new Date(0) })
+        ).rejects.toThrow("must explicitly set `topic` to a string or `null`");
       });
     })
   );
