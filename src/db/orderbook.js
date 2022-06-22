@@ -582,7 +582,7 @@ async function askIdsForToken({ client, tokenId }) {
     `
     SELECT ask_id AS "askId"
     FROM asks
-    WHERE active
+    WHERE active AND deadline > now()
     AND token_id = $1
     ORDER BY price DESC, create_time ASC
     `,
@@ -640,7 +640,7 @@ async function floorAsks({ client, projectId, tokenId, limit }) {
     FROM asks
     WHERE (token_id = $1 OR $1 IS NULL)
       AND (project_id = $2 OR $2 IS NULL)
-      AND active
+      AND active AND deadline > now()
     ORDER BY price ASC, create_time ASC
     LIMIT $3
     `,
@@ -675,7 +675,7 @@ async function floorAskIdsForAllTokensInProject({ client, projectId }) {
         ) AS ask_rank
       FROM asks
       WHERE project_id = $1::projectid
-        AND active
+        AND active AND deadline > now()
       ) AS ranked_asks
     WHERE ask_rank = 1
     ORDER BY token_id
@@ -702,7 +702,7 @@ async function floorAskForEveryProject({ client }) {
           ORDER BY price ASC, create_time ASC
         ) AS ask_rank
       FROM asks
-      WHERE active
+      WHERE active AND deadline > now()
     ) AS ranked_asks
     WHERE ask_rank = 1
     ORDER BY project_id
@@ -719,7 +719,7 @@ async function bidIdsForToken({ client, tokenId }) {
     `
     SELECT bid_id AS "bidId"
     FROM bids
-    WHERE active
+    WHERE active AND deadline > now()
     AND scope IN (
       SELECT $1::tokenid AS scope
       UNION ALL
@@ -797,7 +797,7 @@ async function highBidIdsForAllTokensInProject({ client, projectId }) {
         price,
         create_time
       FROM these_scopes JOIN bids USING (scope)
-      WHERE active
+      WHERE active AND deadline > now()
     ) AS bids_ranked_by_scope
     WHERE bid_rank = 1
     ;
@@ -881,7 +881,9 @@ async function highFloorBidsForAllProjects({ client }) {
       p.slug
     FROM bids b
     JOIN projects p USING (project_id)
-    WHERE b.active AND b.scope >> 58 = 2
+    WHERE
+      b.active AND b.deadline > now()
+      AND b.scope >> 58 = 2
     ORDER BY
     b.scope,
     b.price DESC
@@ -1048,7 +1050,7 @@ async function bidsSharingScope({
       deadline,
       create_time as "createTime"
     FROM bids
-      WHERE (active = $1 OR $1 IS FALSE)
+      WHERE ((active AND deadline > now()) OR NOT $1::boolean)
       AND scope = $2
       AND (bidder = $3 OR $3 IS NULL)
     ORDER BY price DESC;

@@ -123,6 +123,17 @@ describe("db/orderbook", () => {
     return trait.traitId;
   }
 
+  async function isBidActive(client, bidId) {
+    const res = await client.query(
+      `
+      SELECT active FROM bids WHERE bid_id = $1::bidid
+      `,
+      [bidId]
+    );
+    if (res.rowCount !== 1) throw new Error(`no such bid: ${bidId}`);
+    return res.rows[0].active;
+  }
+
   async function isAskActive(client, askId) {
     const res = await client.query(
       `
@@ -564,7 +575,8 @@ describe("db/orderbook", () => {
       "always sets bids to active",
       withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
-        const deadline = new Date("2000-01-01"); // expired!
+        const initialDeadline = new Date("2099-01-01");
+        const expiredDeadline = new Date("1999-01-01");
         const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
         const price = ethers.BigNumber.from("100");
         const bidder = ethers.constants.AddressZero;
@@ -575,7 +587,7 @@ describe("db/orderbook", () => {
           noVerify: true,
           scope: { type: "PROJECT", projectId: archetype },
           price: ethers.BigNumber.from("100"),
-          deadline,
+          deadline: initialDeadline,
           bidder: ethers.constants.AddressZero,
           nonce,
           agreement: "0x",
@@ -589,17 +601,25 @@ describe("db/orderbook", () => {
           price,
           bidder,
           nonce: nonce.toString(),
-          deadline,
+          deadline: initialDeadline,
           signature: SIG_CLEAN,
           message: "0x",
           agreement: "0x",
           scope: { type: "PROJECT", scope: archetype },
         };
-        // Bid is included because it's (incorrectly) marked active (for now)
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
+        await client.query(
+          "UPDATE bids SET deadline = $2::timestamptz WHERE bid_id = $1::bidid",
+          [bidId, expiredDeadline]
+        );
+        // Bid isn't officially deactivated yet, but is still omitted from
+        // output because its deadline is in the past.
+        expect(await isBidActive(client, bidId)).toEqual(true); // not deactivated yet
+        expect(await bidDetailsForToken({ client, tokenId })).toEqual([]);
         const expirations = await deactivateExpiredOrders({ client });
         expect(expirations).toEqual({ bids: 1, asks: 0 });
-        expect(await bidDetailsForToken({ client, tokenId })).toEqual([]);
+        expect(await isBidActive(client, bidId)).toEqual(false);
+
         expect(
           await ws.getMessages({
             client,
