@@ -267,6 +267,47 @@ async function sendBidActivityMessages({ client, bidIds }) {
   await ws.sendMessages({ client, messages });
 }
 
+async function sendAskActivityMessages({ client, askIds }) {
+  const res = await client.query(
+    `
+    SELECT
+      asks.ask_id AS "askId",
+      asks.active,
+      projects.project_id AS "projectId",
+      projects.slug,
+      tokens.token_index AS "tokenIndex"
+    FROM
+      asks
+      JOIN projects USING (project_id)
+      JOIN tokens USING (token_id)
+    WHERE
+      ask_id = ANY($1::askid[])
+    `,
+    [askIds]
+  );
+
+  const messages = [];
+  for (const row of res.rows) {
+    if (row.active) {
+      // TODO(@wchargin): Also re-send order-placed messages on reactivation.
+      continue;
+    } else {
+      messages.push({
+        type: "ASK_CANCELLED",
+        topic: row.slug,
+        data: {
+          askId: row.askId,
+          projectId: row.projectId,
+          slug: row.slug,
+          tokenIndex: row.tokenIndex,
+        },
+      });
+    }
+  }
+
+  await ws.sendMessages({ client, messages });
+}
+
 async function updateActivityForNonces({
   client,
   updates /*: Array<{ account: address, nonce: uint256, active: boolean }> */,
@@ -319,12 +360,7 @@ async function updateActivityForNonces({
       asks.asker = updates.account
       AND asks.nonce = updates.nonce
       AND active_deadline
-    RETURNING
-      ask_id AS "askId",
-      project_id AS "projectId",
-      (SELECT slug FROM projects p WHERE p.project_id = asks.project_id) AS "slug",
-      (SELECT token_index FROM tokens t WHERE t.token_id = asks.token_id) AS "tokenIndex",
-      active
+    RETURNING ask_id AS "askId"
     `,
     [accounts, nonces, actives]
   );
@@ -333,20 +369,10 @@ async function updateActivityForNonces({
     client,
     bidIds: bidUpdatesRes.rows.map((r) => r.bidId),
   });
-  // TODO(@wchargin): Also re-send order-placed messages on reactivation.
-  const wsMessages = askUpdatesRes.rows
-    .filter((r) => !r.active)
-    .map((r) => ({
-      type: "ASK_CANCELLED",
-      topic: r.slug,
-      data: {
-        askId: r.askId,
-        projectId: r.projectId,
-        slug: r.slug,
-        tokenIndex: r.tokenIndex,
-      },
-    }));
-  await ws.sendMessages({ client, messages: wsMessages });
+  await sendAskActivityMessages({
+    client,
+    askIds: askUpdatesRes.rows.map((r) => r.askId),
+  });
   log.debug`updateActivityForNonces: updated ${bidUpdatesRes.rowCount} bids, ${askUpdatesRes.rowCount} asks`;
 }
 
@@ -382,29 +408,14 @@ async function updateActivityForTokenOwners({
       unnest($1::tokenid[], $2::address[])
         AS updates(token_id, new_owner)
     WHERE asks.token_id = updates.token_id
-    RETURNING
-      ask_id AS "askId",
-      project_id AS "projectId",
-      (SELECT slug FROM projects p WHERE p.project_id = asks.project_id) AS "slug",
-      (SELECT token_index FROM tokens t WHERE t.token_id = asks.token_id) AS "tokenIndex",
-      active
+    RETURNING ask_id AS "askId"
     `,
     [Array.from(tokenIdToOwner.keys()), Array.from(tokenIdToOwner.values())]
   );
-  // TODO(@wchargin): Also re-send order-placed messages on reactivation.
-  const wsMessages = askUpdatesRes.rows
-    .filter((r) => !r.active)
-    .map((r) => ({
-      type: "ASK_CANCELLED",
-      topic: r.slug,
-      data: {
-        askId: r.askId,
-        projectId: r.projectId,
-        slug: r.slug,
-        tokenIndex: r.tokenIndex,
-      },
-    }));
-  await ws.sendMessages({ client, messages: wsMessages });
+  await sendAskActivityMessages({
+    client,
+    askIds: askUpdatesRes.rows.map((r) => r.askId),
+  });
   log.debug`updateActivityForTokenOwners: updated ${askUpdatesRes.rowCount} asks`;
 }
 
