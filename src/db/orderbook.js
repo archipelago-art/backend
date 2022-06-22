@@ -446,6 +446,33 @@ async function updateActivityForCurrencyBalances({
   log.debug`updateActivityForCurrencyBalances: updated ${bidIds.length} bids`;
 }
 
+async function deactivateExpiredOrders({ client }) {
+  const bidUpdatesRes = await client.query(
+    `
+    UPDATE bids SET active_deadline = false, active = false
+    WHERE active AND deadline < now()
+    RETURNING bid_id AS "bidId"
+    `
+  );
+  const askUpdatesRes = await client.query(
+    `
+    UPDATE asks SET active_deadline = false, active = false
+    WHERE active AND deadline < now()
+    RETURNING
+      ask_id AS "askId",
+      project_id AS "projectId",
+      (SELECT slug FROM projects p WHERE p.project_id = asks.project_id) AS "slug",
+      (SELECT token_index FROM tokens t WHERE t.token_id = asks.token_id) AS "tokenIndex"
+    `
+  );
+  const bidIds = bidUpdatesRes.rows.map((r) => r.bidId);
+  const askIds = askUpdatesRes.rows.map((r) => r.askId);
+  await sendBidActivityMessages({ client, bidIds });
+  await sendAskActivityMessages({ client, askIds });
+  log.debug`deactivateExpiredOrders: deactivated ${bidIds.length} bids, ${askIds.length} asks`;
+  return { bids: bidIds.length, asks: askIds.length };
+}
+
 async function addAsk({
   client,
   tokenId /*: tokenid */,
@@ -1082,6 +1109,7 @@ module.exports = {
   updateActivityForNonces,
   updateActivityForTokenOwners,
   updateActivityForCurrencyBalances,
+  deactivateExpiredOrders,
   askDetails,
   askDetailsForToken,
   askIdsForToken,

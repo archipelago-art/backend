@@ -15,6 +15,7 @@ const {
   updateActivityForNonce,
   updateActivityForTokenOwners,
   updateActivityForCurrencyBalances,
+  deactivateExpiredOrders,
   floorAsk,
   floorAsks,
   floorAskIdsForAllTokensInProject,
@@ -596,12 +597,8 @@ describe("db/orderbook", () => {
         };
         // Bid is included because it's (incorrectly) marked active (for now)
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([bid]);
-        await updateActivityForNonce({
-          client,
-          account: bidder,
-          nonce: nonce.toString(),
-          active: false,
-        });
+        const expirations = await deactivateExpiredOrders({ client });
+        expect(expirations).toEqual({ bids: 1, asks: 0 });
         expect(await bidDetailsForToken({ client, tokenId })).toEqual([]);
         expect(
           await ws.getMessages({
