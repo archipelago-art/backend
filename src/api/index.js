@@ -126,12 +126,14 @@ async function blockAlignedTraitMembers({ client, traitIds, tokenId }) {
       FROM tokens WHERE token_id = $1::tokenid
     )
     SELECT token_index AS "tokenIndex", trait_id AS "traitId"
-    FROM trait_members
-    JOIN unnest($2::traitid[]) AS these_traits(trait_id) USING (trait_id)
-    JOIN tokens USING (token_id)
-    WHERE project_id = (SELECT project_id FROM token_range)
-    AND token_index >= (SELECT min_token_index FROM token_range)
-    AND token_index < (SELECT min_token_index + 256 FROM token_range)
+    FROM
+      trait_members
+      JOIN unnest($2::traitid[]) AS these_traits(trait_id) USING (trait_id)
+      JOIN tokens USING (token_id)
+    WHERE
+      project_id = (SELECT project_id FROM token_range)
+      AND token_index >= (SELECT min_token_index FROM token_range)
+      AND token_index < (SELECT min_token_index + 256 FROM token_range)
     `,
     [tokenId, traitIds]
   );
