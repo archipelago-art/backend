@@ -1045,16 +1045,16 @@ describe("api", () => {
         tokenId: tokenIndexToTokenId.get(255),
       });
       const expected0 = [
-        { traitId: mod2True, indices: [0] },
-        { traitId: mod2False, indices: [1, 255] },
+        { traitId: mod2True, tokenIndices: [0] },
+        { traitId: mod2False, tokenIndices: [1, 255] },
       ];
       expect(members1).toEqual(expected0);
       expect(members2).toEqual(expected0);
       expect(members3).toEqual(expected0);
       // also check we get the next block once we hit index 256
       const expected256 = [
-        { traitId: mod2True, indices: [256] },
-        { traitId: mod2False, indices: [] },
+        { traitId: mod2True, tokenIndices: [256] },
+        { traitId: mod2False, tokenIndices: [] },
       ];
       const members4 = await api.blockAlignedTraitMembers({
         client,

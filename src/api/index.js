@@ -144,7 +144,7 @@ async function blockAlignedTraitMembers({ client, traitIds, tokenId }) {
   }
   return traitIds.map((x) => ({
     traitId: x,
-    indices: traitToTokenIndices.get(x),
+    tokenIndices: traitToTokenIndices.get(x),
   }));
 }
 
