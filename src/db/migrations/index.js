@@ -135,6 +135,7 @@ const migrationModules = [
   "./0124_data_oriented_jobs",
   "./0125_jobs_type_and_args_not_null",
   "./0126_erc20_balances",
+  "./0127_drop_legacy_chain_tracking",
   // ...
 ];
 
