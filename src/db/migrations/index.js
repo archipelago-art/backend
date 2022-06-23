@@ -145,8 +145,7 @@ const migrations = migrationModules.map((path) => ({
 }));
 
 const ROLLUP_SQL_PATH = join(__dirname, "rollup.sql");
-const lastMigrationInRollupName =
-  "0109_eth_blocks_remove_nonzero_parent_hash_constraint";
+const lastMigrationInRollupName = "0127_drop_legacy_chain_tracking";
 const [migrationsInRollup, migrationsSinceRollup] = (() => {
   const lastIncluded = migrations.findIndex(
     (m) => m.name === lastMigrationInRollupName

@@ -1,6 +1,6 @@
 --- Archipelago SQL schema rollup
---- Generated: 2022-06-02T14:57:50.990Z
---- Scope: 109 migrations, through 0109_eth_blocks_remove_nonzero_parent_hash_constraint
+--- Generated: 2022-06-23T00:54:20.282Z
+--- Scope: 127 migrations, through 0127_drop_legacy_chain_tracking
 
 --
 -- PostgreSQL database dump
@@ -227,7 +227,15 @@ CREATE TABLE public.asks (
     nonce public.uint256 NOT NULL,
     agreement bytea NOT NULL,
     message bytea NOT NULL,
-    signature public.signature NOT NULL
+    signature public.signature NOT NULL,
+    active_token_owner boolean NOT NULL,
+    active_token_operator boolean NOT NULL,
+    active_token_operator_for_all boolean NOT NULL,
+    active_market_approved boolean NOT NULL,
+    active_market_approved_for_all boolean NOT NULL,
+    active_nonce boolean NOT NULL,
+    active_deadline boolean NOT NULL,
+    CONSTRAINT active_value CHECK ((active = ((active_token_owner OR active_token_operator OR active_token_operator_for_all) AND (active_market_approved OR active_market_approved_for_all) AND active_nonce AND active_deadline)))
 );
 
 
@@ -258,7 +266,12 @@ CREATE TABLE public.bids (
     nonce public.uint256 NOT NULL,
     agreement bytea NOT NULL,
     message bytea NOT NULL,
-    signature public.signature NOT NULL
+    signature public.signature NOT NULL,
+    active_currency_balance boolean NOT NULL,
+    active_market_approved boolean NOT NULL,
+    active_nonce boolean NOT NULL,
+    active_deadline boolean NOT NULL,
+    CONSTRAINT active_value CHECK ((active = (active_currency_balance AND active_market_approved AND active_nonce AND active_deadline)))
 );
 
 
@@ -359,40 +372,40 @@ CREATE TABLE public.email_signups (
 
 
 --
--- Name: erc_721_transfer_scan_progress; Type: TABLE; Schema: public; Owner: -
+-- Name: erc20_balances; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.erc_721_transfer_scan_progress (
-    contract_address public.address NOT NULL,
-    fetch_time timestamp with time zone NOT NULL,
-    block_number integer NOT NULL,
-    block_hash text NOT NULL
+CREATE TABLE public.erc20_balances (
+    currency_id public.currencyid NOT NULL,
+    account public.address NOT NULL,
+    balance public.uint256 NOT NULL
 );
 
 
 --
--- Name: erc_721_transfers; Type: TABLE; Schema: public; Owner: -
+-- Name: erc20_deltas; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.erc_721_transfers (
+CREATE TABLE public.erc20_deltas (
+    currency_id public.currencyid NOT NULL,
+    account public.address NOT NULL,
+    block_hash public.bytes32 NOT NULL,
+    delta numeric(78,0) NOT NULL
+);
+
+
+--
+-- Name: erc721_transfers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.erc721_transfers (
     token_id public.tokenid NOT NULL,
-    transaction_hash text NOT NULL,
     from_address public.address NOT NULL,
     to_address public.address NOT NULL,
-    block_number integer NOT NULL,
     block_hash public.bytes32 NOT NULL,
-    log_index integer NOT NULL
-);
-
-
---
--- Name: erc_721_transfers_deferred; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.erc_721_transfers_deferred (
-    token_contract public.address NOT NULL,
-    on_chain_token_id public.uint256 NOT NULL,
-    log_object jsonb NOT NULL
+    block_number integer NOT NULL,
+    log_index integer NOT NULL,
+    transaction_hash public.bytes32 NOT NULL
 );
 
 
@@ -410,23 +423,14 @@ CREATE TABLE public.eth_blocks (
 
 
 --
--- Name: eth_blocks1; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.eth_blocks1 (
-    block_hash public.bytes32 NOT NULL,
-    block_number integer NOT NULL,
-    "timestamp" timestamp with time zone NOT NULL
-);
-
-
---
 -- Name: eth_job_progress; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.eth_job_progress (
     job_id integer NOT NULL,
-    last_block_number integer NOT NULL
+    last_block_number integer NOT NULL,
+    job_type text NOT NULL,
+    job_args jsonb NOT NULL
 );
 
 
@@ -438,6 +442,31 @@ CREATE TABLE public.features (
     feature_id public.featureid NOT NULL,
     project_id public.projectid,
     name text NOT NULL
+);
+
+
+--
+-- Name: fills; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.fills (
+    market_contract public.address NOT NULL,
+    trade_id public.bytes32 NOT NULL,
+    token_id public.tokenid,
+    project_id public.projectid,
+    token_contract public.address NOT NULL,
+    on_chain_token_id public.uint256 NOT NULL,
+    buyer public.address NOT NULL,
+    seller public.address NOT NULL,
+    currency_id public.currencyid NOT NULL,
+    price public.uint256 NOT NULL,
+    proceeds public.uint256 NOT NULL,
+    cost public.uint256 NOT NULL,
+    block_hash public.bytes32 NOT NULL,
+    block_number integer NOT NULL,
+    log_index integer NOT NULL,
+    transaction_hash public.bytes32 NOT NULL,
+    CONSTRAINT token_id_iff_project_id CHECK (((token_id IS NULL) = (project_id IS NULL)))
 );
 
 
@@ -461,6 +490,21 @@ CREATE TABLE public.migration_log (
     "timestamp" timestamp with time zone NOT NULL,
     blob_hash bytea NOT NULL,
     CONSTRAINT migration_log_blob_hash_check CHECK ((octet_length(blob_hash) = 20))
+);
+
+
+--
+-- Name: nonce_cancellations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.nonce_cancellations (
+    market_contract public.address NOT NULL,
+    account public.address NOT NULL,
+    nonce public.uint256 NOT NULL,
+    block_hash public.bytes32 NOT NULL,
+    block_number integer NOT NULL,
+    log_index integer NOT NULL,
+    transaction_hash public.bytes32 NOT NULL
 );
 
 
@@ -588,6 +632,16 @@ CREATE TABLE public.projects (
 
 
 --
+-- Name: token_traits_queue; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.token_traits_queue (
+    token_id public.tokenid NOT NULL,
+    create_time timestamp with time zone NOT NULL
+);
+
+
+--
 -- Name: tokens; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -618,6 +672,19 @@ CREATE TABLE public.traits (
     trait_id public.traitid NOT NULL,
     feature_id public.featureid NOT NULL,
     value text NOT NULL
+);
+
+
+--
+-- Name: websocket_log; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.websocket_log (
+    message_id uuid NOT NULL,
+    create_time timestamp with time zone NOT NULL,
+    message_type text NOT NULL,
+    topic text NOT NULL,
+    data jsonb NOT NULL
 );
 
 
@@ -704,31 +771,25 @@ INSERT INTO public.currencies VALUES (1544284093318430723, '\x6b175474e89094c44d
 
 
 --
--- Data for Name: erc_721_transfer_scan_progress; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: erc20_balances; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 
 
 --
--- Data for Name: erc_721_transfers; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: erc20_deltas; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 
 
 --
--- Data for Name: erc_721_transfers_deferred; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: erc721_transfers; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 
 
 --
 -- Data for Name: eth_blocks; Type: TABLE DATA; Schema: public; Owner: -
---
-
-
-
---
--- Data for Name: eth_blocks1; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 
@@ -741,6 +802,12 @@ INSERT INTO public.currencies VALUES (1544284093318430723, '\x6b175474e89094c44d
 
 --
 -- Data for Name: features; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
+-- Data for Name: fills; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 
@@ -789,6 +856,30 @@ INSERT INTO public.migration_log VALUES (1058877245160011415, '0106_eth_blocks_p
 INSERT INTO public.migration_log VALUES (1020568623502469019, '0107_index_eth_blocks_parent_hash', '2001-01-01 00:00:32+00', '\x8fe91f7ec72e5648b1b48ae974e4425a71a8fd43');
 INSERT INTO public.migration_log VALUES (895999470687528241, '0108_index_erc_721_transfers_to_address_from_address', '2001-01-01 00:00:33+00', '\xbaa4884e9dc4cb28348bcc92771643accfe0d970');
 INSERT INTO public.migration_log VALUES (607511049093539347, '0109_eth_blocks_remove_nonzero_parent_hash_constraint', '2001-01-01 00:00:34+00', '\x1afcf1d4f2d848bf5454c2332c051a009fc987bd');
+INSERT INTO public.migration_log VALUES (716424346322625971, '0110_artblocks_tokens_token_id_fkey', '2001-01-01 00:00:35+00', '\x9458fc595b1a7d3a4befd96d9bff1dcbf41034e9');
+INSERT INTO public.migration_log VALUES (534328052949130286, '0111_token_traits_queue', '2001-01-01 00:00:36+00', '\x3c14e7ee37dbf0c6293d442db890eaca23d60919');
+INSERT INTO public.migration_log VALUES (551158049576579034, '0112_new_erc721_transfers', '2001-01-01 00:00:37+00', '\x059b73f8182deb063e2dc7fd3c7f3642fac165d5');
+INSERT INTO public.migration_log VALUES (786601695974833842, '0113_erc721_transfers_adjust_unique_constraint', '2001-01-01 00:00:38+00', '\xa5c343d8f45b3cbaf7c0e25bb39f721cb40fc41f');
+INSERT INTO public.migration_log VALUES (52099895664875051, '0114_index_erc721_transfers_to_address_and_from_address', '2001-01-01 00:00:39+00', '\x8fabf03b3517d5f39f0276f0ccc9bb90153a804a');
+INSERT INTO public.migration_log VALUES (962060498573789176, '0115_websocket_log', '2001-01-01 00:00:40+00', '\x86181e49621caf94b13b506adc0308a08267a824');
+INSERT INTO public.migration_log VALUES (277275912621038784, '0116_fix_index_erc721_transfers_from_address', '2001-01-01 00:00:41+00', '\x2dae3cd685cd6b564c21840a2ff85a681d0cd48f');
+INSERT INTO public.migration_log VALUES (519169372877842664, '0117_deprecate_legacy_chain_tracking', '2001-01-01 00:00:42+00', '\xb3e25ad450d9d87207b130bde1496956fb9e06ba');
+INSERT INTO public.migration_log VALUES (309823894458484746, '0118_fine_grained_activity_fields', '2001-01-01 00:00:43+00', '\x973afbe209fa2a8f60e4268245c3106f9b631af1');
+INSERT INTO public.migration_log VALUES (513098483772537257, '0119_fine_grained_activity_constraints', '2001-01-01 00:00:44+00', '\x8508b7a7108591698719d4dea61fe23a8a515008');
+INSERT INTO public.migration_log VALUES (581378227087242413, '0120_index_bids_asks_account_nonce', '2001-01-01 00:00:45+00', '\x796be1632af46a9e36a4b4f51963218a10b282ae');
+INSERT INTO public.migration_log VALUES (171067409391666771, '0121_on_chain_nonce_cancellations', '2001-01-01 00:00:46+00', '\x382fc94eaffc13232e590027b7ea9c1aeb0ed60e');
+INSERT INTO public.migration_log VALUES (221952938061928149, '0122_on_chain_fills', '2001-01-01 00:00:47+00', '\x9a80af8fb422465cc972efdf134a75f36b1bb93f');
+INSERT INTO public.migration_log VALUES (684565549752056241, '0123_fills_rename_currency_to_currency_id', '2001-01-01 00:00:48+00', '\xc633ef5e2034add1eed14ca03875383346b1a045');
+INSERT INTO public.migration_log VALUES (63470050231968117, '0124_data_oriented_jobs', '2001-01-01 00:00:49+00', '\xaade577207ccc14d63fca14443b347cf969bb2f6');
+INSERT INTO public.migration_log VALUES (118877159517264337, '0125_jobs_type_and_args_not_null', '2001-01-01 00:00:50+00', '\x5bfcdfd4524a0930177cd306420a839d77121116');
+INSERT INTO public.migration_log VALUES (13990938940009520, '0126_erc20_balances', '2001-01-01 00:00:51+00', '\xfb5c9495d7f1f84913a55e4417eb54bc44e409d9');
+INSERT INTO public.migration_log VALUES (296388808787432059, '0127_drop_legacy_chain_tracking', '2001-01-01 00:00:52+00', '\xbdf124c3c7023d9898b81f2fab608d6d9c03c190');
+
+
+--
+-- Data for Name: nonce_cancellations; Type: TABLE DATA; Schema: public; Owner: -
+--
+
 
 
 --
@@ -846,6 +937,12 @@ INSERT INTO public.migration_log VALUES (607511049093539347, '0109_eth_blocks_re
 
 
 --
+-- Data for Name: token_traits_queue; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
 -- Data for Name: tokens; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -859,6 +956,12 @@ INSERT INTO public.migration_log VALUES (607511049093539347, '0109_eth_blocks_re
 
 --
 -- Data for Name: traits; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+
+
+--
+-- Data for Name: websocket_log; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 
@@ -992,27 +1095,27 @@ ALTER TABLE ONLY public.email_signups
 
 
 --
--- Name: erc_721_transfer_scan_progress erc_721_transfer_scan_progres_contract_address_block_number_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: erc20_balances erc20_balances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.erc_721_transfer_scan_progress
-    ADD CONSTRAINT erc_721_transfer_scan_progres_contract_address_block_number_key UNIQUE (contract_address, block_number);
-
-
---
--- Name: erc_721_transfer_scan_progress erc_721_transfer_scan_progress_contract_address_block_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.erc_721_transfer_scan_progress
-    ADD CONSTRAINT erc_721_transfer_scan_progress_contract_address_block_hash_key UNIQUE (contract_address, block_hash);
+ALTER TABLE ONLY public.erc20_balances
+    ADD CONSTRAINT erc20_balances_pkey PRIMARY KEY (currency_id, account);
 
 
 --
--- Name: erc_721_transfers erc_721_transfers_block_hash_log_index_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: erc20_deltas erc20_deltas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.erc_721_transfers
-    ADD CONSTRAINT erc_721_transfers_block_hash_log_index_key UNIQUE (block_hash, log_index);
+ALTER TABLE ONLY public.erc20_deltas
+    ADD CONSTRAINT erc20_deltas_pkey PRIMARY KEY (currency_id, account, block_hash);
+
+
+--
+-- Name: erc721_transfers erc721_transfers_block_number_log_index_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.erc721_transfers
+    ADD CONSTRAINT erc721_transfers_block_number_log_index_key UNIQUE (block_number, log_index);
 
 
 --
@@ -1021,14 +1124,6 @@ ALTER TABLE ONLY public.erc_721_transfers
 
 ALTER TABLE ONLY public.eth_blocks
     ADD CONSTRAINT eth_blocks_block_number_key UNIQUE (block_number);
-
-
---
--- Name: eth_blocks1 eth_blocks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.eth_blocks1
-    ADD CONSTRAINT eth_blocks_pkey PRIMARY KEY (block_hash);
 
 
 --
@@ -1064,6 +1159,22 @@ ALTER TABLE ONLY public.features
 
 
 --
+-- Name: fills fills_block_hash_log_index_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.fills
+    ADD CONSTRAINT fills_block_hash_log_index_key UNIQUE (block_hash, log_index);
+
+
+--
+-- Name: fills fills_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.fills
+    ADD CONSTRAINT fills_pkey PRIMARY KEY (market_contract, trade_id);
+
+
+--
 -- Name: image_progress image_progress_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1077,6 +1188,22 @@ ALTER TABLE ONLY public.image_progress
 
 ALTER TABLE ONLY public.migration_log
     ADD CONSTRAINT migration_log_pkey PRIMARY KEY (migration_id);
+
+
+--
+-- Name: nonce_cancellations nonce_cancellations_block_hash_log_index_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nonce_cancellations
+    ADD CONSTRAINT nonce_cancellations_block_hash_log_index_key UNIQUE (block_hash, log_index);
+
+
+--
+-- Name: nonce_cancellations nonce_cancellations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nonce_cancellations
+    ADD CONSTRAINT nonce_cancellations_pkey PRIMARY KEY (market_contract, account, nonce);
 
 
 --
@@ -1160,6 +1287,14 @@ ALTER TABLE ONLY public.projects
 
 
 --
+-- Name: token_traits_queue token_traits_queue_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.token_traits_queue
+    ADD CONSTRAINT token_traits_queue_pkey PRIMARY KEY (token_id);
+
+
+--
 -- Name: tokens tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1192,6 +1327,14 @@ ALTER TABLE ONLY public.traits
 
 
 --
+-- Name: websocket_log websocket_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.websocket_log
+    ADD CONSTRAINT websocket_log_pkey PRIMARY KEY (message_id);
+
+
+--
 -- Name: ask_project_id_price_create_time; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1206,10 +1349,24 @@ CREATE INDEX ask_token_id_price_create_time ON public.asks USING btree (token_id
 
 
 --
+-- Name: asks_address_nonce; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX asks_address_nonce ON public.asks USING btree (asker, nonce) WHERE active_deadline;
+
+
+--
 -- Name: auth_tokens_account; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX auth_tokens_account ON public.auth_tokens USING btree (account) INCLUDE (auth_token);
+
+
+--
+-- Name: bids_bidder_nonce; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX bids_bidder_nonce ON public.bids USING btree (bidder, nonce) WHERE active_deadline;
 
 
 --
@@ -1227,38 +1384,38 @@ CREATE INDEX cnf_members_token_id ON public.cnf_members USING btree (token_id);
 
 
 --
--- Name: erc_721_transfer_scan_progress_contract_address_block_number; Type: INDEX; Schema: public; Owner: -
+-- Name: erc20_deltas_currency_id_block_hash; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX erc_721_transfer_scan_progress_contract_address_block_number ON public.erc_721_transfer_scan_progress USING btree (contract_address, block_number DESC);
-
-
---
--- Name: erc_721_transfers_deferred_token_contract_on_chain_token_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX erc_721_transfers_deferred_token_contract_on_chain_token_id_idx ON public.erc_721_transfers_deferred USING btree (token_contract, on_chain_token_id, ((log_object ->> 'blockHash'::text)), ((log_object ->> 'logIndex'::text)));
+CREATE INDEX erc20_deltas_currency_id_block_hash ON public.erc20_deltas USING btree (currency_id, block_hash);
 
 
 --
--- Name: erc_721_transfers_from_address_to_address; Type: INDEX; Schema: public; Owner: -
+-- Name: erc721_transfers_block_hash; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX erc_721_transfers_from_address_to_address ON public.erc_721_transfers USING btree (from_address, to_address);
-
-
---
--- Name: erc_721_transfers_to_address_from_address; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX erc_721_transfers_to_address_from_address ON public.erc_721_transfers USING btree (to_address, from_address);
+CREATE INDEX erc721_transfers_block_hash ON public.erc721_transfers USING btree (block_hash);
 
 
 --
--- Name: erc_721_transfers_token_id_block_number_log_index; Type: INDEX; Schema: public; Owner: -
+-- Name: erc721_transfers_from_address; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX erc_721_transfers_token_id_block_number_log_index ON public.erc_721_transfers USING btree (token_id, block_number DESC, log_index DESC);
+CREATE INDEX erc721_transfers_from_address ON public.erc721_transfers USING btree (from_address);
+
+
+--
+-- Name: erc721_transfers_to_address; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX erc721_transfers_to_address ON public.erc721_transfers USING btree (to_address);
+
+
+--
+-- Name: erc721_transfers_token_id_block_number_log_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX erc721_transfers_token_id_block_number_log_index ON public.erc721_transfers USING btree (token_id, block_number DESC, log_index DESC);
 
 
 --
@@ -1273,6 +1430,41 @@ CREATE INDEX eth_blocks_block_number ON public.eth_blocks USING btree (block_num
 --
 
 CREATE INDEX eth_blocks_parent_hash ON public.eth_blocks USING btree (parent_hash);
+
+
+--
+-- Name: fills_for_unknown_tokens; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX fills_for_unknown_tokens ON public.fills USING btree (token_contract, on_chain_token_id) WHERE (token_id IS NULL);
+
+
+--
+-- Name: fills_market_contract_block_hash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX fills_market_contract_block_hash ON public.fills USING btree (market_contract, block_hash);
+
+
+--
+-- Name: fills_project_id_block_number_log_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX fills_project_id_block_number_log_index ON public.fills USING btree (project_id, block_number DESC, log_index DESC) INCLUDE (token_id);
+
+
+--
+-- Name: fills_token_id_block_number_log_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX fills_token_id_block_number_log_index ON public.fills USING btree (token_id, block_number DESC, log_index DESC);
+
+
+--
+-- Name: nonce_cancellations_market_contract_block_hash; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX nonce_cancellations_market_contract_block_hash ON public.nonce_cancellations USING btree (market_contract, block_hash);
 
 
 --
@@ -1346,6 +1538,13 @@ CREATE INDEX projects_slug ON public.projects USING btree (slug);
 
 
 --
+-- Name: token_traits_queue_create_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX token_traits_queue_create_time ON public.token_traits_queue USING btree (create_time);
+
+
+--
 -- Name: tokens_project_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1374,11 +1573,33 @@ CREATE INDEX trait_members_token_id_trait_id ON public.trait_members USING btree
 
 
 --
+-- Name: websocket_log_create_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX websocket_log_create_time ON public.websocket_log USING btree (create_time);
+
+
+--
+-- Name: websocket_log_topic_create_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX websocket_log_topic_create_time ON public.websocket_log USING btree (topic, create_time);
+
+
+--
 -- Name: artblocks_projects artblocks_projects_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.artblocks_projects
     ADD CONSTRAINT artblocks_projects_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
+
+
+--
+-- Name: artblocks_tokens artblocks_tokens_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.artblocks_tokens
+    ADD CONSTRAINT artblocks_tokens_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.tokens(token_id);
 
 
 --
@@ -1486,11 +1707,27 @@ ALTER TABLE ONLY public.cnfs
 
 
 --
--- Name: erc_721_transfers erc_721_transfers_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: erc20_deltas erc20_deltas_block_hash_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.erc_721_transfers
-    ADD CONSTRAINT erc_721_transfers_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.tokens(token_id);
+ALTER TABLE ONLY public.erc20_deltas
+    ADD CONSTRAINT erc20_deltas_block_hash_fkey FOREIGN KEY (block_hash) REFERENCES public.eth_blocks(block_hash);
+
+
+--
+-- Name: erc721_transfers erc721_transfers_block_hash_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.erc721_transfers
+    ADD CONSTRAINT erc721_transfers_block_hash_fkey FOREIGN KEY (block_hash) REFERENCES public.eth_blocks(block_hash);
+
+
+--
+-- Name: erc721_transfers erc721_transfers_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.erc721_transfers
+    ADD CONSTRAINT erc721_transfers_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.tokens(token_id);
 
 
 --
@@ -1510,11 +1747,51 @@ ALTER TABLE ONLY public.features
 
 
 --
+-- Name: fills fills_block_hash_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.fills
+    ADD CONSTRAINT fills_block_hash_fkey FOREIGN KEY (block_hash) REFERENCES public.eth_blocks(block_hash);
+
+
+--
+-- Name: fills fills_currency_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.fills
+    ADD CONSTRAINT fills_currency_fkey FOREIGN KEY (currency_id) REFERENCES public.currencies(currency_id);
+
+
+--
+-- Name: fills fills_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.fills
+    ADD CONSTRAINT fills_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
+
+
+--
+-- Name: fills fills_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.fills
+    ADD CONSTRAINT fills_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.tokens(token_id);
+
+
+--
 -- Name: image_progress image_progress_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.image_progress
     ADD CONSTRAINT image_progress_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id);
+
+
+--
+-- Name: nonce_cancellations nonce_cancellations_block_hash_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nonce_cancellations
+    ADD CONSTRAINT nonce_cancellations_block_hash_fkey FOREIGN KEY (block_hash) REFERENCES public.eth_blocks(block_hash);
 
 
 --
@@ -1627,6 +1904,14 @@ ALTER TABLE ONLY public.opensea_sales
 
 ALTER TABLE ONLY public.opensea_sales
     ADD CONSTRAINT opensea_sales_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.tokens(token_id);
+
+
+--
+-- Name: token_traits_queue token_traits_queue_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.token_traits_queue
+    ADD CONSTRAINT token_traits_queue_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.tokens(token_id);
 
 
 --
