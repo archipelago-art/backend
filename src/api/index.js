@@ -134,6 +134,7 @@ async function blockAlignedTraitMembers({ client, traitIds, tokenId }) {
       project_id = (SELECT project_id FROM token_range)
       AND token_index >= (SELECT min_token_index FROM token_range)
       AND token_index < (SELECT min_token_index + 256 FROM token_range)
+    ORDER BY trait_id, token_index
     `,
     [tokenId, traitIds]
   );
