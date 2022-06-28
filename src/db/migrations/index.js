@@ -137,6 +137,7 @@ const migrationModules = [
   "./0126_erc20_balances",
   "./0127_drop_legacy_chain_tracking",
   "./0128_artblocks_projects_token_contract",
+  "./0129_artblocks_projects_token_contract_cleanup",
   // ...
 ];
 
