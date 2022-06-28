@@ -106,14 +106,21 @@ async function addProject({
       project_id,
       artblocks_project_index,
       script_json,
-      script
+      script,
+      token_contract
     )
-    VALUES ($1, $2, $3, $4)
+    VALUES ($1, $2, $3, $4, $5)
     ON CONFLICT (project_id) DO UPDATE SET
       script_json = $3,
       script = $4
     `,
-    [projectId, project.projectId, project.scriptJson, project.script]
+    [
+      projectId,
+      project.projectId,
+      project.scriptJson,
+      project.script,
+      hexToBuf(artblocksContractAddress(project.projectId)),
+    ]
   );
   if (!alreadyInTransaction) await client.query("COMMIT");
   return projectId;

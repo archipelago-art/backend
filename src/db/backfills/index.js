@@ -10,6 +10,7 @@ const backfillModules = [
   "./projectsImageTemplate",
   "./openseaReingestCancellations",
   "./openseaCancelLegacyAsks",
+  "./artblocksProjectContractAddresses",
   // ...
 ];
 
