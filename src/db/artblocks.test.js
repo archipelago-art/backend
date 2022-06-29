@@ -55,7 +55,7 @@ describe("db/artblocks", () => {
         num_tokens AS "numTokens",
         slug AS "slug",
         script AS "script",
-        token_contract AS "tokenContract",
+        projects.token_contract AS "tokenContract",
         image_template AS "imageTemplate"
       FROM projects JOIN artblocks_projects USING (project_id)
       WHERE project_id = $1

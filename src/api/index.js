@@ -162,7 +162,7 @@ async function _collections({ client, projectId }) {
       num_tokens AS "numTokens",
       max_invocations AS "maxInvocations",
       image_template AS "imageTemplate",
-      token_contract AS "tokenContract"
+      projects.token_contract AS "tokenContract"
     FROM projects
     LEFT OUTER JOIN artblocks_projects USING (project_id)
     WHERE project_id = $1 OR $1 IS NULL
