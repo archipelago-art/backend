@@ -352,46 +352,6 @@ async function getAllFeaturesAndTraitsOnly({ client }) {
   return res.rows;
 }
 
-/**
- * Finds tokens that have no traits even though other tokends within their
- * project do have traits.
- *
- * This can indicate one of two things: either
- *
- *   - we ingested the token too early, before the Art Blocks API had populated
- *     trait data; or
- *   - the Art Blocks API is persistently claiming that such tokens have no
- *     traits, either correctly or not.
- *
- * Results are given as on-chain IDs for easy fetching.
- */
-async function findSuspiciousTraitlessTokens({ client }) {
-  const res = await client.query(
-    `
-    SELECT token_id AS "tokenId"
-    FROM tokens
-    JOIN (
-      SELECT
-        project_id,
-        count(CASE WHEN num_traits = 0 THEN 1 END) AS num_zero,
-        count(CASE WHEN num_traits > 0 THEN 1 END) AS num_nonzero
-      FROM (
-        SELECT project_id, count(trait_id) AS num_traits
-        FROM tokens LEFT OUTER JOIN trait_members USING (token_id)
-        GROUP BY token_id
-      ) AS token_trait_counts_by_project
-      GROUP BY project_id
-    ) AS project_trait_count_distributions USING (project_id)
-    LEFT OUTER JOIN trait_members USING (token_id)
-    WHERE
-      num_zero > 0 AND num_nonzero > 0
-      AND trait_id IS NULL
-    ORDER BY token_contract, on_chain_token_id
-    `
-  );
-  return res.rows.map((r) => r.tokenId);
-}
-
 async function getArtblocksTokenIds({ client, tokenIds }) {
   const res = await client.query(
     `
@@ -707,7 +667,6 @@ module.exports = {
   updateTokenData,
   getProjectFeaturesAndTraits,
   getAllFeaturesAndTraitsOnly,
-  findSuspiciousTraitlessTokens,
   getArtblocksTokenIds,
   pruneEmptyFeaturesAndTraits,
   getProjectTokens,
