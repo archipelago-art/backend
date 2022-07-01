@@ -94,15 +94,7 @@ function makeSquiggleRenderer(options, callback) {
 
       p5.setup = function setup() {
         noLoop();
-        let portrait = windowWidth < windowHeight;
-        createCanvas(
-          windowWidth > (windowHeight * 3) / 2
-            ? (windowHeight * 3) / 2
-            : windowWidth,
-          windowWidth > (windowHeight * 3) / 2
-            ? windowHeight
-            : (windowWidth * 2) / 3
-        );
+        createCanvas(options.width, options.height);
         var el = document.getElementsByTagName("canvas")[0];
         el.addEventListener("touchstart", mouseClicked, false);
         colorMode(HSB, 255);
@@ -257,6 +249,8 @@ renderSquiggle(
   {
     tokenId: 8306,
     hash: "0x03dc242ab15dc5ab0a83897978b785d46b639e863c75111003bdaa7168893243",
+    width: 2400,
+    height: 1600,
   },
   "/tmp/out.png"
 );
