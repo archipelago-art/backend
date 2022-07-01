@@ -1,3 +1,6 @@
+const fs = require("fs");
+const util = require("util");
+
 const jsdom = require("jsdom");
 
 const adHocPromise = require("../../util/adHocPromise");
@@ -5,7 +8,7 @@ const log = require("../../util/log")(__filename);
 
 const SYM_RENDERING = Symbol("squigglesRendering");
 
-async function renderSquiggle(options) {
+async function renderSquiggle(options, outfile) {
   if (global[SYM_RENDERING] != null) {
     throw new Error("renderSquiggle is thread-hostile and not reentrant");
   }
@@ -26,6 +29,24 @@ async function renderSquiggle(options) {
     log.debug`spawned`;
     await doneRendering.promise;
     log.debug`done`;
+
+    const canvases = dom.window.document.getElementsByTagName("canvas");
+    if (canvases.length !== 1)
+      throw new Error(`canvases.length: ${canvases.length}`);
+    const [canvas] = canvases;
+    const blobPromise = adHocPromise();
+    canvas.toBlob(blobPromise.resolve);
+    const blob = await blobPromise.promise;
+
+    log.debug`blobbed`;
+    const arrayBuffer = await new Promise((res) => {
+      const fileReader = new dom.window.FileReader();
+      fileReader.addEventListener("loadend", () => res(fileReader.result));
+      fileReader.readAsArrayBuffer(blob);
+    });
+    log.debug`buffed`;
+    await util.promisify(fs.writeFile)(outfile, Buffer.from(arrayBuffer));
+    log.debug`written`;
   } finally {
     delete global[SYM_RENDERING];
   }
@@ -232,7 +253,10 @@ function makeSquiggleRenderer(options, callback) {
   };
 }
 
-renderSquiggle({
-  tokenId: 8306,
-  hash: "0x03dc242ab15dc5ab0a83897978b785d46b639e863c75111003bdaa7168893243",
-});
+renderSquiggle(
+  {
+    tokenId: 8306,
+    hash: "0x03dc242ab15dc5ab0a83897978b785d46b639e863c75111003bdaa7168893243",
+  },
+  "/tmp/out.png"
+);
