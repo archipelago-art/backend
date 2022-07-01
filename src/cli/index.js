@@ -13,6 +13,7 @@ const commands = [
   ["dump-trait-ordering", require("./dumpTraitOrdering")],
   ["ingest-images", require("./ingestImages")],
   ["generate-image", require("./generateImage")],
+  ["generate-squiggle", require("./generateSquiggle")],
   ["token-feed-wss", require("./tokenFeedWss")],
   ["watch-cnf-queue", require("./watchCnfQueue")],
   ["watch-token-traits-queue", require("./watchTokenTraitsQueue")],

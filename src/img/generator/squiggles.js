@@ -8,7 +8,7 @@ const log = require("../../util/log")(__filename);
 
 const SYM_RENDERING = Symbol("squigglesRendering");
 
-async function renderSquiggle(options, outfile) {
+async function renderSquiggle({ outfile, ...options }) {
   if (global[SYM_RENDERING] != null) {
     throw new Error("renderSquiggle is thread-hostile and not reentrant");
   }
@@ -53,8 +53,7 @@ async function renderSquiggle(options, outfile) {
 }
 
 function makeSquiggleRenderer(options, callback) {
-  const { tokenId, hash } = options;
-  const tokenData = { tokenId, hashes: [hash] };
+  const tokenData = { tokenId: options.tokenIndex, hashes: [options.hash] };
 
   return function (p5) {
     with (p5) {
@@ -249,13 +248,4 @@ function makeSquiggleRenderer(options, callback) {
   };
 }
 
-renderSquiggle(
-  {
-    tokenId: 8306,
-    hash: "0x03dc242ab15dc5ab0a83897978b785d46b639e863c75111003bdaa7168893243",
-    width: 2400,
-    height: 1600,
-    transparent: true,
-  },
-  "/tmp/out.png"
-);
+module.exports = renderSquiggle;
