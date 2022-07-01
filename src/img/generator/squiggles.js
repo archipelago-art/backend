@@ -72,6 +72,7 @@ function makeSquiggleRenderer(options, callback) {
       let fuzzy = pipe && !slinky;
 
       p5.setup = function setup() {
+        noLoop();
         let portrait = windowWidth < windowHeight;
         createCanvas(
           windowWidth > (windowHeight * 3) / 2
