@@ -12,6 +12,7 @@ const IMAGEMAGICK_CONCURRENCY = 16;
 const INGESTION_LATENCY_SECONDS = 15;
 
 const GENERATOR_WHITELIST = [
+  0, // Chromie Squiggle
   23, // Archetype
   200, // Saturazione
   206, // Asemica

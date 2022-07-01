@@ -1,3 +1,4 @@
+const child_process = require("child_process");
 const fs = require("fs");
 const { join, dirname } = require("path");
 const util = require("util");
@@ -19,6 +20,8 @@ const { imagePath } = require("./paths");
 function uploadMetadata() {
   return { contentType: "image/png" };
 }
+
+const CHROMIE_SQUIGGLE = 0;
 
 async function makeTarget(ctx, token, target) {
   const gcsPath = imagePath(token.tokenId, { slash: true });
@@ -43,7 +46,27 @@ async function makeTarget(ctx, token, target) {
     case "ORIGINAL": {
       const projectId = Math.floor(token.tokenId / 1e6);
       const generatorData = ctx.generatorProjects.get(projectId);
-      if (generatorData == null) {
+      if (projectId === CHROMIE_SQUIGGLE) {
+        img = join(targetDir, imagePath(token.tokenId));
+        await util.promisify(fs.mkdir)(dirname(img), { recursive: true });
+        const args = [
+          "generate-squiggle",
+          token.tokenId % 1e6,
+          token.tokenHash,
+          img,
+        ];
+        log.info`using squigglator for ${
+          token.tokenId
+        } -> ${img}: ${JSON.stringify(args)}`;
+        try {
+          const pkg = dirname(dirname(__dirname));
+          await util.promisify(child_process.execFile)("node", [pkg, ...args]);
+        } catch (e) {
+          log.error`failed to squigglate image for ${token.tokenId}: ${e}`;
+          throw e;
+        }
+        log.info`generated image for ${token.tokenId}`;
+      } else if (generatorData == null) {
         img = await downloadImage(targetDir, token.imageUrl, token.tokenId);
       } else {
         img = join(targetDir, imagePath(token.tokenId));
