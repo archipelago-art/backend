@@ -3,6 +3,10 @@ const util = require("util");
 
 const jsdom = require("jsdom");
 
+// The `canvas` module needs to be installed for rendering to work, or else
+// it'll fail with a late run-time error. Check here and fail fast.
+require("canvas");
+
 const adHocPromise = require("../../util/adHocPromise");
 const log = require("../../util/log")(__filename);
 
