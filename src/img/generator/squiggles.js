@@ -106,7 +106,11 @@ function makeSquiggleRenderer(options, callback) {
 
       p5.draw = function draw() {
         color = 0;
-        background(backgroundArray[backgroundIndex]);
+        if (options.transparent) {
+          clear();
+        } else {
+          background(backgroundArray[backgroundIndex]);
+        }
         let div = Math.floor(map(Math.round(decPairs[24]), 0, 230, 3, 20));
         let steps = slinky ? 50 : fuzzy ? 1000 : 200;
         translate(width / 2 - width / wt / 2, height / 2);
@@ -251,6 +255,7 @@ renderSquiggle(
     hash: "0x03dc242ab15dc5ab0a83897978b785d46b639e863c75111003bdaa7168893243",
     width: 2400,
     height: 1600,
+    transparent: true,
   },
   "/tmp/out.png"
 );
