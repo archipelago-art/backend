@@ -259,4 +259,19 @@ describe("db/tokens", () => {
       ]);
     })
   );
+  it(
+    "adds tokens to the image_ingestion_queue",
+    withTestDb(async ({ client }) => {
+      await addProjects(client, [snapshots.ARCHETYPE]);
+      const tokenId = snapshots.ARCH_TRIPTYCH_1;
+      const [{ id: archipelagoTokenId }] = await addTokens(client, [tokenId]);
+      const res = await client.query(`
+        SELECT token_id AS "tokenId", create_time AS "createTime"
+        FROM image_ingestion_queue
+        `);
+      expect(res.rows.length).toEqual(1);
+      const [row] = res.rows;
+      expect(row.tokenId).toEqual(archipelagoTokenId);
+    })
+  );
 });

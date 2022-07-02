@@ -49,6 +49,16 @@ async function addBareToken({
     `,
     [tokenId, projectId, tokenIndex, onChainTokenId]
   );
+  await client.query(
+    `
+    INSERT INTO image_ingestion_queue (
+      token_id, create_time
+    ) VALUES (
+      $1, now()
+    )
+    `,
+    [tokenId]
+  );
 
   await channels.newTokens.send(client, { projectId, tokenId });
   const message = {
