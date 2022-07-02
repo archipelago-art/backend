@@ -138,6 +138,7 @@ const migrationModules = [
   "./0127_drop_legacy_chain_tracking",
   "./0128_artblocks_projects_token_contract",
   "./0129_artblocks_projects_token_contract_cleanup",
+  "./0130_image_ingestion_queue",
   // ...
 ];
 
