@@ -10,6 +10,8 @@ const toadzTraits = require("./cryptoadzTraits.json");
 
 const PROJECT_SLUG = "cryptoadz";
 
+const CRYPTOADZ_CONTRACT = "0x1CB1A5e65610AEFF2551A50f76a87a7d3fB649C6";
+
 function processToadzData(tokenIds) {
   // feature name to feature id
   const featureToId = new Map();
@@ -248,4 +250,9 @@ async function addSpecialCryptoadz({ client }) {
   return n;
 }
 
-module.exports = { addCryptoadz, fixCryptoadz, addSpecialCryptoadz };
+module.exports = {
+  addCryptoadz,
+  fixCryptoadz,
+  addSpecialCryptoadz,
+  CRYPTOADZ_CONTRACT,
+};
