@@ -3,7 +3,7 @@ const {
   CONTRACT_ARTBLOCKS_STANDARD,
 } = require("../db/artblocks");
 const AUTOGLYPHS_CONTRACT = require("../db/autoglyphs").CONTRACT_ADDRESS;
-const CRYPTOADZ_CONTRACT = require("../db/cryptoadz");
+const { CRYPTOADZ_CONTRACT } = require("../db/cryptoadz");
 
 const CONTRACT_IMAGE_INFO = {
   [CONTRACT_ARTBLOCKS_LEGACY]: {
