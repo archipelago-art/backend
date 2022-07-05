@@ -12,6 +12,7 @@ const commands = [
   ["prune-empty-traits", require("./pruneEmptyTraits")],
   ["dump-trait-ordering", require("./dumpTraitOrdering")],
   ["ingest-images", require("./ingestImages")],
+  ["ingest-images2", require("./ingestImages2")],
   ["generate-image", require("./generateImage")],
   ["generate-squiggle", require("./generateSquiggle")],
   ["migrate-artblocks-images", require("./migrateArtblocksImages")],
