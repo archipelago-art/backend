@@ -11,6 +11,10 @@ const { imageInfo } = require("./contracts");
 const { ORIG, targets } = require("./ingestTargets");
 const downloadAtomic = require("../util/gcsDownloadAtomic");
 
+async function sleepMs(ms) {
+  await new Promise((res) => void setTimeout(res, ms));
+}
+
 function uploadMetadata() {
   return { contentType: "image/png" };
 }
@@ -86,22 +90,43 @@ async function letterboxImage(
   return await imagemagick(origPath, targetPath, options);
 }
 
-async function ingestImagePage({ workDir, bucket, client, pageSize = 100 }) {
+async function ingestImages({ workDir, bucket, client }) {
+  while (true) {
+    const before = new Date();
+    while (await ingestImagePage({ workDir, bucket, client, before }));
+    log.info`done with queue; sleeping 60 secs`;
+    await sleepMs(60000);
+  }
+}
+
+async function ingestImagePage({
+  workDir,
+  bucket,
+  client,
+  pageSize = 100,
+  before = Date.now(),
+}) {
   await client.query("BEGIN");
   const tokenIdsRes = await client.query(
     `
     DELETE FROM image_ingestion_queue
     WHERE token_id = ANY(
       SELECT token_id FROM image_ingestion_queue
+      WHERE create_time < $2::timestamptz
       ORDER BY create_time ASC
       LIMIT $1
       FOR UPDATE SKIP LOCKED
     )
     RETURNING token_id AS "tokenId"
   `,
-    [pageSize]
+    [pageSize, before]
   );
   const tokenIds = tokenIdsRes.rows.map((x) => x.tokenId);
+  if (tokenIds.length === 0) {
+    await client.query("ROLLBACK");
+    // done, return true to break the loop and wait a bit to see if queue repopulates
+    return true;
+  }
 
   const tokensRes = await client.query(
     `
@@ -137,6 +162,7 @@ async function ingestImagePage({ workDir, bucket, client, pageSize = 100 }) {
     [failedTokenIds]
   );
   await client.query("COMMIT");
+  return false;
 }
 
 async function ingestTokens({ workDir, bucket, tokens, options }) {
@@ -254,4 +280,4 @@ async function makeTarget({ workDir, bucket, token, target }) {
   });
 }
 
-module.exports = { ingestImagePage };
+module.exports = { ingestImages };

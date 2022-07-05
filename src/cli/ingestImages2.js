@@ -1,14 +1,14 @@
 const gcs = require("@google-cloud/storage");
 
 const { acqrel, withPool } = require("../db/util");
-const { ingestImagePage } = require("../img/ingest2");
+const { ingestImages } = require("../img/ingest2");
 const log = require("../util/log")(__filename);
 
 async function sleepMs(ms) {
   await new Promise((res) => void setTimeout(res, ms));
 }
 
-async function ingestImages(args) {
+async function ingestImagesCli(args) {
   await withPool(async (pool) => {
     function usage() {
       console.error("usage: ingest-images <bucket-name> <work-dir>");
@@ -21,9 +21,9 @@ async function ingestImages(args) {
     const bucket = new gcs.Storage().bucket(bucketName);
 
     await acqrel(pool, async (client) => {
-      await ingestImagePage({ workDir, bucket, client });
+      await ingestImages({ workDir, bucket, client });
     });
   });
 }
 
-module.exports = ingestImages;
+module.exports = ingestImagesCli;
