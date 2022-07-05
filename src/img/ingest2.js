@@ -58,21 +58,11 @@ function imagePath(token, targetName, options) {
   };
   const { projectName } = imageInfo(token);
   const { tokenContract, onChainTokenId } = token;
-  const project = Math.floor(onChainTokenId / 1e6).toFixed(0);
-  const idHigh = Math.floor((onChainTokenId / 1e3) % 1e3)
+  const idHigh = Math.floor(onChainTokenId / 1e6).toFixed(0);
+  const idLow = Math.floor(onChainTokenId % 1e6)
     .toFixed(0)
-    .padStart(3, "0");
-  const idLow = Math.floor(onChainTokenId % 1e3)
-    .toFixed(0)
-    .padStart(3, "0");
-  const components = [
-    "tokens",
-    targetName,
-    projectName,
-    project,
-    idHigh,
-    idLow,
-  ];
+    .padStart(6, "0");
+  const components = ["tokens", targetName, projectName, idHigh, idLow];
   if (options.slash) {
     return components.join("/");
   } else {
