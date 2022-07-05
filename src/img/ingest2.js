@@ -11,6 +11,8 @@ const { imageInfo } = require("./contracts");
 const { ORIG, targets } = require("./ingestTargets");
 const downloadAtomic = require("../util/gcsDownloadAtomic");
 
+const LOOP_TIMEOUT_MS = 15 * 1000;
+
 async function sleepMs(ms) {
   await new Promise((res) => void setTimeout(res, ms));
 }
@@ -94,11 +96,12 @@ async function ingestImages({ workDir, bucket, client }) {
   while (true) {
     const before = new Date();
     while (await ingestImagePage({ workDir, bucket, client, before }));
-    log.info`done with queue; sleeping 60 secs`;
-    await sleepMs(60000);
+    log.info`done with queue; sleeping ${LOOP_TIMEOUT_MS} ms`;
+    await sleepMs(LOOP_TIMEOUT_MS);
   }
 }
 
+// Returns true if there is more to do :-)
 async function ingestImagePage({
   workDir,
   bucket,
@@ -124,8 +127,7 @@ async function ingestImagePage({
   const tokenIds = tokenIdsRes.rows.map((x) => x.tokenId);
   if (tokenIds.length === 0) {
     await client.query("ROLLBACK");
-    // done, return true to break the loop and wait a bit to see if queue repopulates
-    return true;
+    return false;
   }
 
   const tokensRes = await client.query(
@@ -162,7 +164,7 @@ async function ingestImagePage({
     [failedTokenIds]
   );
   await client.query("COMMIT");
-  return false;
+  return true;
 }
 
 async function ingestTokens({ workDir, bucket, tokens, options }) {
