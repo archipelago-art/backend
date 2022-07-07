@@ -36,4 +36,12 @@ function imageInfo(token) {
   return res;
 }
 
-module.exports = { imageInfo };
+function nameForContract(contract) {
+  const res = CONTRACT_IMAGE_INFO[contract];
+  if (res == null) {
+    throw new Error(`no info for contract ${contract}`);
+  }
+  return res.projectName;
+}
+
+module.exports = { imageInfo, nameForContract };
