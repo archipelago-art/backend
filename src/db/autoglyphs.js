@@ -4,7 +4,7 @@ const { newId, newIds, ObjectType } = require("./id");
 const { hexToBuf } = require("./util");
 const channels = require("./channels");
 
-const CONTRACT_ADDRESS = "0xd4e4078ca3495de5b1d4db434bebc5a986197782";
+const CONTRACT_ADDRESS = require("../api/contracts").autoglyphs.address;
 
 async function addAutoglyphs({ client }) {
   await client.query("BEGIN");

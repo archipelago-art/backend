@@ -4,14 +4,14 @@ const channels = require("./channels");
 const { ObjectType, newId, newIds } = require("./id");
 const dbTokens = require("./tokens");
 const { hexToBuf, bufToAddress } = require("./util");
+const contracts = require("../api/contracts");
 
 const imageProgressChannel = channels.imageProgress;
 
 const PROJECT_STRIDE = 1e6;
 
-const CONTRACT_ARTBLOCKS_LEGACY = "0x059EDD72Cd353dF5106D2B9cC5ab83a52287aC3a";
-const CONTRACT_ARTBLOCKS_STANDARD =
-  "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270";
+const CONTRACT_ARTBLOCKS_LEGACY = contracts.artblocksLegacy.address;
+const CONTRACT_ARTBLOCKS_STANDARD = contracts.artblocksStandard.address;
 // Projects below this threshold are legacy, at or above are standard.
 const ARTBLOCKS_CONTRACT_THRESHOLD = 3;
 

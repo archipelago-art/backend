@@ -10,7 +10,7 @@ const toadzTraits = require("./cryptoadzTraits.json");
 
 const PROJECT_SLUG = "cryptoadz";
 
-const CRYPTOADZ_CONTRACT = "0x1CB1A5e65610AEFF2551A50f76a87a7d3fB649C6";
+const CRYPTOADZ_CONTRACT = require("../api/contracts").cryptoadz.address;
 
 function processToadzData(tokenIds) {
   // feature name to feature id
