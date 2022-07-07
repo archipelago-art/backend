@@ -276,7 +276,9 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
       image_template AS "imageTemplate",
       token_index AS "tokenIndex",
       artist_name AS "artistName",
-      aspect_ratio AS "aspectRatio"
+      aspect_ratio AS "aspectRatio",
+      token_contract AS "tokenContract",
+      on_chain_token_id AS "onChainTokenId"
     FROM tokens
     JOIN
       unnest($1::address[], $2::uint256[])
@@ -287,7 +289,16 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
     `,
     [tokens.map((t) => hexToBuf(t.address)), tokens.map((t) => t.tokenId)]
   );
-  return res.rows;
+  return res.rows.map((x) => ({
+    name: x.name,
+    slug: x.slug,
+    imageTemplate: x.imageTemplate,
+    tokenIndex: x.tokenIndex,
+    artistName: x.artistName,
+    aspectRatio: x.aspectRatio,
+    tokenContract: bufToAddress(x.tokenContract),
+    onChainTokenId: x.onChainTokenId,
+  }));
 }
 
 async function tokenInfoById({ client, tokenIds }) {

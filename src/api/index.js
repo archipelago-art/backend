@@ -261,7 +261,8 @@ async function collectionTokens({ client, slug }) {
     `
     SELECT
       token_id AS "tokenId",
-      token_index AS "tokenIndex"
+      token_index AS "tokenIndex",
+      on_chain_token_id AS "onChainTokenId"
     FROM tokens
     WHERE project_id = $1
     ORDER BY token_index
@@ -319,6 +320,8 @@ async function tokenChainData({ client, tokenId }) {
 //   tokenIndex: number, // e.g. 7583
 //   artistName: string, // e.g. "Snowfro"
 //   aspectRatio: number, // e.g. 1.5
+//   tokenContract: string,
+//   onChainTokenId: string,
 // }
 async function tokenSummariesByOnChainId({ client, tokens }) {
   if (
@@ -342,6 +345,8 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
     tokenIndex: x.tokenIndex,
     artistName: x.artistName,
     aspectRatio: x.aspectRatio,
+    onChainTokenId: x.onChainTokenId,
+    tokenContract: x.tokenContract,
   }));
 }
 
@@ -365,7 +370,8 @@ async function tokenSummariesByAccount({ client, account }) {
       projects.artist_name as "artistName",
       projects.aspect_ratio as "aspectRatio",
       tokens.token_id AS "tokenId",
-      tokens.token_contract AS "contractAddress"
+      tokens.on_chain_token_id AS "onChainTokenId",
+      tokens.token_contract AS "tokenContract"
     FROM
       owned_tokens
       JOIN tokens USING (token_id)
@@ -404,7 +410,8 @@ async function tokenSummariesByAccount({ client, account }) {
     tokenId: x.tokenId,
     artistName: x.artistName,
     aspectRatio: x.aspectRatio,
-    contractAddress: bufToAddress(x.contractAddress),
+    tokenContract: bufToAddress(x.tokenContract),
+    onChainTokenId: x.onChainTokenId,
     bid: highBidForToken(x.tokenId),
   }));
 }
