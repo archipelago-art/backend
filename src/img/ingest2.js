@@ -7,9 +7,20 @@ const fetch = require("node-fetch");
 
 const log = require("../util/log")(__filename);
 
-const { imageInfo } = require("./contracts");
 const { ORIG, targets } = require("./ingestTargets");
 const downloadAtomic = require("../util/gcsDownloadAtomic");
+
+const { contractForAddress } = require("../api/contracts");
+
+function imageInfo(token) {
+  const res = contractForAddress(token.tokenContract);
+  if (res == null) {
+    throw new Error(
+      `no info for token ${token.slug} #${token.tokenIndex} (missing contract ${token.tokenContract})`
+    );
+  }
+  return res;
+}
 
 const LOOP_TIMEOUT_MS = 15 * 1000;
 
@@ -62,7 +73,7 @@ function imagePath(token, targetName, options) {
     slash: false,
     ...options,
   };
-  const { projectName } = imageInfo(token);
+  const { name } = imageInfo(token);
   const { tokenContract, onChainTokenId } = token;
   const idHigh = Math.floor(onChainTokenId / 1e6).toFixed(0);
   const idLow = Math.floor(onChainTokenId % 1e6)
