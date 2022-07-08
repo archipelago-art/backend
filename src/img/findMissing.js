@@ -51,7 +51,7 @@ async function findMissing({ client, bucket, prefix = "tokens/", dryRun }) {
   log.debug`fetched GCS listing for ${listing.size} contracts`;
   const artblocksWantResolutions = targets().map((t) => t.name);
   const missingImages /*: Array<TokenId> */ = [];
-  for (const { tokenContract, onChainTokenId } of octd) {
+  for (const { tokenId, tokenContract, onChainTokenId } of octd) {
     const contractName = contracts.contractForAddress(tokenContract).name;
     let wantResolutions;
     switch (contractName) {
@@ -73,7 +73,7 @@ async function findMissing({ client, bucket, prefix = "tokens/", dryRun }) {
     const missing = wantResolutions.filter((r) => !resolutions.includes(r));
     if (missing.length === 0) continue;
     log.info`${contractName}#${onChainTokenId}: missing ${missing.join(", ")}`;
-    missingImages.push(onChainTokenId);
+    missingImages.push(tokenId);
   }
   if (dryRun) return 0;
   const res = await client.query(
