@@ -653,6 +653,24 @@ async function getProjectIndices({ client }) {
   return res.rows;
 }
 
+async function getOnChainTokenData({ client }) {
+  const res = await client.query(
+    `
+    SELECT
+      token_id AS id,
+      token_contract AS contract,
+      on_chain_token_id AS octid
+    FROM tokens
+    ORDER BY token_contract, on_chain_token_id
+    `
+  );
+  return res.rows.map((r) => ({
+    tokenId: r.id,
+    tokenContract: bufToAddress(r.contract),
+    onChainTokenId: r.octid,
+  }));
+}
+
 module.exports = {
   CONTRACT_ARTBLOCKS_LEGACY,
   CONTRACT_ARTBLOCKS_STANDARD,
@@ -683,4 +701,5 @@ module.exports = {
   getImageProgress,
   updateImageProgress,
   getProjectIndices,
+  getOnChainTokenData,
 };
