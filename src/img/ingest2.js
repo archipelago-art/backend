@@ -242,9 +242,6 @@ async function makeTarget({ workDir, bucket, token, target }) {
     case "ORIGINAL": {
       const projectId = Math.floor(token.onChainTokenId / 1e6);
       if (token.slug === "chromie-squiggle") {
-        if (token.tokenIndex === 25) {
-          throw new Error("no 25");
-        }
         const args = [
           "generate-squiggle",
           token.onChainTokenId % 1e6,
