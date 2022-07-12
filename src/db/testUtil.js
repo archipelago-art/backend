@@ -30,6 +30,12 @@ function testDbProvider(options = {}) {
       async function makeTemplateClient() {
         const client = new pg.Client(this._templateConnInfo);
         await client.connect();
+        const res = await client.query("SELECT inet_server_addr() AS addr");
+        const serverAddr = res.rows[0].addr;
+        if (serverAddr != null && serverAddr !== "127.0.0.1") {
+          await client.end();
+          throw new Error("refusing to run tests on remote host " + serverAddr);
+        }
         return client;
       }
 
