@@ -1,5 +1,5 @@
 const channels = require("./channels");
-const { hexToBuf } = require("./util");
+const { hexToBuf, bufToAddress } = require("./util");
 const { ObjectType, newId, newIds } = require("./id");
 const ws = require("./ws");
 
@@ -277,7 +277,7 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
       token_index AS "tokenIndex",
       artist_name AS "artistName",
       aspect_ratio AS "aspectRatio",
-      token_contract AS "tokenContract",
+      tokens.token_contract AS "tokenContract",
       on_chain_token_id AS "onChainTokenId"
     FROM tokens
     JOIN

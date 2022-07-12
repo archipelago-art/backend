@@ -12,7 +12,7 @@ const artblocksStandard = Object.freeze({
 
 const autoglyphs = Object.freeze({
   name: "autoglyphs",
-  address: "0xd4e4078ca3495de5b1d4db434bebc5a986197782",
+  address: "0xd4e4078ca3495DE5B1d4dB434BEbc5a986197782",
   externalUrl:
     "https://larvalabs.com/public/images/autoglyphs/glyph{tokenid}.svg",
 });

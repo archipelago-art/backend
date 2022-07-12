@@ -228,6 +228,8 @@ describe("db/tokens", () => {
           imageTemplate: "{baseUrl}/artblocks/{sz}/23/{hi}/{lo}",
           tokenIndex: 36,
           aspectRatio: 1,
+          onChainTokenId: "23000036",
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
         },
         {
           name: "Autoglyphs",
@@ -236,6 +238,8 @@ describe("db/tokens", () => {
           imageTemplate: "{baseUrl}/autoglyphs/svg/{lo}",
           tokenIndex: 2,
           aspectRatio: 1,
+          onChainTokenId: "2",
+          tokenContract: autoglyphs.CONTRACT_ADDRESS,
         },
       ]);
     })

@@ -214,6 +214,7 @@ describe("api", () => {
         [a1, a2, a3].map((abid) => ({
           tokenId: ids.get(abid),
           tokenIndex: abid % 1e6,
+          onChainTokenId: String(abid),
         }))
       );
     })
@@ -454,6 +455,8 @@ describe("api", () => {
           tokenIndex: 7583,
           artistName: "Snowfro",
           aspectRatio: 1.5,
+          onChainTokenId: "7583",
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
         },
         {
           name: "Autoglyphs",
@@ -462,6 +465,8 @@ describe("api", () => {
           tokenIndex: 293,
           artistName: "Larva Labs",
           aspectRatio: 1,
+          onChainTokenId: "293",
+          tokenContract: autoglyphs.CONTRACT_ADDRESS,
         },
       ]);
     })
@@ -597,7 +602,8 @@ describe("api", () => {
         tokenId: tokens[0].tokenId,
         artistName: "Kjetil Golid",
         aspectRatio: 1,
-        contractAddress: "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270",
+        tokenContract: "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270",
+        onChainTokenId: "23000250",
         bid: {
           bidId,
           price: String(price),
