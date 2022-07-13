@@ -14,40 +14,10 @@ describe("db/tokens", () => {
   const withTestDb = testDbProvider();
   const sc = new snapshots.SnapshotCache();
 
-  async function addProjects(client, projectIds) {
-    const projects = await Promise.all(
-      projectIds.map(async (id) => parseProjectData(id, await sc.project(id)))
-    );
-    const result = [];
-    for (const project of projects) {
-      const id = await artblocks.addProject({ client, project });
-      result.push({ project, id });
-    }
-    return result;
-  }
-  async function addTokens(client, tokenIds) {
-    const tokens = await Promise.all(
-      tokenIds.map(async (id) => ({
-        artblocksTokenId: id,
-        rawTokenData: await sc.token(id),
-      }))
-    );
-    const result = [];
-    for (const { artblocksTokenId, rawTokenData } of tokens) {
-      const id = await artblocks.addToken({
-        client,
-        artblocksTokenId,
-        rawTokenData,
-      });
-      result.push({ artblocksTokenId, rawTokenData, id });
-    }
-    return result;
-  }
-
   it(
     "adds tokens to an existing project",
     withTestDb(async ({ pool, client }) => {
-      const [{ id: archetype }] = await addProjects(client, [
+      const [{ projectId: archetype }] = await sc.addProjects(client, [
         snapshots.ARCHETYPE,
       ]);
       async function getTokenCount() {
@@ -137,7 +107,7 @@ describe("db/tokens", () => {
   it(
     "claims entries from the token-traits queue",
     withTestDb(async ({ client: client1, pool }) => {
-      const [{ id: archetype }] = await addProjects(client1, [
+      const [{ projectId: archetype }] = await sc.addProjects(client1, [
         snapshots.ARCHETYPE,
       ]);
       async function getCommittedQueueSize() {
@@ -253,10 +223,10 @@ describe("db/tokens", () => {
   it(
     "supports tokenSummariesByOnChainId",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
+      await sc.addProjects(client, [snapshots.ARCHETYPE]);
       await autoglyphs.addAutoglyphs({ client });
       const tokenId1 = snapshots.ARCH_TRIPTYCH_1;
-      await addTokens(client, [tokenId1]);
+      await sc.addTokens(client, [tokenId1]);
       const res = await tokens.tokenSummariesByOnChainId({
         client,
         tokens: [
@@ -291,9 +261,11 @@ describe("db/tokens", () => {
   it(
     "supports tokenInfoById",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
+      await sc.addProjects(client, [snapshots.ARCHETYPE]);
       const tokenId = snapshots.ARCH_TRIPTYCH_1;
-      const [{ id: archipelagoTokenId }] = await addTokens(client, [tokenId]);
+      const [{ tokenId: archipelagoTokenId }] = await sc.addTokens(client, [
+        tokenId,
+      ]);
       const res = await tokens.tokenInfoById({
         client,
         tokenIds: [archipelagoTokenId],
@@ -310,9 +282,11 @@ describe("db/tokens", () => {
   it(
     "adds tokens to the image_ingestion_queue",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
+      await sc.addProjects(client, [snapshots.ARCHETYPE]);
       const tokenId = snapshots.ARCH_TRIPTYCH_1;
-      const [{ id: archipelagoTokenId }] = await addTokens(client, [tokenId]);
+      const [{ tokenId: archipelagoTokenId }] = await sc.addTokens(client, [
+        tokenId,
+      ]);
       const res = await client.query(`
         SELECT token_id AS "tokenId", create_time AS "createTime"
         FROM image_ingestion_queue

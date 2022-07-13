@@ -20,34 +20,13 @@ describe("db/cnfs", () => {
   const sc = new snapshots.SnapshotCache();
 
   async function addProjects(client, projectIds) {
-    const projects = await Promise.all(
-      projectIds.map(async (id) => parseProjectData(id, await sc.project(id)))
-    );
-    const result = [];
-    for (const project of projects) {
-      const id = await artblocks.addProject({ client, project });
-      result.push(id);
-    }
-    return result;
+    const results = await sc.addProjects(client, projectIds);
+    return results.map((x) => x.projectId);
   }
 
   async function addTokens(client, artblocksTokenIds) {
-    const tokens = await Promise.all(
-      artblocksTokenIds.map(async (artblocksTokenId) => ({
-        artblocksTokenId,
-        rawTokenData: await sc.token(artblocksTokenId),
-      }))
-    );
-    const result = [];
-    for (const { artblocksTokenId, rawTokenData } of tokens) {
-      const id = await artblocks.addToken({
-        client,
-        artblocksTokenId,
-        rawTokenData,
-      });
-      result.push(id);
-    }
-    return result;
+    const results = await sc.addTokens(client, artblocksTokenIds);
+    return results.map((x) => x.tokenId);
   }
 
   function dummyId(x) {

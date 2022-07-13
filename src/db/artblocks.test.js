@@ -11,36 +11,6 @@ describe("db/artblocks", () => {
   const withTestDb = testDbProvider();
   const sc = new snapshots.SnapshotCache();
 
-  async function addProjects(client, projectIds) {
-    const projects = await Promise.all(
-      projectIds.map(async (id) => parseProjectData(id, await sc.project(id)))
-    );
-    const result = [];
-    for (const project of projects) {
-      const id = await artblocks.addProject({ client, project });
-      result.push({ project, id });
-    }
-    return result;
-  }
-  async function addTokens(client, tokenIds) {
-    const tokens = await Promise.all(
-      tokenIds.map(async (id) => ({
-        artblocksTokenId: id,
-        rawTokenData: await sc.token(id),
-      }))
-    );
-    const result = [];
-    for (const { artblocksTokenId, rawTokenData } of tokens) {
-      const id = await artblocks.addToken({
-        client,
-        artblocksTokenId,
-        rawTokenData,
-      });
-      result.push({ artblocksTokenId, rawTokenData, id });
-    }
-    return result;
-  }
-
   async function getProject({ client, projectId }) {
     const res = await client.query(
       `
@@ -83,9 +53,12 @@ describe("db/artblocks", () => {
     "writes and reads a project",
     withTestDb(async ({ client }) => {
       const [
-        { project: archetypeInput, id: archetypeId },
-        { id: squigglesId },
-      ] = await addProjects(client, [snapshots.ARCHETYPE, snapshots.SQUIGGLES]);
+        { project: archetypeInput, projectId: archetypeId },
+        { projectId: squigglesId },
+      ] = await sc.addProjects(client, [
+        snapshots.ARCHETYPE,
+        snapshots.SQUIGGLES,
+      ]);
       expect(archetypeId).toMatch(/[0-9]+/);
       const expected = {
         projectId: archetypeId,
@@ -134,10 +107,8 @@ describe("db/artblocks", () => {
         scriptJson: JSON.stringify({ aspectRatio: "2/3" }),
         script: "let seed = 1; // ...",
       };
-      const [{ project: squiggles, id: squigglesId }] = await addProjects(
-        client,
-        [snapshots.SQUIGGLES]
-      );
+      const { project: squiggles, projectId: squigglesId } =
+        await sc.addProject(client, snapshots.SQUIGGLES);
       const archetypeId = await artblocks.addProject({
         client,
         project: archetype1,
@@ -145,7 +116,7 @@ describe("db/artblocks", () => {
       expect(
         await artblocks.addProject({ client, project: archetype2 })
       ).toEqual(archetypeId);
-      await addTokens(client, [
+      await sc.addTokens(client, [
         snapshots.PERFECT_CHROMATIC,
         snapshots.ARCH_TRIPTYCH_1,
         snapshots.ARCH_TRIPTYCH_2,
@@ -181,10 +152,10 @@ describe("db/artblocks", () => {
         });
         await channels.newTokens.listen(listenClient);
 
-        const [{ id: projectId }] = await addProjects(client, [
+        const [{ projectId }] = await sc.addProjects(client, [
           snapshots.ARCHETYPE,
         ]);
-        const [{ id: tokenId }] = await addTokens(client, [snapshots.THE_CUBE]);
+        const { tokenId } = await sc.addToken(client, snapshots.THE_CUBE);
 
         expect(await getProject({ client, projectId: projectId })).toEqual(
           expect.objectContaining({
@@ -193,8 +164,8 @@ describe("db/artblocks", () => {
         );
         const eventValue = await postgresEvent.promise;
         expect(JSON.parse(eventValue)).toEqual({
-          projectId: projectId,
-          tokenId: tokenId,
+          projectId,
+          tokenId,
         });
       });
     })
@@ -203,10 +174,10 @@ describe("db/artblocks", () => {
   it(
     'inserts token data when "features" is an array',
     withTestDb(async ({ client }) => {
-      const [{ id: projectId }] = await addProjects(client, [
+      const [{ projectId }] = await sc.addProjects(client, [
         snapshots.GALAXISS,
       ]);
-      await addTokens(client, [snapshots.GALAXISS_FEATURES_ARRAY]);
+      await sc.addTokens(client, [snapshots.GALAXISS_FEATURES_ARRAY]);
       const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
         projectId,
@@ -243,15 +214,15 @@ describe("db/artblocks", () => {
   it(
     "inserts data whose features are strings, numbers, or null, converting to string",
     withTestDb(async ({ client }) => {
-      const [{ id: projectId }] = await addProjects(client, [
+      const [{ projectId }] = await sc.addProjects(client, [
         snapshots.BYTEBEATS,
       ]);
-      const [{ id: tokenId }] = await addTokens(client, [
+      const [{ tokenId }] = await sc.addTokens(client, [
         snapshots.BYTEBEATS_NULL_FEATURE,
       ]);
       const actualFeatures = await artblocks.getProjectFeaturesAndTraits({
         client,
-        projectId: projectId,
+        projectId,
       });
       expect(actualFeatures).toEqual(
         expect.arrayContaining([
@@ -291,7 +262,7 @@ describe("db/artblocks", () => {
     'rejects token data when "features" is not an array or object',
     withTestDb(async ({ client }) => {
       const artblocksTokenId = snapshots.PERFECT_CHROMATIC;
-      await addProjects(client, [snapshots.SQUIGGLES]);
+      await sc.addProjects(client, [snapshots.SQUIGGLES]);
       const rawTokenData = JSON.stringify({ features: "hmm" });
       await expect(
         artblocks.addToken({
@@ -306,7 +277,7 @@ describe("db/artblocks", () => {
   it(
     "rejects token data for 404s",
     withTestDb(async ({ client }) => {
-      const [{ id: projectId }] = await addProjects(client, [
+      const [{ projectId }] = await sc.addProjects(client, [
         snapshots.ARCHETYPE,
       ]);
       await expect(
@@ -322,7 +293,7 @@ describe("db/artblocks", () => {
   it(
     "updates token data with new traits",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
+      await sc.addProjects(client, [snapshots.ARCHETYPE]);
       const artblocksTokenId = snapshots.THE_CUBE;
       async function dataWithFeatures(features) {
         return JSON.stringify({
@@ -481,10 +452,10 @@ describe("db/artblocks", () => {
   it(
     "supports getProjectFeaturesAndTraits",
     withTestDb(async ({ client }) => {
-      const [{ id: projectId }] = await addProjects(client, [
+      const [{ projectId }] = await sc.addProjects(client, [
         snapshots.ARCHETYPE,
       ]);
-      const addTokensResult = await addTokens(client, [
+      const addTokensResult = await sc.addTokens(client, [
         snapshots.THE_CUBE,
         snapshots.ARCH_TRIPTYCH_1,
         snapshots.ARCH_TRIPTYCH_2,
@@ -560,8 +531,8 @@ describe("db/artblocks", () => {
   it(
     "supports getTokenFeaturesAndTraits",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
-      const [{ id: tokenId }] = await addTokens(client, [snapshots.THE_CUBE]);
+      await sc.addProject(client, snapshots.ARCHETYPE);
+      const { tokenId } = await sc.addToken(client, snapshots.THE_CUBE);
       const res = await artblocks.getTokenFeaturesAndTraits({
         client,
         tokenId,
@@ -592,8 +563,8 @@ describe("db/artblocks", () => {
   it(
     "allows filtering token features by id",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
-      const [{ id: tokenId }] = await addTokens(client, [snapshots.THE_CUBE]);
+      await sc.addProject(client, snapshots.ARCHETYPE);
+      const { tokenId } = await sc.addToken(client, snapshots.THE_CUBE);
       const res = await artblocks.getTokenFeaturesAndTraits({
         client,
         tokenId,
@@ -624,11 +595,11 @@ describe("db/artblocks", () => {
   it(
     "respects token-feature project filters even for tokens with no traits",
     withTestDb(async ({ client }) => {
-      const [{ id: projectId }] = await addProjects(client, [
+      const [{ projectId }] = await sc.addProjects(client, [
         snapshots.ARCHETYPE,
         snapshots.ELEVATED_DECONSTRUCTIONS,
       ]);
-      await addTokens(client, [
+      await sc.addTokens(client, [
         snapshots.THE_CUBE,
         snapshots.ELEVATED_DECONSTRUCTIONS_EMPTY_FEATURES,
       ]);
@@ -646,14 +617,14 @@ describe("db/artblocks", () => {
   it(
     "supports getting features from a certain token index upward",
     withTestDb(async ({ client }) => {
-      const [{ id: projectId }] = await addProjects(client, [
+      const [{ projectId }] = await sc.addProjects(client, [
         snapshots.ARCHETYPE,
         snapshots.BYTEBEATS,
       ]);
       expect(snapshots.BYTEBEATS_NULL_FEATURE).toBeGreaterThan(
         snapshots.ARCH_TRIPTYCH_3
       );
-      const addTokensResult = await addTokens(client, [
+      const addTokensResult = await sc.addTokens(client, [
         snapshots.ARCH_TRIPTYCH_1,
         snapshots.ARCH_TRIPTYCH_2,
         snapshots.ARCH_TRIPTYCH_3,
@@ -666,7 +637,7 @@ describe("db/artblocks", () => {
       });
       expect(res).toEqual([
         {
-          tokenId: addTokensResult[1].id,
+          tokenId: addTokensResult[1].tokenId,
           tokenIndex: 45,
           traits: expect.arrayContaining([
             {
@@ -678,7 +649,7 @@ describe("db/artblocks", () => {
           ]),
         },
         {
-          tokenId: addTokensResult[2].id,
+          tokenId: addTokensResult[2].tokenId,
           tokenIndex: 467,
           traits: expect.arrayContaining([
             {
@@ -696,10 +667,10 @@ describe("db/artblocks", () => {
   it(
     "includes tokens in range queries even if they have no traits",
     withTestDb(async ({ client }) => {
-      const [{ id: projectId }] = await addProjects(client, [
+      const [{ projectId }] = await sc.addProjects(client, [
         snapshots.ARCHETYPE,
       ]);
-      const [{ id: id1 }, { id: id3 }] = await addTokens(client, [
+      const [{ tokenId: id1 }, { tokenId: id3 }] = await sc.addTokens(client, [
         snapshots.ARCH_TRIPTYCH_1,
         snapshots.ARCH_TRIPTYCH_3,
       ]);
@@ -756,8 +727,8 @@ describe("db/artblocks", () => {
   it(
     "supports getTokenChainData",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
-      const [{ id: tokenId }] = await addTokens(client, [snapshots.THE_CUBE]);
+      await sc.addProject(client, snapshots.ARCHETYPE);
+      const { tokenId } = await sc.addToken(client, snapshots.THE_CUBE);
       const res = await artblocks.getTokenChainData({ client, tokenId });
       expect(res).toEqual({
         tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
@@ -769,7 +740,7 @@ describe("db/artblocks", () => {
   it(
     "notifies for image progress",
     withTestDb(async ({ pool, client }) => {
-      const addProjectsRes = await addProjects(client, [
+      const addProjectsRes = await sc.addProjects(client, [
         snapshots.SQUIGGLES,
         snapshots.ELEVATED_DECONSTRUCTIONS,
         snapshots.ARCHETYPE,
@@ -777,7 +748,7 @@ describe("db/artblocks", () => {
         snapshots.GALAXISS,
       ]);
       const ids = new Map(
-        addProjectsRes.map((x) => [x.project.projectId, x.id])
+        addProjectsRes.map((x) => [x.project.projectId, x.projectId])
       );
 
       function progress(projectId, completedThroughTokenId) {
@@ -848,11 +819,11 @@ describe("db/artblocks", () => {
   it(
     "supports getProjectIndices",
     withTestDb(async ({ client }) => {
-      const projectIds = await addProjects(client, snapshots.PROJECTS);
+      const projectIds = await sc.addProjects(client, snapshots.PROJECTS);
       const res = await artblocks.getProjectIndices({ client });
       const expected = snapshots.PROJECTS.map((x, i) => ({
         artblocksProjectIndex: x,
-        projectId: projectIds[i].id,
+        projectId: projectIds[i].projectId,
       }));
       expect(res).toEqual(expected);
     })
@@ -861,12 +832,12 @@ describe("db/artblocks", () => {
   it(
     "supports getProjectIdBySlug",
     withTestDb(async ({ client }) => {
-      const [{ id }] = await addProjects(client, [snapshots.ARCHETYPE]);
+      const { projectId } = await sc.addProject(client, snapshots.ARCHETYPE);
       const archetypeId = await artblocks.getProjectIdBySlug({
         client,
         slug: "archetype",
       });
-      expect(archetypeId).toEqual(id);
+      expect(archetypeId).toEqual(projectId);
       const nope = await artblocks.getProjectIdBySlug({ client, slug: "nope" });
       expect(nope).toEqual(null);
     })
