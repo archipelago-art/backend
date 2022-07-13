@@ -725,6 +725,8 @@ describe("db/orderbook", () => {
         const price = ethers.BigNumber.from("100");
         const asker = ethers.constants.AddressZero;
         const deadline = new Date("2099-01-01");
+        const slug = "archetype";
+        const name = "Archetype";
 
         const nonce = ethers.BigNumber.from("0xabcd");
         const askId = await addAsk({
@@ -754,7 +756,7 @@ describe("db/orderbook", () => {
               data: {
                 askId,
                 projectId: archetype,
-                slug: "archetype",
+                slug: slug,
                 tokenIndex: 250,
                 venue: "ARCHIPELAGO",
                 asker,
@@ -770,6 +772,8 @@ describe("db/orderbook", () => {
         const result = [
           {
             askId,
+            slug,
+            name,
             price,
             createTime: expect.any(Date),
             deadline,

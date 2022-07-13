@@ -596,6 +596,8 @@ async function askDetails({ client, askIds }) {
     `
     SELECT
       ask_id AS "askId",
+      slug,
+      name,
       price,
       create_time AS "createTime",
       deadline,
@@ -606,12 +608,15 @@ async function askDetails({ client, askIds }) {
       message,
       agreement
     FROM asks
+    JOIN projects using (project_id)
     WHERE ask_id = ANY($1::askid[])
     `,
     [askIds]
   );
   return res.rows.map((r) => ({
     askId: r.askId,
+    slug: r.slug,
+    name: r.name,
     price: ethers.BigNumber.from(r.price),
     createTime: r.createTime,
     deadline: r.deadline,
