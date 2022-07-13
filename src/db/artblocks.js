@@ -194,9 +194,13 @@ async function getProjectIdBySlug({ client, slug }) {
 async function addBareToken({
   client,
   artblocksTokenId,
+  tokenContract,
   alreadyInTransaction = false,
 }) {
   if (!alreadyInTransaction) await client.query("BEGIN");
+  if (tokenContract == null) {
+    throw new Error("need tokenContract");
+  }
 
   const { tokenIndex, artblocksProjectIndex } =
     splitOnChainTokenId(artblocksTokenId);
@@ -208,11 +212,11 @@ async function addBareToken({
     WHERE artblocks_project_index = $1
     AND projects.token_contract = $2
     `,
-    [artblocksProjectIndex]
+    [artblocksProjectIndex, hexToBuf(tokenContract)]
   );
   if (projectIdRes.rows.length !== 1) {
     throw new Error(
-      `expected project ${artblocksProjectIndex} to exist for token ${artblocksTokenId}`
+      `expected project ${tokenContract}-${artblocksProjectIndex} to exist for token ${artblocksTokenId}`
     );
   }
   const { projectId } = projectIdRes.rows[0];
@@ -225,18 +229,33 @@ async function addBareToken({
   });
 
   if (!alreadyInTransaction) await client.query("COMMIT");
-  return { tokenId, projectId, tokenIndex, artblocksProjectIndex };
+  return {
+    tokenId,
+    projectId,
+    tokenIndex,
+    artblocksProjectIndex,
+    tokenContract,
+  };
 }
 
-async function addToken({ client, artblocksTokenId, rawTokenData }) {
+async function addToken({
+  client,
+  artblocksTokenId,
+  rawTokenData,
+  tokenContract,
+}) {
   if (rawTokenData == null) {
     throw new Error("no token data given");
+  }
+  if (tokenContract == null) {
+    throw new Error("no token contract given");
   }
 
   await client.query("BEGIN");
   const { tokenId, projectId } = await addBareToken({
     client,
     artblocksTokenId,
+    tokenContract,
     alreadyInTransaction: true,
   });
   await updateTokenData({
@@ -367,13 +386,18 @@ async function getArtblocksTokenIds({ client, tokenIds }) {
     `
     SELECT
       token_id AS "tokenId",
-      artblocks_project_index * 1000000 + token_index AS "artblocksTokenId"
+      artblocks_project_index * 1000000 + token_index AS "artblocksTokenId",
+      token_contract AS "tokenContract"
     FROM tokens JOIN artblocks_projects USING (project_id)
     WHERE token_id = ANY($1::tokenid[])
     `,
     [tokenIds]
   );
-  return res.rows;
+  return res.rows.map((x) => ({
+    tokenContract: bufToAddress(x.tokenContract),
+    artblocksTokenId: x.artblocksTokenId,
+    tokenId: x.tokenId,
+  }));
 }
 
 /**

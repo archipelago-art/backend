@@ -111,6 +111,7 @@ async function getOrAddTokenId({
   log.trace`adding Art Blocks token #${onChainTokenId}`;
   const { tokenId } = await artblocks.addBareToken({
     client,
+    tokenContract,
     artblocksTokenId: Number(onChainTokenId),
     alreadyInTransaction: true,
   });
