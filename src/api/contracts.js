@@ -24,11 +24,18 @@ const cryptoadz = Object.freeze({
     "https://qiydg7uxbfyhvl4jfhmlsqrzcjirat6w7xpyjiogwuifswrfm4.arweave.net/gjAzfpcJcHqviSnYuUI5ElEQT9b934ShxrUQ-WVolZ0/{tokenid}.png",
 });
 
+const brightMoments = Object.freeze({
+  name: "bright-moments",
+  address: "0x0A1BBD57033F57E7B6743621b79fCB9Eb2CE3676",
+  externalUrl: "https://bright-moments-mainnet.s3.amazonaws.com/{tokenid}.png",
+});
+
 const contracts = Object.freeze([
   artblocksLegacy,
   artblocksStandard,
   autoglyphs,
   cryptoadz,
+  brightMoments,
 ]);
 
 function contractForAddress(address) {
@@ -44,6 +51,7 @@ module.exports = {
   artblocksStandard,
   artblocksLegacy,
   autoglyphs,
+  brightMoments,
   cryptoadz,
   contracts,
   contractForAddress,
