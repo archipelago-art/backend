@@ -3,15 +3,34 @@ const path = require("path");
 const { promisify } = require("util");
 const { parseProjectData } = require("./fetchArtblocksProject");
 const artblocks = require("../db/artblocks");
+const { CONTRACT_ARTBLOCKS_LEGACY, CONTRACT_ARTBLOCKS_STANDARD } = artblocks;
 
-const SQUIGGLES = 0;
-const GENESIS = 1;
-const ELEVATED_DECONSTRUCTIONS = 7; // has no features for any token
-const HYPERHASH = 11;
-const ARCHETYPE = 23;
-const GALAXISS = 31;
-const BYTEBEATS = 38;
-const PHANTOM_SEADRAGONS = 155;
+const SQUIGGLES = { projectIndex: 0, tokenContract: CONTRACT_ARTBLOCKS_LEGACY };
+const GENESIS = { projectIndex: 1, tokenContract: CONTRACT_ARTBLOCKS_LEGACY };
+const ELEVATED_DECONSTRUCTIONS = {
+  projectIndex: 7,
+  tokenContract: CONTRACT_ARTBLOCKS_STANDARD,
+}; // has no features for any token
+const HYPERHASH = {
+  projectIndex: 11,
+  tokenContract: CONTRACT_ARTBLOCKS_STANDARD,
+};
+const ARCHETYPE = {
+  projectIndex: 23,
+  tokenContract: CONTRACT_ARTBLOCKS_STANDARD,
+};
+const GALAXISS = {
+  projectIndex: 31,
+  tokenContract: CONTRACT_ARTBLOCKS_STANDARD,
+};
+const BYTEBEATS = {
+  projectIndex: 38,
+  tokenContract: CONTRACT_ARTBLOCKS_STANDARD,
+};
+const PHANTOM_SEADRAGONS = {
+  projectIndex: 155,
+  tokenContract: CONTRACT_ARTBLOCKS_STANDARD,
+};
 const PROJECTS = Object.freeze([
   SQUIGGLES,
   GENESIS,
@@ -66,15 +85,19 @@ function projectsDir() {
 function tokensDir() {
   return path.join(baseDir(), "tokens");
 }
-function projectPath(projectId) {
-  return path.join(projectsDir(), String(projectId));
+function projectPath(spec) {
+  return path.join(
+    projectsDir(),
+    spec.tokenContract,
+    String(spec.projectIndex)
+  );
 }
 function tokenPath(tokenId) {
   return path.join(tokensDir(), String(tokenId));
 }
 
-async function readProject(projectId) {
-  return (await promisify(fs.readFile)(projectPath(projectId))).toString();
+async function readProject(spec) {
+  return (await promisify(fs.readFile)(projectPath(spec))).toString();
 }
 
 async function readToken(tokenId) {
@@ -94,21 +117,22 @@ class SnapshotCache {
     return cache.get(key);
   }
 
-  async project(projectId) {
-    return this._get(this._projects, readProject, projectId);
+  async project(spec) {
+    return this._get(this._projects, readProject, spec);
   }
 
   async token(tokenId) {
     return this._get(this._tokens, readToken, tokenId);
   }
 
-  async addProject(client, artblocksProjectIndex) {
-    const project = parseProjectData(
-      artblocksProjectIndex,
-      await this.project(artblocksProjectIndex)
-    );
-    const projectId = await artblocks.addProject({ client, project });
-    return { project, projectId };
+  async addProject(client, spec) {
+    const project = parseProjectData(spec, await this.project(spec));
+    const projectId = await artblocks.addProject({
+      client,
+      project,
+      tokenContract: spec.tokenContract,
+    });
+    return { project, projectId, spec };
   }
 
   async addProjects(client, artblocksProjectIndices) {

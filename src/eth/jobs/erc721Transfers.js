@@ -106,7 +106,8 @@ async function getOrAddTokenId({
   const { artblocksProjectIndex } = artblocks.splitOnChainTokenId(
     Number(onChainTokenId)
   );
-  await ensureArtblocksProjectExists({ client, artblocksProjectIndex });
+  const spec = { projectIndex: artblocksProjectIndex, tokenContract };
+  await ensureArtblocksProjectExists({ client, spec });
   log.trace`adding Art Blocks token #${onChainTokenId}`;
   const { tokenId } = await artblocks.addBareToken({
     client,
@@ -116,23 +117,24 @@ async function getOrAddTokenId({
   return { tokenId, added: true };
 }
 
-async function ensureArtblocksProjectExists({ client, artblocksProjectIndex }) {
-  const existing = await artblocks.projectIdsFromArtblocksIndices({
+async function ensureArtblocksProjectExists({ client, spec }) {
+  const existing = await artblocks.projectIdsFromArtblocksSpecs({
     client,
-    indices: [artblocksProjectIndex],
+    specs: [spec],
   });
   if (existing[0] != null) return;
 
-  const project = await fetchProjectData(artblocksProjectIndex);
+  const project = await fetchProjectData(spec);
   if (project == null) {
     throw new Error(
-      `can't add phantom Art Blocks project ${artblocksProjectIndex}`
+      `can't add phantom Art Blocks project ${spec.tokenContract}-${spec.projectIndex}`
     );
   }
-  log.info`adding Art Blocks project #${artblocksProjectIndex}: ${project?.name}`;
+  log.info`adding Art Blocks project #${spec.tokenContract} #${spec.artblocksProjectIndex}: ${project?.name}`;
   await artblocks.addProject({
     client,
     project,
+    tokenContract,
     alreadyInTransaction: true,
   });
 }
