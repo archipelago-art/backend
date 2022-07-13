@@ -126,42 +126,19 @@ describe("db/opensea/api", () => {
   }
 
   async function exampleProjectAndToken({ client }) {
-    const archetypeProject = parseProjectData(
-      snapshots.ARCHETYPE,
-      await sc.project(snapshots.ARCHETYPE)
-    );
-    const archetypeId = await artblocks.addProject({
-      client,
-      project: archetypeProject,
-    });
-    const archetypeTokenId1 = await artblocks.addToken({
-      client,
-      artblocksTokenId: snapshots.THE_CUBE,
-      rawTokenData: await sc.token(snapshots.THE_CUBE),
-    });
-    const archetypeTokenId2 = await artblocks.addToken({
-      client,
-      artblocksTokenId: snapshots.ARCH_TRIPTYCH_1,
-      rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_1),
-    });
-    const archetypeTokenId3 = await artblocks.addToken({
-      client,
-      artblocksTokenId: snapshots.ARCH_TRIPTYCH_2,
-      rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_2),
-    });
-    const squigglesProject = parseProjectData(
-      snapshots.SQUIGGLES,
-      await sc.project(snapshots.SQUIGGLES)
-    );
-    const squigglesId = await artblocks.addProject({
-      client,
-      project: squigglesProject,
-    });
-    const squiggleTokenId = await artblocks.addToken({
-      client,
-      artblocksTokenId: snapshots.PERFECT_CHROMATIC,
-      rawTokenData: await sc.token(snapshots.PERFECT_CHROMATIC),
-    });
+    const [{ projectId: archetypeId }, { projectId: squigglesId }] =
+      await sc.addProjects(client, [snapshots.ARCHETYPE, snapshots.SQUIGGLES]);
+    const [
+      { tokenId: archetypeTokenId1 },
+      { tokenId: archetypeTokenId2 },
+      { tokenId: archetypeTokenId3 },
+      { tokenId: squiggleTokenId },
+    ] = await sc.addTokens(client, [
+      snapshots.THE_CUBE,
+      snapshots.ARCH_TRIPTYCH_1,
+      snapshots.ARCH_TRIPTYCH_2,
+      snapshots.PERFECT_CHROMATIC,
+    ]);
     return {
       archetypeId,
       archetypeTokenId1,
