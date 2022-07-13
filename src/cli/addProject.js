@@ -4,10 +4,13 @@ const { fetchProjectData } = require("../scrape/fetchArtblocksProject");
 const log = require("../util/log")(__filename);
 
 async function addProject(args) {
-  const [projectId] = args;
+  let [projectIndex, tokenContract] = args;
+  if (tokenContract == null) {
+    tokenContract = artblocks.artblocksContractAddress(projectIndex);
+  }
   const spec = {
-    projectIndex: projectId,
-    tokenContract: artblocks.artblocksContractAddress(projectId),
+    projectIndex,
+    tokenContract,
   };
   try {
     const project = await fetchProjectData(spec);
