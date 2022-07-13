@@ -11,7 +11,7 @@ describe("scrape/fetchArtblocksProject", () => {
         await sc.project(snapshots.ARCHETYPE)
       )
     ).toEqual({
-      projectId: snapshots.ARCHETYPE,
+      projectId: snapshots.ARCHETYPE.projectIndex,
       artistName: "Kjetil Golid",
       description: snapshots.ARCHETYPE_DESCRIPTION,
       scriptJson:
@@ -32,7 +32,7 @@ describe("scrape/fetchArtblocksProject", () => {
         await sc.project(snapshots.HYPERHASH)
       )
     ).toEqual({
-      projectId: snapshots.HYPERHASH,
+      projectId: snapshots.HYPERHASH.projectIndex,
       artistName: "Beervangeer",
       description: snapshots.HYPERHASH_DESCRIPTION,
       scriptJson:

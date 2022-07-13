@@ -6,7 +6,7 @@ const {
   setLastUpdated,
 } = require("../db/opensea/progress");
 const {
-  getProjectIndices,
+  getProjectSpecs,
   ARTBLOCKS_CONTRACT_THRESHOLD,
   CONTRACT_ARTBLOCKS_STANDARD,
   CONTRACT_ARTBLOCKS_LEGACY,
@@ -34,7 +34,7 @@ const PURGATORY_SLUG = "qxj0iejsb2nrcybqdxjnyxrvcnk";
  * for this collection (or null if never downloaded).
  */
 async function initializeArtblocksProgress({ client, apiKey }) {
-  const projects = await getProjectIndices({ client });
+  const projects = await getProjectSpecs({ client });
   for (project of projects) {
     const lastUpdated = await getLastUpdated({
       client,
@@ -43,7 +43,7 @@ async function initializeArtblocksProgress({ client, apiKey }) {
     if (lastUpdated == null) {
       const slug = await getSlugForArtblocksProject(
         apiKey,
-        project.artblocksProjectIndex
+        project.projectIndex
       );
       if (slug === PURGATORY_SLUG) {
         log.warn`got purgatory slug ${slug} for artblocks project with idx ${project.artblocksProjectIndex} (id: ${project.projectId}; skipping`;

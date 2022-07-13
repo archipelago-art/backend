@@ -26,7 +26,7 @@ async function addProjectTokens(args) {
         projectIdToCount.set(k, 1 + (projectIdToCount.get(k) || 0));
       }
       const projectIds = Array.from(projectIdToCount.keys());
-      const res = await artblocks.artblocksProjectIndicesFromIds({
+      const res = await artblocks.artblocksProjectSpecsFromIds({
         client,
         projectIds,
       });
@@ -48,12 +48,13 @@ async function addProjectTokens(args) {
       while (true) {
         const item = tokens.shift();
         if (item == null) return;
-        const artblocksProjectIndex = artblocksProjectIndices.get(
+        const artblocksProjectSpec = artblocksProjectIndices.get(
           item.projectId
         );
-        if (artblocksProjectIndex == null) continue;
+        if (artblocksProjectSpec == null) continue;
         const artblocksTokenId =
-          artblocksProjectIndex * artblocks.PROJECT_STRIDE + item.tokenIndex;
+          artblocksProjectSpec.projectIndex * artblocks.PROJECT_STRIDE +
+          item.tokenIndex;
         try {
           log.debug`fetching token ${artblocksTokenId} (project ${item.projectId}, index ${item.tokenIndex})`;
           const token = await fetchTokenData(artblocksTokenId);

@@ -751,9 +751,9 @@ describe("db/artblocks", () => {
         addProjectsRes.map((x) => [x.project.projectId, x.projectId])
       );
 
-      function progress(projectId, completedThroughTokenId) {
+      function progress(projectSpec, completedThroughTokenId) {
         return {
-          projectId: ids.get(projectId),
+          projectId: ids.get(projectSpec.projectIndex),
           completedThroughTokenIndex: completedThroughTokenId % 1e6,
         };
       }
@@ -817,12 +817,13 @@ describe("db/artblocks", () => {
   );
 
   it(
-    "supports getProjectIndices",
+    "supports getProjectSpecs",
     withTestDb(async ({ client }) => {
       const projectIds = await sc.addProjects(client, snapshots.PROJECTS);
-      const res = await artblocks.getProjectIndices({ client });
+      const res = await artblocks.getProjectSpecs({ client });
       const expected = snapshots.PROJECTS.map((x, i) => ({
-        artblocksProjectIndex: x,
+        projectIndex: x.projectIndex,
+        tokenContract: x.tokenContract,
         projectId: projectIds[i].projectId,
       }));
       expect(res).toEqual(expected);

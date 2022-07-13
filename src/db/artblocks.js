@@ -126,29 +126,37 @@ async function addProject({
   return projectId;
 }
 
-async function projectIdsFromArtblocksIndices({ client, indices }) {
+async function projectIdsFromArtblocksSpecs({ client, specs }) {
   const res = await client.query(
     `
     SELECT project_id AS "id"
     FROM unnest($1::int[]) WITH ORDINALITY AS inputs(artblocks_project_index, i)
-    LEFT OUTER JOIN artblocks_projects USING (artblocks_project_index)
+    JOIN unnest($2::address[]) WITH ORDINALITY AS inputs2(token_contract, i) USING (i)
+    LEFT OUTER JOIN artblocks_projects USING (artblocks_project_index, token_contract)
     ORDER BY i
     `,
-    [indices]
+    [
+      specs.map((x) => x.projectIndex),
+      specs.map((x) => hexToBuf(x.tokenContract)),
+    ]
   );
   return res.rows.map((r) => r.id);
 }
 
-async function artblocksProjectIndicesFromIds({ client, projectIds }) {
+async function artblocksProjectSpecsFromIds({ client, projectIds }) {
   const res = await client.query(
     `
-    SELECT artblocks_project_index AS "idx"
+    SELECT artblocks_project_index AS "projectIndex", token_contract AS "tokenContract"
     FROM unnest($1::projectid[]) WITH ORDINALITY AS inputs(project_id, i)
     LEFT OUTER JOIN artblocks_projects USING (project_id)
     ORDER BY i
     `,
     [projectIds]
   );
+  return res.rows.map((x) => ({
+    projectIndex: x.projectIndex,
+    tokenContract: bufToAddress(x.tokenContract),
+  }));
   return res.rows.map((r) => r.idx);
 }
 
@@ -641,16 +649,21 @@ async function updateImageProgress({ client, progress }) {
   await client.query("COMMIT");
 }
 
-async function getProjectIndices({ client }) {
+async function getProjectSpecs({ client }) {
   const res = await client.query(
     `
-    SELECT artblocks_project_index AS "artblocksProjectIndex",
+    SELECT artblocks_project_index AS "projectIndex",
+      token_contract AS "tokenContract",
       project_id AS "projectId"
     FROM artblocks_projects
-    ORDER BY artblocks_project_index
+    ORDER BY token_contract, artblocks_project_index
     `
   );
-  return res.rows;
+  return res.rows.map((x) => ({
+    projectIndex: x.projectIndex,
+    tokenContract: bufToAddress(x.tokenContract),
+    projectId: x.projectId,
+  }));
 }
 
 async function getOnChainTokenData({ client }) {
@@ -679,8 +692,8 @@ module.exports = {
   imageProgressChannel,
   splitOnChainTokenId,
   addProject,
-  projectIdsFromArtblocksIndices,
-  artblocksProjectIndicesFromIds,
+  projectIdsFromArtblocksSpecs,
+  artblocksProjectSpecsFromIds,
   setProjectSlug,
   getProjectIdBySlug,
   addBareToken,
@@ -700,6 +713,7 @@ module.exports = {
   getTokenHash,
   getImageProgress,
   updateImageProgress,
-  getProjectIndices,
+  getProjectSpecs,
   getOnChainTokenData,
+  artblocksContractAddress,
 };
