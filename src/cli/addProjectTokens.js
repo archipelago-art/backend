@@ -57,13 +57,17 @@ async function addProjectTokens(args) {
           item.tokenIndex;
         try {
           log.debug`fetching token ${artblocksTokenId} (project ${item.projectId}, index ${item.tokenIndex})`;
-          const token = await fetchTokenData(artblocksTokenId);
+          const token = await fetchTokenData(
+            artblocksProjectSpec.tokenContract,
+            artblocksTokenId
+          );
           if (token.found) {
             await acqrel(pool, (client) =>
               artblocks.addToken({
                 client,
                 artblocksTokenId,
                 rawTokenData: token.raw,
+                tokenContract: artblocksProjectSpec.tokenContract,
               })
             );
             log.info`added token ${artblocksTokenId}`;

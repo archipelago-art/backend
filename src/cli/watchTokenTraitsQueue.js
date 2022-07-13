@@ -87,19 +87,25 @@ async function watchTokenTraitsQueueOnce(pool, ecache) {
       tokenIds,
     });
     const tokenData = await Promise.all(
-      artblocksTokenIds.map(async ({ tokenId, artblocksTokenId }) => {
-        const token = await fetchTokenData(artblocksTokenId).catch((e) => {
-          log.warn`failed to fetch Art Blocks token #${artblocksTokenId}: ${e}`;
-          const expirationTime = Date.now() + FAILED_FETCH_DELAY_SECONDS * 1000;
-          ecache.add(tokenId, expirationTime);
-          return { found: false };
-        });
-        log.debug`token ${tokenId} (Art Blocks #${artblocksTokenId}): found=${token.found}`;
-        if (!token.found) {
-          return { tokenId, rawTokenData: null };
+      artblocksTokenIds.map(
+        async ({ tokenId, artblocksTokenId, tokenContract }) => {
+          const token = await fetchTokenData(
+            tokenContract,
+            artblocksTokenId
+          ).catch((e) => {
+            log.warn`failed to fetch Art Blocks token #${artblocksTokenId}: ${e}`;
+            const expirationTime =
+              Date.now() + FAILED_FETCH_DELAY_SECONDS * 1000;
+            ecache.add(tokenId, expirationTime);
+            return { found: false };
+          });
+          log.debug`token ${tokenId} (Art Blocks #${artblocksTokenId}): found=${token.found}`;
+          if (!token.found) {
+            return { tokenId, rawTokenData: null };
+          }
+          return { tokenId, rawTokenData: token.raw };
         }
-        return { tokenId, rawTokenData: token.raw };
-      })
+      )
     );
     let notFoundTokenIds = [];
     let doneCount = 0;

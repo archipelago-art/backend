@@ -14,8 +14,8 @@ function normalizeTokenId(tokenId) {
   return result;
 }
 
-async function fetchTokenJsonText(tokenId) {
-  const url = `${TOKEN_URL_BASE}/${normalizeTokenId(tokenId)}`;
+async function fetchTokenJsonText(tokenContract, tokenId) {
+  const url = `${TOKEN_URL_BASE}/${tokenContract}/${normalizeTokenId(tokenId)}`;
   try {
     const { text, res } = await fetchWithRetries(url);
     return text;
@@ -53,8 +53,11 @@ function parseTokenData(text, { checkFeaturesPresent = true } = {}) {
   }
 }
 
-async function fetchTokenData(tokenId, options) {
-  return parseTokenData(await fetchTokenJsonText(tokenId), options);
+async function fetchTokenData(tokenContract, tokenId, options) {
+  return parseTokenData(
+    await fetchTokenJsonText(tokenContract, tokenId),
+    options
+  );
 }
 
 module.exports = {
