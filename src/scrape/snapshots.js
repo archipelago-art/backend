@@ -1,6 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const { promisify } = require("util");
+const { parseProjectData } = require("./fetchArtblocksProject");
+const artblocks = require("../db/artblocks");
 
 const SQUIGGLES = 0;
 const GENESIS = 1;
@@ -98,6 +100,43 @@ class SnapshotCache {
 
   async token(tokenId) {
     return this._get(this._tokens, readToken, tokenId);
+  }
+
+  async addProject(client, artblocksProjectIndex) {
+    const project = parseProjectData(
+      artblocksProjectIndex,
+      await this.project(artblocksProjectIndex)
+    );
+    const projectId = await artblocks.addProject({ client, project });
+    return { project, projectId };
+  }
+
+  async addProjects(client, artblocksProjectIndices) {
+    // manual loop to ensure project ids are in order
+    const result = [];
+    for (const id of artblocksProjectIndices) {
+      result.push(await this.addProject(client, id));
+    }
+    return result;
+  }
+
+  async addToken(client, artblocksTokenId) {
+    const rawTokenData = await this.token(artblocksTokenId);
+    const tokenId = await artblocks.addToken({
+      client,
+      artblocksTokenId,
+      rawTokenData,
+    });
+    return { tokenId, artblocksTokenId, rawTokenData };
+  }
+
+  async addTokens(client, artblocksTokenIds) {
+    // manual loop to ensure token ids are in order
+    const result = [];
+    for (const id of artblocksTokenIds) {
+      result.push(await this.addToken(client, id));
+    }
+    return result;
   }
 }
 
