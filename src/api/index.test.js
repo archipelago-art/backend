@@ -21,29 +21,31 @@ describe("api", () => {
   const withTestDb = testDbProvider();
   const sc = new snapshots.SnapshotCache();
 
+  async function setup(client) {
+    const { projectId: archetypeId } = await sc.addProject(
+      client,
+      snapshots.ARCHETYPE
+    );
+    const { projectId: squigglesId } = await sc.addProject(
+      client,
+      snapshots.SQUIGGLES
+    );
+    const { tokenId: theCube } = await sc.addToken(client, snapshots.THE_CUBE);
+    const { tokenId: perfectChromatic } = await sc.addToken(
+      client,
+      snapshots.PERFECT_CHROMATIC
+    );
+    return { archetypeId, squigglesId, theCube, perfectChromatic };
+  }
+
   it(
     "writes and reads a project",
     withTestDb(async ({ client }) => {
-      const archetype = parseProjectData(
-        snapshots.ARCHETYPE,
-        await sc.project(snapshots.ARCHETYPE)
-      );
-      const squiggles = parseProjectData(
-        snapshots.SQUIGGLES,
-        await sc.project(snapshots.SQUIGGLES)
-      );
-      const theCube = await sc.token(snapshots.THE_CUBE);
-      const id23 = await artblocks.addProject({ client, project: archetype });
-      const id0 = await artblocks.addProject({ client, project: squiggles });
-      await artblocks.addToken({
-        client,
-        artblocksTokenId: snapshots.THE_CUBE,
-        rawTokenData: theCube,
-      });
+      const { archetypeId, squigglesId, theCube } = await setup(client);
       const res = await api.collections({ client });
       expect(res).toEqual([
         {
-          projectId: id0,
+          projectId: squigglesId,
           slug: "chromie-squiggle",
           artblocksProjectIndex: 0,
           imageUrlTemplate: expect.stringContaining("/0/"),
@@ -53,7 +55,7 @@ describe("api", () => {
             "the soul of the Art Blocks platform"
           ),
           aspectRatio: 1.5,
-          numTokens: 0,
+          numTokens: 1,
           maxInvocations: 10000,
           tokenContract: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
           fees: [
@@ -76,7 +78,7 @@ describe("api", () => {
           ],
         },
         {
-          projectId: id23,
+          projectId: archetypeId,
           slug: "archetype",
           artblocksProjectIndex: 23,
           imageUrlTemplate: expect.stringContaining("/23/"),
@@ -120,28 +122,10 @@ describe("api", () => {
   it(
     "reads a single project from a multi-project DB",
     withTestDb(async ({ client }) => {
-      const archetype = parseProjectData(
-        snapshots.ARCHETYPE,
-        await sc.project(snapshots.ARCHETYPE)
-      );
-      const squiggles = parseProjectData(
-        snapshots.SQUIGGLES,
-        await sc.project(snapshots.SQUIGGLES)
-      );
-      const theCube = await sc.token(snapshots.THE_CUBE);
-      const projectId = await artblocks.addProject({
-        client,
-        project: archetype,
-      });
-      await artblocks.addProject({ client, project: squiggles });
-      await artblocks.addToken({
-        client,
-        artblocksTokenId: snapshots.THE_CUBE,
-        rawTokenData: theCube,
-      });
+      const { archetypeId, squigglesId, theCube } = await setup(client);
       const res = await api.collection({ client, slug: "archetype" });
       expect(res).toEqual({
-        projectId,
+        projectId: archetypeId,
         slug: "archetype",
         artblocksProjectIndex: 23,
         imageUrlTemplate: expect.stringContaining("/23/"),
@@ -164,34 +148,23 @@ describe("api", () => {
   it(
     "resolves a token ID",
     withTestDb(async ({ client }) => {
-      const archetype = parseProjectData(
-        snapshots.ARCHETYPE,
-        await sc.project(snapshots.ARCHETYPE)
-      );
-      const theCube = await sc.token(snapshots.THE_CUBE);
-      await artblocks.addProject({ client, project: archetype });
-      const tokenId = await artblocks.addToken({
-        client,
-        artblocksTokenId: snapshots.THE_CUBE,
-        rawTokenData: theCube,
-      });
+      const { theCube } = await setup(client);
       const res = await api.tokenIdBySlugAndIndex({
         client,
         slug: "archetype",
         tokenIndex: 250,
       });
-      expect(res).toEqual(tokenId);
+      expect(res).toEqual(theCube);
     })
   );
 
   it(
     "provides project tokens",
     withTestDb(async ({ client }) => {
-      const project = parseProjectData(
-        snapshots.ARCHETYPE,
-        await sc.project(snapshots.ARCHETYPE)
+      const { projectId: archetypeId } = await sc.addProject(
+        client,
+        snapshots.ARCHETYPE
       );
-      const projectId = await artblocks.addProject({ client, project });
       const [a1, a2, a3] = [
         snapshots.ARCH_TRIPTYCH_1,
         snapshots.ARCH_TRIPTYCH_2,
@@ -200,14 +173,9 @@ describe("api", () => {
       const ids = new Map();
       // Add them out of order; make sure that the output is still sorted by
       // token index.
-      for (const tokenId of [a3, a2, a1]) {
-        const rawTokenData = await sc.token(tokenId);
-        const id = await artblocks.addToken({
-          client,
-          artblocksTokenId: tokenId,
-          rawTokenData,
-        });
-        ids.set(tokenId, id);
+      for (const onChainId of [a3, a2, a1]) {
+        const { tokenId } = await sc.addToken(client, onChainId);
+        ids.set(onChainId, tokenId);
       }
       const res = await api.collectionTokens({ client, slug: "archetype" });
       expect(res).toEqual(
@@ -223,22 +191,11 @@ describe("api", () => {
   it(
     "resolves specific feature/trait IDs and gets trait data back",
     withTestDb(async ({ client }) => {
-      for (const projectId of snapshots.PROJECTS) {
-        const project = parseProjectData(
-          projectId,
-          await sc.project(projectId)
-        );
-        await artblocks.addProject({ client, project });
-      }
+      await sc.addProjects(client, snapshots.PROJECTS);
       const ids = new Map();
-      for (const tokenId of snapshots.TOKENS) {
-        const rawTokenData = await sc.token(tokenId);
-        const id = await artblocks.addToken({
-          client,
-          artblocksTokenId: tokenId,
-          rawTokenData,
-        });
-        ids.set(tokenId, id);
+      for (const onChainId of snapshots.TOKENS) {
+        const { tokenId } = await sc.addToken(client, onChainId);
+        ids.set(onChainId, tokenId);
       }
       const archetype = await api.resolveProjectId({
         client,
@@ -306,22 +263,11 @@ describe("api", () => {
       const collection = api.artblocksProjectIdToCollectionName(
         archetype.projectId
       );
-      for (const projectId of snapshots.PROJECTS) {
-        const project = parseProjectData(
-          projectId,
-          await sc.project(projectId)
-        );
-        await artblocks.addProject({ client, project });
-      }
+      await sc.addProjects(client, snapshots.PROJECTS);
       const ids = new Map();
-      for (const tokenId of snapshots.TOKENS) {
-        const rawTokenData = await sc.token(tokenId);
-        const id = await artblocks.addToken({
-          client,
-          artblocksTokenId: tokenId,
-          rawTokenData,
-        });
-        ids.set(tokenId, id);
+      for (const onChainId of snapshots.TOKENS) {
+        const { tokenId } = await sc.addToken(client, onChainId);
+        ids.set(onChainId, tokenId);
       }
       const res = await api.projectFeaturesAndTraits({
         client,
@@ -350,20 +296,11 @@ describe("api", () => {
   it(
     "provides token features and traits",
     withTestDb(async ({ client }) => {
-      const archetype = parseProjectData(
-        snapshots.ARCHETYPE,
-        await sc.project(snapshots.ARCHETYPE)
-      );
+      const { project } = await sc.addProject(client, snapshots.ARCHETYPE);
       const collection = api.artblocksProjectIdToCollectionName(
-        archetype.projectId
+        project.projectId
       );
-      const rawTokenData = await sc.token(snapshots.THE_CUBE);
-      await artblocks.addProject({ client, project: archetype });
-      const tokenId = await artblocks.addToken({
-        client,
-        artblocksTokenId: snapshots.THE_CUBE,
-        rawTokenData,
-      });
+      const { tokenId } = await sc.addToken(client, snapshots.THE_CUBE);
       const res = await api.tokenFeaturesAndTraits({ client, tokenId });
       expect(res).toEqual(
         expect.arrayContaining([
@@ -391,20 +328,9 @@ describe("api", () => {
   it(
     "provides chain data for a single token",
     withTestDb(async ({ client }) => {
-      const project = parseProjectData(
-        snapshots.ARCHETYPE,
-        await sc.project(snapshots.ARCHETYPE)
-      );
-      await artblocks.addProject({ client, project });
-      const artblocksTokenId = snapshots.THE_CUBE;
-      const rawTokenData = await sc.token(snapshots.THE_CUBE);
-      const tokenId = await artblocks.addToken({
-        client,
-        artblocksTokenId,
-        rawTokenData,
-      });
+      const { theCube } = await setup(client);
 
-      const res = await api.tokenChainData({ client, tokenId });
+      const res = await api.tokenChainData({ client, tokenId: theCube });
       expect(res).toEqual({
         tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
         onChainTokenId: String(snapshots.THE_CUBE),
@@ -415,24 +341,8 @@ describe("api", () => {
   it(
     "provides summaries for multiple tokens",
     withTestDb(async ({ client }) => {
-      for (const id of [snapshots.ARCHETYPE, snapshots.SQUIGGLES]) {
-        const project = parseProjectData(id, await sc.project(id));
-        await artblocks.addProject({ client, project });
-      }
+      await setup(client);
       await autoglyphs.addAutoglyphs({ client });
-      const ids = new Map();
-      for (const artblocksTokenId of [
-        snapshots.THE_CUBE,
-        snapshots.PERFECT_CHROMATIC,
-      ]) {
-        const rawTokenData = await sc.token(artblocksTokenId);
-        const tokenId = await artblocks.addToken({
-          client,
-          artblocksTokenId,
-          rawTokenData,
-        });
-        ids.set(artblocksTokenId, tokenId);
-      }
       const result = await api.tokenSummariesByOnChainId({
         client,
         tokens: [
@@ -486,18 +396,7 @@ describe("api", () => {
         return ethers.utils.getAddress(ethers.utils.hexDataSlice(hash, 12));
       }
 
-      const project = parseProjectData(
-        snapshots.ARCHETYPE,
-        await sc.project(snapshots.ARCHETYPE)
-      );
-      const archetype = await artblocks.addProject({ client, project });
-
-      const theCube = await sc.token(snapshots.THE_CUBE);
-      const tokenId = await artblocks.addToken({
-        client,
-        artblocksTokenId: snapshots.THE_CUBE,
-        rawTokenData: theCube,
-      });
+      const { archetypeId, squigglesId, theCube } = await setup(client);
 
       await eth.addBlocks({
         client,
@@ -526,7 +425,7 @@ describe("api", () => {
       let nextLogIndex = 101;
       function transfer({ to, from, blockNumber, tx } = {}) {
         return {
-          tokenId,
+          tokenId: theCube,
           fromAddress: from,
           toAddress: to,
           blockHash: dummyBlockHash(blockNumber),
@@ -560,7 +459,7 @@ describe("api", () => {
       const bidId = await orderbook.addBid({
         client,
         noVerify: true,
-        scope: { type: "PROJECT", projectId: archetype },
+        scope: { type: "PROJECT", projectId: archetypeId },
         price,
         deadline,
         bidder,
@@ -572,7 +471,7 @@ describe("api", () => {
       await orderbook.addBid({
         client,
         noVerify: true,
-        scope: { type: "PROJECT", projectId: archetype },
+        scope: { type: "PROJECT", projectId: archetypeId },
         price: price * 2,
         deadline,
         bidder,
@@ -599,7 +498,7 @@ describe("api", () => {
         imageUrlTemplate:
           "https://img.archipelago.art/artblocks/{sz}/23/000/250",
         tokenIndex: 250,
-        tokenId: tokens[0].tokenId,
+        tokenId: theCube,
         artistName: "Kjetil Golid",
         aspectRatio: 1,
         tokenContract: "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270",
@@ -609,7 +508,7 @@ describe("api", () => {
           price: String(price),
           deadline,
           bidder,
-          scope: { type: "PROJECT", scope: archetype },
+          scope: { type: "PROJECT", scope: archetypeId },
         },
       });
     })
@@ -618,18 +517,11 @@ describe("api", () => {
   it(
     "provides a unified history of sales and transfers",
     withTestDb(async ({ client }) => {
-      const archetype = parseProjectData(
-        snapshots.ARCHETYPE,
-        await sc.project(snapshots.ARCHETYPE)
-      );
-      await artblocks.addProject({ client, project: archetype });
-
-      const theCube = await sc.token(snapshots.THE_CUBE);
-      const tokenId = await artblocks.addToken({
+      await sc.addProject(client, snapshots.ARCHETYPE);
+      const { rawTokenData: theCube, tokenId } = await sc.addToken(
         client,
-        artblocksTokenId: snapshots.THE_CUBE,
-        rawTokenData: theCube,
-      });
+        snapshots.THE_CUBE
+      );
 
       function dummyBlockHash(blockNumber) {
         return ethers.utils.id(`block:${blockNumber}`);
@@ -860,17 +752,7 @@ describe("api", () => {
   it(
     "counts transfers from one address to another",
     withTestDb(async ({ client }) => {
-      const archetype = parseProjectData(
-        snapshots.ARCHETYPE,
-        await sc.project(snapshots.ARCHETYPE)
-      );
-      const theCube = await sc.token(snapshots.THE_CUBE);
-      await artblocks.addProject({ client, project: archetype });
-      const tokenId = await artblocks.addToken({
-        client,
-        artblocksTokenId: snapshots.THE_CUBE,
-        rawTokenData: theCube,
-      });
+      const { archetypeId, squigglesId, theCube } = await setup(client);
 
       const zero = ethers.constants.AddressZero;
       const alice = ethers.utils.getAddress(
@@ -885,7 +767,7 @@ describe("api", () => {
       };
       await eth.addBlock({ client, block });
       const transfer = {
-        tokenId,
+        tokenId: theCube,
         fromAddress: zero,
         toAddress: alice,
         blockHash,
@@ -993,12 +875,7 @@ describe("api", () => {
   it(
     "blockAlignedTraitMembers works",
     withTestDb(async ({ client }) => {
-      const project = parseProjectData(
-        snapshots.ARCHETYPE,
-        await sc.project(snapshots.ARCHETYPE)
-      );
-      const projectId = await artblocks.addProject({ client, project });
-
+      const { projectId } = await sc.addProject(client, snapshots.ARCHETYPE);
       const tokenIndexToTokenId = new Map();
       for (const i of [0, 1, 255, 256]) {
         const tokenId = await tokens.addBareToken({
