@@ -11,6 +11,7 @@ const slugify = require("../util/slugify");
 const { sortAsciinumeric } = require("../util/sortAsciinumeric");
 const openseaApi = require("../db/opensea/api");
 const dbTokens = require("../db/tokens");
+const contracts = require("./contracts");
 
 const PROJECT_STRIDE = 1e6;
 
@@ -194,6 +195,9 @@ async function _collections({ client, projectId }) {
       ) {
         return feesForCollection("ARTBLOCKS");
       }
+      if (addr === contracts.brightMoments.address) {
+        return feesForCollection("BRIGHT_MOMENTS");
+      }
       throw new Error("can't get fees; unrecognized collection " + row.slug);
     })(),
   }));
@@ -242,6 +246,8 @@ function feesForCollection(
         micros: 75000,
         static: false,
       });
+      break;
+    case "BRIGHT_MOMENTS":
       break;
     case "CRYPTOADZ":
       fees.push({ target: CRYPTOADZ_PAYEE, micros: 25000, static: true });
