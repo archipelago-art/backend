@@ -29,8 +29,7 @@ describe("db/opensea/ingestEvents", () => {
 
   function sale({
     id = "2",
-    address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-    tokenId = snapshots.THE_CUBE,
+    tokenSpec = snapshots.THE_CUBE,
     listingTime = "2022-03-01T00:00:00.123456",
     toAddress = dandelion,
     fromAddress = wchargin,
@@ -39,6 +38,8 @@ describe("db/opensea/ingestEvents", () => {
     transactionHash = "0xef7e95ce1c085611cb5186a55cec026cd3f2f266c1f581bb6a9e9258cf3019f4",
     currency = wellKnownCurrencies.eth,
   } = {}) {
+    const address = tokenSpec.tokenContract;
+    const tokenId = tokenSpec.onChainTokenId;
     return {
       asset: { address, token_id: String(tokenId) },
       id,
@@ -86,8 +87,7 @@ describe("db/opensea/ingestEvents", () => {
 
   function ask({
     id = "3",
-    address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-    tokenId = snapshots.THE_CUBE,
+    tokenSpec = snapshots.THE_CUBE,
     listingTime = "2022-03-01T00:00:00",
     duration = null,
     sellerAddress = wchargin,
@@ -96,6 +96,8 @@ describe("db/opensea/ingestEvents", () => {
     isPrivate = false,
     currency = wellKnownCurrencies.eth,
   } = {}) {
+    const address = tokenSpec.tokenContract;
+    const tokenId = tokenSpec.onChainTokenId;
     return {
       asset: { address, token_id: String(tokenId) },
       id,
@@ -139,12 +141,13 @@ describe("db/opensea/ingestEvents", () => {
 
   function cancellation({
     id = "4",
-    address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-    tokenId = snapshots.THE_CUBE,
+    tokenSpec = snapshots.THE_CUBE,
     price = "1000000000000000000",
     transactionTimestamp = "2022-03-03T12:34:56.123456",
     transactionHash = "0xef7e95ce1c085611cb5186a55cec026cd3f2f266c1f581bb6a9e9258cf3019f4",
   } = {}) {
+    const address = tokenSpec.tokenContract;
+    const tokenId = tokenSpec.onChainTokenId;
     return {
       asset: { address, token_id: String(tokenId) },
       id,

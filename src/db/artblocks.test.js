@@ -197,7 +197,9 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 traitId: expect.any(String),
                 value: "Pleasant palette",
-                tokenIndices: [snapshots.GALAXISS_FEATURES_ARRAY % 1e6],
+                tokenIndices: [
+                  snapshots.GALAXISS_FEATURES_ARRAY.onChainTokenId % 1e6,
+                ],
               }),
             ],
           }),
@@ -208,7 +210,9 @@ describe("db/artblocks", () => {
               expect.objectContaining({
                 traitId: expect.any(String),
                 value: "Night theme",
-                tokenIndices: [snapshots.GALAXISS_FEATURES_ARRAY % 1e6],
+                tokenIndices: [
+                  snapshots.GALAXISS_FEATURES_ARRAY.onChainTokenId % 1e6,
+                ],
               }),
             ],
           }),
@@ -230,6 +234,7 @@ describe("db/artblocks", () => {
         client,
         projectId,
       });
+      const tokenIndex = snapshots.BYTEBEATS_NULL_FEATURE.onChainTokenId % 1e6;
       expect(actualFeatures).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -237,7 +242,7 @@ describe("db/artblocks", () => {
             traits: [
               expect.objectContaining({
                 value: "Electric",
-                tokenIndices: [snapshots.BYTEBEATS_NULL_FEATURE % 1e6],
+                tokenIndices: [tokenIndex],
               }),
             ],
           }),
@@ -246,7 +251,7 @@ describe("db/artblocks", () => {
             traits: [
               expect.objectContaining({
                 value: "4978",
-                tokenIndices: [snapshots.BYTEBEATS_NULL_FEATURE % 1e6],
+                tokenIndices: [tokenIndex],
               }),
             ],
           }),
@@ -255,7 +260,7 @@ describe("db/artblocks", () => {
             traits: [
               expect.objectContaining({
                 value: "null",
-                tokenIndices: [snapshots.BYTEBEATS_NULL_FEATURE % 1e6],
+                tokenIndices: [tokenIndex],
               }),
             ],
           }),
@@ -267,13 +272,14 @@ describe("db/artblocks", () => {
   it(
     'rejects token data when "features" is not an array or object',
     withTestDb(async ({ client }) => {
-      const artblocksTokenId = snapshots.PERFECT_CHROMATIC;
+      const perfectChromatic = snapshots.PERFECT_CHROMATIC;
       await sc.addProjects(client, [snapshots.SQUIGGLES]);
       const rawTokenData = JSON.stringify({ features: "hmm" });
       await expect(
         artblocks.addToken({
           client,
-          artblocksTokenId,
+          tokenContract: perfectChromatic.tokenContract,
+          artblocksTokenId: perfectChromatic.onChainTokenId,
           rawTokenData,
         })
       ).rejects.toThrow("expected object or array");
@@ -289,7 +295,8 @@ describe("db/artblocks", () => {
       await expect(
         artblocks.addToken({
           client,
-          artblocksTokenId: snapshots.THE_CUBE,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+          artblocksTokenId: snapshots.THE_CUBE.onChainTokenId,
           rawTokenData: null,
         })
       ).rejects.toThrow("no token data given");
@@ -300,10 +307,10 @@ describe("db/artblocks", () => {
     "updates token data with new traits",
     withTestDb(async ({ client }) => {
       await sc.addProjects(client, [snapshots.ARCHETYPE]);
-      const artblocksTokenId = snapshots.THE_CUBE;
+      const theCube = snapshots.THE_CUBE;
       async function dataWithFeatures(features) {
         return JSON.stringify({
-          ...JSON.parse(await sc.token(artblocksTokenId)),
+          ...JSON.parse(await sc.token(theCube)),
           features,
         });
       }
@@ -329,7 +336,8 @@ describe("db/artblocks", () => {
       const data0 = await dataWithFeatures({ Color: "Red", Number: "7" });
       const tokenId = await artblocks.addToken({
         client,
-        artblocksTokenId,
+        tokenContract: theCube.tokenContract,
+        artblocksTokenId: theCube.onChainTokenId,
         rawTokenData: data0,
       });
       const t0 = await getFetchTime(tokenId);
@@ -375,6 +383,7 @@ describe("db/artblocks", () => {
       });
       await artblocks.addToken({
         client,
+        tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
         artblocksTokenId: baseTokenId + 2,
         rawTokenData: JSON.stringify({ features: {} }),
       });
@@ -420,6 +429,7 @@ describe("db/artblocks", () => {
       tokens.map((t) =>
         artblocks.addToken({
           client,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
           artblocksTokenId: t.tokenId,
           rawTokenData: t.rawTokenData,
         })
@@ -455,6 +465,7 @@ describe("db/artblocks", () => {
       await expect(() =>
         artblocks.addToken({
           client,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
           artblocksTokenId: 1000001,
           rawTokenData: JSON.stringify({ features: { Size: "weird" } }),
         })
@@ -621,7 +632,9 @@ describe("db/artblocks", () => {
         projectId,
       });
       expect(res).toEqual([
-        expect.objectContaining({ tokenIndex: snapshots.THE_CUBE % 1e6 }),
+        expect.objectContaining({
+          tokenIndex: snapshots.THE_CUBE.onChainTokenId % 1e6,
+        }),
         // nothing for Elevated Deconstructions
       ]);
     })
@@ -634,8 +647,8 @@ describe("db/artblocks", () => {
         snapshots.ARCHETYPE,
         snapshots.BYTEBEATS,
       ]);
-      expect(snapshots.BYTEBEATS_NULL_FEATURE).toBeGreaterThan(
-        snapshots.ARCH_TRIPTYCH_3
+      expect(snapshots.BYTEBEATS_NULL_FEATURE.onChainTokenId).toBeGreaterThan(
+        snapshots.ARCH_TRIPTYCH_3.onChainTokenId
       );
       const addTokensResult = await sc.addTokens(client, [
         snapshots.ARCH_TRIPTYCH_1,
@@ -646,7 +659,7 @@ describe("db/artblocks", () => {
       const res = await artblocks.getTokenFeaturesAndTraits({
         client,
         projectId,
-        minTokenIndex: snapshots.ARCH_TRIPTYCH_2 % 1e6,
+        minTokenIndex: snapshots.ARCH_TRIPTYCH_2.onChainTokenId % 1e6,
       });
       expect(res).toEqual([
         {
@@ -694,14 +707,15 @@ describe("db/artblocks", () => {
       });
       const id2 = await artblocks.addToken({
         client,
-        artblocksTokenId: snapshots.ARCH_TRIPTYCH_2,
+        tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+        artblocksTokenId: snapshots.ARCH_TRIPTYCH_2.onChainTokenId,
         rawTokenData: triptych2WithoutTraits,
       });
       const res = await artblocks.getTokenFeaturesAndTraits({
         client,
         projectId,
-        minTokenIndex: snapshots.ARCH_TRIPTYCH_1 % 1e6,
-        maxTokenIndex: snapshots.ARCH_TRIPTYCH_3 % 1e6,
+        minTokenIndex: snapshots.ARCH_TRIPTYCH_1.onChainTokenId % 1e6,
+        maxTokenIndex: snapshots.ARCH_TRIPTYCH_3.onChainTokenId % 1e6,
       });
       expect(res).toEqual([
         {
@@ -745,7 +759,7 @@ describe("db/artblocks", () => {
       const res = await artblocks.getTokenChainData({ client, tokenId });
       expect(res).toEqual({
         tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-        onChainTokenId: String(snapshots.THE_CUBE),
+        onChainTokenId: "23000250",
       });
     })
   );

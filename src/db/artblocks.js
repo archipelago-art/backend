@@ -206,6 +206,7 @@ async function addBareToken({
     SELECT project_id AS "projectId"
     FROM artblocks_projects JOIN projects USING (project_id)
     WHERE artblocks_project_index = $1
+    AND projects.token_contract = $2
     `,
     [artblocksProjectIndex]
   );

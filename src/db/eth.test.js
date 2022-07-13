@@ -535,8 +535,8 @@ describe("db/eth", () => {
 
         const aliceSellsCube = {
           tradeId: tradeId1,
-          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-          onChainTokenId: snapshots.THE_CUBE,
+          tokenContract: snapshots.THE_CUBE.tokenContract,
+          onChainTokenId: snapshots.THE_CUBE.onChainTokenId,
           buyer: bob.toLowerCase(),
           seller: alice.toLowerCase(),
           currency: wellKnownCurrencies.weth9.address,

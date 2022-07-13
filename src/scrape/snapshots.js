@@ -50,19 +50,52 @@ const HYPERHASH_DESCRIPTION =
 const ARCHETYPE_DESCRIPTION =
   "Archetype explores the use of repetition as a counterweight to unruly, random structures. As each single component look chaotic alone, the repetition brings along a sense of intentionality, ultimately resulting in a complex, yet satisfying expression.";
 
-const PERFECT_CHROMATIC = 7583;
-const GENESIS_ZERO = 1000000;
-const ELEVATED_DECONSTRUCTIONS_EMPTY_FEATURES = 7000000;
-const ARCH_TRIPTYCH_1 = 23000036;
-const ARCH_TRIPTYCH_2 = 23000045;
-const ARCH_TRIPTYCH_3 = 23000467;
-const ARCH_66 = 23000066;
-const THE_CUBE = 23000250;
-const GALAXISS_FEATURES_ARRAY = 31000000;
-const BYTEBEATS_NULL_FEATURE = 38000007; // has `{"Progressions": null}` in `features`
-const BYTEBEATS_EMPTY_FEATURES = 38000212; // empty `features`, presumably due to Art Blocks bug
+const PERFECT_CHROMATIC = {
+  onChainTokenId: 7583,
+  tokenContract: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
+};
+const GENESIS_ZERO = {
+  onChainTokenId: 1000000,
+  tokenContract: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
+};
+const ELEVATED_DECONSTRUCTIONS_EMPTY_FEATURES = {
+  onChainTokenId: 7000000,
+  tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+};
+const ARCH_TRIPTYCH_1 = {
+  onChainTokenId: 23000036,
+  tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+};
+const ARCH_TRIPTYCH_2 = {
+  onChainTokenId: 23000045,
+  tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+};
+const ARCH_TRIPTYCH_3 = {
+  onChainTokenId: 23000467,
+  tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+};
+const ARCH_66 = {
+  onChainTokenId: 23000066,
+  tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+};
+const THE_CUBE = {
+  onChainTokenId: 23000250,
+  tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+};
+const GALAXISS_FEATURES_ARRAY = {
+  onChainTokenId: 31000000,
+  tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+};
+const BYTEBEATS_NULL_FEATURE = {
+  onChainTokenId: 38000007,
+  tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+}; // has `{"Progressions": null}` in `features`
+const BYTEBEATS_EMPTY_FEATURES = {
+  onChainTokenId: 38000212,
+  tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+}; // empty `features`, presumably due to Art Blocks bug
 const TOKENS = Object.freeze([
-  0,
+  { onChainTokenId: 0, tokenContract: artblocks.CONTRACT_ARTBLOCKS_LEGACY },
   GENESIS_ZERO,
   PERFECT_CHROMATIC,
   ELEVATED_DECONSTRUCTIONS_EMPTY_FEATURES,
@@ -92,16 +125,16 @@ function projectPath(spec) {
     String(spec.projectIndex)
   );
 }
-function tokenPath(tokenId) {
-  return path.join(tokensDir(), String(tokenId));
+function tokenPath({ tokenContract, onChainTokenId }) {
+  return path.join(tokensDir(), tokenContract, String(onChainTokenId));
 }
 
 async function readProject(spec) {
   return (await promisify(fs.readFile)(projectPath(spec))).toString();
 }
 
-async function readToken(tokenId) {
-  return (await promisify(fs.readFile)(tokenPath(tokenId))).toString();
+async function readToken(spec) {
+  return (await promisify(fs.readFile)(tokenPath(spec))).toString();
 }
 
 class SnapshotCache {
@@ -121,8 +154,8 @@ class SnapshotCache {
     return this._get(this._projects, readProject, spec);
   }
 
-  async token(tokenId) {
-    return this._get(this._tokens, readToken, tokenId);
+  async token(spec) {
+    return this._get(this._tokens, readToken, spec);
   }
 
   async addProject(client, spec) {
@@ -144,21 +177,22 @@ class SnapshotCache {
     return result;
   }
 
-  async addToken(client, artblocksTokenId) {
-    const rawTokenData = await this.token(artblocksTokenId);
+  async addToken(client, spec) {
+    const rawTokenData = await this.token(spec);
     const tokenId = await artblocks.addToken({
       client,
-      artblocksTokenId,
+      artblocksTokenId: spec.onChainTokenId,
+      tokenContract: spec.tokenContract,
       rawTokenData,
     });
-    return { tokenId, artblocksTokenId, rawTokenData };
+    return { tokenId, spec, rawTokenData };
   }
 
-  async addTokens(client, artblocksTokenIds) {
+  async addTokens(client, tokenSpecs) {
     // manual loop to ensure token ids are in order
     const result = [];
-    for (const id of artblocksTokenIds) {
-      result.push(await this.addToken(client, id));
+    for (const spec of tokenSpecs) {
+      result.push(await this.addToken(client, spec));
     }
     return result;
   }
