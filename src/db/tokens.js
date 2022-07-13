@@ -23,14 +23,16 @@ async function addBareToken({
     UPDATE projects
     SET num_tokens = num_tokens + 1
     WHERE project_id = $1
-    RETURNING slug
+    RETURNING slug, token_contract AS "tokenContract"
     `,
     [projectId]
   );
   if (updateProjectsRes.rowCount === 0) {
     throw new Error("no such project: " + projectId);
   }
-  const { slug } = updateProjectsRes.rows[0]; // for new token event
+  // Pluck project metadata for new token event.
+  const slug = updateProjectsRes.rows[0].slug;
+  const tokenContract = bufToAddress(updateProjectsRes.rows[0].tokenContract);
 
   const tokenId = newId(ObjectType.TOKEN);
   await client.query(
@@ -70,6 +72,8 @@ async function addBareToken({
       tokenId,
       slug,
       tokenIndex,
+      tokenContract,
+      onChainTokenId,
     },
   };
   await ws.sendMessages({ client, messages: [message] });

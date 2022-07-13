@@ -109,6 +109,8 @@ describe("db/tokens", () => {
             tokenId: tokenId1,
             slug: "archetype",
             tokenIndex: 250,
+            tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+            onChainTokenId: 23000250,
           },
         });
 

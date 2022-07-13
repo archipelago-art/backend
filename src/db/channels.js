@@ -92,6 +92,8 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //        tokenId: string,
 //        slug: string,
 //        tokenIndex: number,
+//        tokenContract: address,
+//        onChainTokenId: number,
 //      }
 //
 //  - For `type: "TRAITS_UPDATED"`, `data` looks like:
