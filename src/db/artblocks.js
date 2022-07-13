@@ -53,13 +53,17 @@ async function addProject({
     `
     SELECT project_id AS id FROM artblocks_projects
     WHERE artblocks_project_index = $1
+    AND token_contract = $2
     `,
-    [project.projectId]
+    [project.projectId, hexToBuf(tokenContract)]
   );
   const projectId =
     projectIdRes.rows.length > 0
       ? projectIdRes.rows[0].id
       : newId(ObjectType.PROJECT);
+  console.warn(
+    `updating project: ${project.name} (${projectId}, ${tokenContract})`
+  );
   await client.query(
     `
     INSERT INTO projects (
