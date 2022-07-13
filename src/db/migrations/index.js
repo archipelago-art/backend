@@ -139,6 +139,7 @@ const migrationModules = [
   "./0128_artblocks_projects_token_contract",
   "./0129_artblocks_projects_token_contract_cleanup",
   "./0130_image_ingestion_queue",
+  "./0131_artblocks_project_index_not_unique",
   // ...
 ];
 
