@@ -111,6 +111,17 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //        }>,
 //      }
 //
+//  - For `type: "IMAGES_UPDATED"`, `data` looks like:
+//
+//      {
+//        projectId: string,
+//        tokenId: string,
+//        slug: string,
+//        tokenIndex: number,
+//        tokenContract: address (0xstring),
+//        onChainTokenId: string,
+//      }
+//
 //  - For `type: "TOKEN_TRANSFERRED"`, `data` looks like:
 //
 //      {

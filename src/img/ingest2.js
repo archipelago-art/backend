@@ -1,16 +1,16 @@
-const fs = require("fs");
 const child_process = require("child_process");
+const fs = require("fs");
 const { join, dirname } = require("path");
 const util = require("util");
-const { bufToAddress } = require("../db/util");
+
 const fetch = require("node-fetch");
 
-const log = require("../util/log")(__filename);
-
-const { ORIG, targets } = require("./ingestTargets");
-const downloadAtomic = require("../util/gcsDownloadAtomic");
-
 const { contractForAddress } = require("../api/contracts");
+const ws = require("../db/ws");
+const { bufToAddress } = require("../db/util");
+const downloadAtomic = require("../util/gcsDownloadAtomic");
+const log = require("../util/log")(__filename);
+const { ORIG, targets } = require("./ingestTargets");
 
 function imageInfo(token) {
   const res = contractForAddress(token.tokenContract);
@@ -147,6 +147,7 @@ async function ingestImagePage({
       tokens.token_id AS "tokenId",
       tokens.on_chain_token_id AS "onChainTokenId",
       tokens.token_index AS "tokenIndex",
+      projects.project_id AS "projectId",
       projects.token_contract AS "tokenContract",
       projects.slug,
       artblocks_tokens.token_data->>'token_hash' AS "tokenHash"
@@ -154,6 +155,7 @@ async function ingestImagePage({
       JOIN projects USING (project_id)
       LEFT OUTER JOIN artblocks_tokens USING (token_id)
     WHERE token_id = ANY($1::tokenid[])
+    ORDER BY project_id, token_id
     `,
     [tokenIds]
   );
@@ -174,6 +176,24 @@ async function ingestImagePage({
     `,
     [failedTokenIds]
   );
+
+  const failedTokenIdsSet = new Set(failedTokenIds);
+  const messages = tokens
+    .filter((t) => !failedTokenIdsSet.has(t.tokenId))
+    .map((t) => ({
+      type: "IMAGES_UPDATED",
+      topic: t.slug,
+      data: {
+        projectId: t.projectId,
+        tokenId: t.tokenId,
+        slug: t.slug,
+        tokenIndex: t.tokenIndex,
+        tokenContract: t.tokenContract,
+        onChainTokenId: t.onChainTokenId,
+      },
+    }));
+  await ws.sendMessages({ client, messages });
+
   await client.query("COMMIT");
   return true;
 }
