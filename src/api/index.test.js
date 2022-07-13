@@ -173,17 +173,17 @@ describe("api", () => {
       const ids = new Map();
       // Add them out of order; make sure that the output is still sorted by
       // token index.
-      for (const onChainId of [a3, a2, a1]) {
-        const { tokenId } = await sc.addToken(client, onChainId);
-        ids.set(onChainId, tokenId);
-      }
+      const tokens = await sc.addTokens(client, [a3, a2, a1]);
       const res = await api.collectionTokens({ client, slug: "archetype" });
       expect(res).toEqual(
-        [a1, a2, a3].map((abid) => ({
-          tokenId: ids.get(abid),
-          tokenIndex: abid % 1e6,
-          onChainTokenId: String(abid),
-        }))
+        tokens
+          .slice()
+          .reverse()
+          .map((t) => ({
+            tokenId: t.tokenId,
+            tokenIndex: t.spec.onChainTokenId % 1e6,
+            onChainTokenId: String(t.spec.onChainTokenId),
+          }))
       );
     })
   );
@@ -264,11 +264,7 @@ describe("api", () => {
         archetype.projectId
       );
       await sc.addProjects(client, snapshots.PROJECTS);
-      const ids = new Map();
-      for (const onChainId of snapshots.TOKENS) {
-        const { tokenId } = await sc.addToken(client, onChainId);
-        ids.set(onChainId, tokenId);
-      }
+      await sc.addTokens(client, snapshots.TOKENS);
       const res = await api.projectFeaturesAndTraits({
         client,
         slug: "archetype",
@@ -283,7 +279,7 @@ describe("api", () => {
               {
                 value: "Cube",
                 traitId: expect.any(String),
-                tokenIndices: [snapshots.THE_CUBE % 1e6],
+                tokenIndices: [snapshots.THE_CUBE.onChainTokenId % 1e6],
                 slug: "cube",
               },
             ]),
@@ -333,7 +329,7 @@ describe("api", () => {
       const res = await api.tokenChainData({ client, tokenId: theCube });
       expect(res).toEqual({
         tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-        onChainTokenId: String(snapshots.THE_CUBE),
+        onChainTokenId: String(snapshots.THE_CUBE.onChainTokenId),
       });
     })
   );
@@ -348,7 +344,7 @@ describe("api", () => {
         tokens: [
           {
             address: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
-            tokenId: String(snapshots.PERFECT_CHROMATIC),
+            tokenId: String(snapshots.PERFECT_CHROMATIC.onChainTokenId),
           },
           {
             address: autoglyphs.CONTRACT_ADDRESS,
@@ -537,8 +533,8 @@ describe("api", () => {
       let nextOpenseaSaleId = 1;
       function openseaSale({
         id = String(nextOpenseaSaleId++),
-        address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-        tokenId = snapshots.THE_CUBE,
+        address = snapshots.THE_CUBE.tokenContract,
+        tokenId = snapshots.THE_CUBE.onChainTokenId,
         listingTime,
         to,
         from,
@@ -643,8 +639,8 @@ describe("api", () => {
       const archipelagoFills = [
         {
           tradeId: ethers.utils.id("tradeid:1"),
-          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-          onChainTokenId: snapshots.THE_CUBE,
+          tokenContract: snapshots.THE_CUBE.tokenContract,
+          onChainTokenId: snapshots.THE_CUBE.onChainTokenId,
           seller: alice,
           buyer: bob,
           currency: wellKnownCurrencies.weth9.address,

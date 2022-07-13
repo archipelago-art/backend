@@ -158,7 +158,7 @@ describe("db/orderbook", () => {
           extraRoyalties: [],
           trait: ethers.utils.defaultAbiCoder.encode(
             ["uint256"],
-            [snapshots.THE_CUBE]
+            [snapshots.THE_CUBE.onChainTokenId]
           ),
           traitOracle: ethers.constants.AddressZero,
         };
@@ -1535,8 +1535,8 @@ describe("db/orderbook", () => {
 
         const aliceSellsCube = {
           tradeId: tradeId1,
-          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-          onChainTokenId: snapshots.THE_CUBE,
+          tokenContract: snapshots.THE_CUBE.tokenContract,
+          onChainTokenId: snapshots.THE_CUBE.onChainTokenId,
           buyer: bob,
           seller: alice,
           currency: wellKnownCurrencies.weth9.address,
@@ -1549,8 +1549,8 @@ describe("db/orderbook", () => {
         };
         const bobSellsCube = {
           tradeId: tradeId2,
-          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-          onChainTokenId: snapshots.THE_CUBE,
+          tokenContract: snapshots.THE_CUBE.tokenContract,
+          onChainTokenId: snapshots.THE_CUBE.onChainTokenId,
           buyer: charlie,
           seller: bob,
           currency: wellKnownCurrencies.weth9.address,
