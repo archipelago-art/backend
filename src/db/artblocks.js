@@ -37,6 +37,7 @@ async function addProject({
   client,
   project,
   slugOverride,
+  tokenContract,
   alreadyInTransaction = false,
 }) {
   if (typeof project.scriptJson !== "string") {
@@ -96,7 +97,7 @@ async function addProject({
       project.description,
       aspectRatio,
       slugOverride ?? slug(project.name),
-      hexToBuf(artblocksContractAddress(project.projectId)),
+      hexToBuf(tokenContract),
       `{baseUrl}/artblocks/{sz}/${project.projectId}/{hi}/{lo}`,
     ]
   );
@@ -119,7 +120,7 @@ async function addProject({
       project.projectId,
       project.scriptJson,
       project.script,
-      hexToBuf(artblocksContractAddress(project.projectId)),
+      hexToBuf(tokenContract),
     ]
   );
   if (!alreadyInTransaction) await client.query("COMMIT");

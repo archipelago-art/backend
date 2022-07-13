@@ -112,9 +112,15 @@ describe("db/artblocks", () => {
       const archetypeId = await artblocks.addProject({
         client,
         project: archetype1,
+        tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
       });
       expect(
-        await artblocks.addProject({ client, project: archetype2 })
+        await artblocks.addProject({
+          client,
+          project: archetype2,
+
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+        })
       ).toEqual(archetypeId);
       await sc.addTokens(client, [
         snapshots.PERFECT_CHROMATIC,
@@ -365,6 +371,7 @@ describe("db/artblocks", () => {
           maxInvocations,
           scriptJson,
         },
+        tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
       });
       await artblocks.addToken({
         client,
@@ -401,7 +408,13 @@ describe("db/artblocks", () => {
       },
     ];
     const projectIds = await Promise.all(
-      projects.map((p) => artblocks.addProject({ client, project: p }))
+      projects.map((p) =>
+        artblocks.addProject({
+          client,
+          project: p,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+        })
+      )
     );
     await Promise.all(
       tokens.map((t) =>
