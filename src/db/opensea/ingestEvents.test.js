@@ -180,20 +180,14 @@ describe("db/opensea/ingestEvents", () => {
   }
 
   async function exampleProjectAndToken({ client }) {
-    const project = parseProjectData(
-      snapshots.ARCHETYPE,
-      await sc.project(snapshots.ARCHETYPE)
+    const { project, projectId } = await sc.addProject(
+      client,
+      snapshots.ARCHETYPE
     );
-    const token = await sc.token(snapshots.THE_CUBE);
-    const projectId = await artblocks.addProject({
+    const { rawTokenData: token, tokenId } = await sc.addToken(
       client,
-      project,
-    });
-    const tokenId = await artblocks.addToken({
-      client,
-      artblocksTokenId: snapshots.THE_CUBE,
-      rawTokenData: token,
-    });
+      snapshots.THE_CUBE
+    );
     return { project, token, projectId, tokenId };
   }
 

@@ -13,26 +13,11 @@ describe("db/opensea/progress", () => {
   const withTestDb = testDbProvider();
   const sc = new snapshots.SnapshotCache();
 
-  async function exampleProject(client) {
-    const project = parseProjectData(
-      snapshots.ARCHETYPE,
-      await sc.project(snapshots.ARCHETYPE)
-    );
-    const projectId = await artblocks.addProject({
-      client,
-      project,
-    });
-    return {
-      project,
-      projectId,
-    };
-  }
-
   it(
     "last updated is null if never set for a slug",
     withTestDb(async ({ client }) => {
       const slug = "awesome-drop-by-archipelago";
-      const { projectId } = await exampleProject(client);
+      const { projectId } = await sc.addProject(client, snapshots.ARCHETYPE);
       const result = await getLastUpdated({ client, slug, projectId });
       expect(result).toEqual(null);
     })
@@ -40,7 +25,7 @@ describe("db/opensea/progress", () => {
   it(
     "last updated may be set, deleted, and retrieved",
     withTestDb(async ({ client }) => {
-      const { projectId } = await exampleProject(client);
+      const { projectId } = await sc.addProject(client, snapshots.ARCHETYPE);
       const slug = "awesome-drop-by-archipelago";
 
       expect(await deleteLastUpdated({ client, projectId })).toBe(false);
@@ -60,7 +45,7 @@ describe("db/opensea/progress", () => {
   it(
     "getProgress works",
     withTestDb(async ({ client }) => {
-      const { projectId } = await exampleProject(client);
+      const { projectId } = await sc.addProject(client, snapshots.ARCHETYPE);
       const slug = "awesome-drop-by-archipelago";
       const until = new Date("2021-01-01");
       await setLastUpdated({ client, slug, until, projectId });
