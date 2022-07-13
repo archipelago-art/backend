@@ -73,7 +73,7 @@ function imagePath(token, targetName, options) {
     slash: false,
     ...options,
   };
-  const { name } = imageInfo(token);
+  const { name: projectName } = imageInfo(token);
   const { tokenContract, onChainTokenId } = token;
   const idHigh = Math.floor(onChainTokenId / 1e6).toFixed(0);
   const idLow = Math.floor(onChainTokenId % 1e6)
