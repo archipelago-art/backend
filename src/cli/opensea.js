@@ -155,13 +155,16 @@ async function cliRemoveAllDroppedAsks(args) {
 }
 
 async function cliFocusedSync(args) {
-  if (args.length !== 1) {
-    throw new Error("usage: focused-sync slug");
+  if (args.length < 1 || args.length > 2) {
+    throw new Error("usage: focused-sync slug [timeoutMinutes]");
   }
   const slug = args[0];
+  const timeoutMinutes = args[1];
   const apiKey = process.env.OPENSEA_API_KEY;
   await withClient(async (client) => {
-    await focusedSync({ client, apiKey, slug });
+    await focusedSync({ client, apiKey, slug, timeoutMinutes });
+    log.info`Focused sync done; switching to removing dropped asks across all collections`;
+    await removeAllDroppedAsks({ client, apiKey });
   });
 }
 
