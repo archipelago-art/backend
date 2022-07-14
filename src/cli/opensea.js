@@ -12,7 +12,7 @@ const {
 } = require("../db/opensea/hacks");
 const log = require("../util/log")(__filename);
 const { ingestEvents } = require("../db/opensea/ingestEvents");
-const { syncLoop } = require("../opensea/sync");
+const { syncLoop, focusedSync } = require("../opensea/sync");
 const {
   deleteLastUpdated,
   setLastUpdated,
@@ -154,6 +154,17 @@ async function cliRemoveAllDroppedAsks(args) {
   throw new Error("deprecated: use remove-dropped-asks [slug] [tokenIndex]");
 }
 
+async function cliFocusedSync(args) {
+  if (args.length !== 1) {
+    throw new Error("usage: focused-sync slug");
+  }
+  const slug = args[0];
+  const apiKey = process.env.OPENSEA_API_KEY;
+  await withClient(async (client) => {
+    await focusedSync({ client, apiKey, slug });
+  });
+}
+
 async function cliFixFloors(args) {
   if (args.length > 2) {
     throw new Error("usage: fix-floors [limit] [projectSlug]");
@@ -240,6 +251,7 @@ async function cli(outerArgs, self) {
     ["sync-project", cliSyncProject],
     ["remove-dropped-asks", cliRemoveDroppedAsks],
     ["remove-all-dropped-asks", cliRemoveAllDroppedAsks],
+    ["focused-sync", cliFocusedSync],
   ];
   for (const [name, fn] of commands) {
     if (name === arg0) {
