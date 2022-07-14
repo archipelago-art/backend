@@ -783,6 +783,7 @@ describe("db/orderbook", () => {
             message: "0x",
             agreement: "0x",
             tokenId: theCube,
+            tokenIndex: 250,
           },
         ];
         expect(await floorAsk({ client, tokenId: theCube })).toEqual(askId);
