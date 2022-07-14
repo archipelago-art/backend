@@ -13,6 +13,7 @@ const {
   aggregateSalesByProject,
   lastSalesByProject,
   asksForProject,
+  unlistedOpenseaAsks,
 } = require("./api");
 const artblocks = require("../artblocks");
 const eth = require("../eth");
@@ -834,6 +835,44 @@ describe("db/opensea/api", () => {
             tokenId: archetypeTokenId2,
             saleTime: new Date("2023-01-03"),
             priceWei: "800",
+          },
+        ]);
+      })
+    );
+  });
+  describe("lookup for OS listing imports", () => {
+    it(
+      "reports the best OS ask with no archipelago ask",
+      withTestDb(async ({ client }) => {
+        const { archetypeTokenId1 } = await exampleProjectAndToken({ client });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({ tokenId: archetypeTokenId1, to: ijd });
+        await eth.addErc721Transfers({ client, transfers: [t] });
+        const a1 = ask({
+          id: "1",
+          tokenId: snapshots.THE_CUBE,
+          sellerAddress: ijd,
+          price: "5000",
+          listingTime: dateToOpenseaString(new Date("2022-01-01")),
+        });
+        const a2 = ask({
+          id: "2",
+          tokenId: snapshots.THE_CUBE,
+          sellerAddress: ijd,
+          price: "100",
+          listingTime: dateToOpenseaString(new Date("2022-02-02")),
+        });
+        await addAndIngest(client, [a1, a2]);
+        const res = await unlistedOpenseaAsks({ client, address: ijd });
+        expect(res).toEqual([
+          {
+            askId: "opensea:2",
+            tokenId: expect.any(String),
+            price: "100",
+            name: "Archetype",
+            slug: "archetype",
+            tokenIndex: 250,
+            deadline: null,
           },
         ]);
       })
