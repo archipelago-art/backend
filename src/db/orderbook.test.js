@@ -296,7 +296,7 @@ describe("db/orderbook", () => {
                 currency: "ETH",
                 price: String(price),
                 timestamp: expect.any(String),
-                expirationTime: deadline.toISOString(),
+                deadline: deadline.toISOString(),
               },
             },
           ])
@@ -369,7 +369,7 @@ describe("db/orderbook", () => {
                 currency: "ETH",
                 price: String(price),
                 timestamp: expect.any(String),
-                expirationTime: deadline.toISOString(),
+                deadline: deadline.toISOString(),
               },
             },
           ])
@@ -463,7 +463,7 @@ describe("db/orderbook", () => {
                 currency: "ETH",
                 price: String(price),
                 timestamp: expect.any(String),
-                expirationTime: deadline.toISOString(),
+                deadline: deadline.toISOString(),
               },
             },
           ])
@@ -548,7 +548,7 @@ describe("db/orderbook", () => {
                 currency: "ETH",
                 price: String(price),
                 timestamp: expect.any(String),
-                expirationTime: deadline.toISOString(),
+                deadline: deadline.toISOString(),
               },
             },
           ])
@@ -764,7 +764,7 @@ describe("db/orderbook", () => {
                 currency: "ETH",
                 price: String(price),
                 timestamp: expect.any(String),
-                expirationTime: deadline.toISOString(),
+                deadline: deadline.toISOString(),
               },
             },
           ])

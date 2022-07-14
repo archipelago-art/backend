@@ -248,7 +248,7 @@ async function sendBidActivityMessages({ client, bidIds }) {
           currency: "ETH",
           price: row.price,
           timestamp: row.createTime.toISOString(),
-          expirationTime: row.deadline && row.deadline.toISOString(),
+          deadline: row.deadline && row.deadline.toISOString(),
         },
       });
     } else {
@@ -567,7 +567,7 @@ async function addAsk({
       currency: "ETH",
       price: String(price),
       timestamp: createTime.toISOString(),
-      expirationTime: deadline && deadline.toISOString(),
+      deadline: deadline && deadline.toISOString(),
     },
   };
   await ws.sendMessages({ client, messages: [wsMessage] });

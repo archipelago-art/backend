@@ -118,7 +118,7 @@ describe("db/opensea/ingestEvents", () => {
             token_id AS "tokenId",
             seller_address AS "sellerAddress",
             listing_time AS "listingTime",
-            expiration_time AS "expirationTime",
+            expiration_time AS "deadline",
             price,
             currency_id AS "currencyId",
             active
@@ -431,7 +431,7 @@ describe("db/opensea/ingestEvents", () => {
           sellerAddress: ev.seller.address,
           price: ev.starting_price,
           currencyId: wellKnownCurrencies.eth.currencyId,
-          expirationTime: null,
+          deadline: null,
           active: true,
         });
         const messages = await ws.getMessages({
@@ -457,7 +457,7 @@ describe("db/opensea/ingestEvents", () => {
                 currency: "ETH",
                 price: ev.starting_price,
                 timestamp: "2022-03-01T00:00:00.000Z",
-                expirationTime: null,
+                deadline: null,
               },
             },
           ])
@@ -475,7 +475,7 @@ describe("db/opensea/ingestEvents", () => {
         await addAndIngest(client, [ev]);
         const theAsk = await getAsk(client, ev.id);
         const expectedExpiration = new Date(+theAsk.listingTime + 77 * 1000);
-        expect(theAsk.expirationTime).toEqual(expectedExpiration);
+        expect(theAsk.deadline).toEqual(expectedExpiration);
       })
     );
   });
