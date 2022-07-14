@@ -386,11 +386,11 @@ async function getArtblocksTokenIds({ client, tokenIds }) {
   const res = await client.query(
     `
     SELECT
-      token_id AS "tokenId",
-      artblocks_project_index * 1000000 + token_index AS "artblocksTokenId",
-      token_contract AS "tokenContract"
-    FROM tokens JOIN artblocks_projects USING (project_id)
-    WHERE token_id = ANY($1::tokenid[])
+      t.token_id AS "tokenId",
+      abp.artblocks_project_index * 1000000 + t.token_index AS "artblocksTokenId",
+      abp.token_contract AS "tokenContract"
+    FROM tokens t JOIN artblocks_projects abp USING (project_id)
+    WHERE t.token_id = ANY($1::tokenid[])
     `,
     [tokenIds]
   );
