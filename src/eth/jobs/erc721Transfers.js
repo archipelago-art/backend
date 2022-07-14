@@ -1,5 +1,6 @@
 const ethers = require("ethers");
 
+const contracts = require("../../api/contracts");
 const artblocks = require("../../db/artblocks");
 const eth = require("../../db/eth");
 const safeQueryFilter = require("../../db/safeQueryFilter");
@@ -96,7 +97,8 @@ async function getOrAddTokenId({
 
   if (
     tokenContract !== artblocks.CONTRACT_ARTBLOCKS_STANDARD &&
-    tokenContract !== artblocks.CONTRACT_ARTBLOCKS_LEGACY
+    tokenContract !== artblocks.CONTRACT_ARTBLOCKS_LEGACY &&
+    tokenContract !== contracts.brightMoments.address
   ) {
     throw new Error(
       `can't add new tokens for non-Art Blocks contract: ${tokenContract} #${onChainTokenId} (from ${blockHash})`
@@ -135,7 +137,7 @@ async function ensureArtblocksProjectExists({ client, spec }) {
   await artblocks.addProject({
     client,
     project,
-    tokenContract,
+    tokenContract: spec.tokenContract,
     alreadyInTransaction: true,
   });
 }
