@@ -1578,7 +1578,7 @@ describe("db/orderbook", () => {
             price: "1000",
             blockNumber: 1,
             tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-            onChainTokenId: String(snapshots.THE_CUBE),
+            onChainTokenId: String(snapshots.THE_CUBE.onChainTokenId),
           },
         ]);
       })
