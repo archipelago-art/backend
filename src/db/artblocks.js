@@ -61,9 +61,6 @@ async function addProject({
     projectIdRes.rows.length > 0
       ? projectIdRes.rows[0].id
       : newId(ObjectType.PROJECT);
-  console.warn(
-    `updating project: ${project.name} (${projectId}, ${tokenContract})`
-  );
   await client.query(
     `
     INSERT INTO projects (
