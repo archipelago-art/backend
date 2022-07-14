@@ -101,6 +101,9 @@ async function watchTokenTraitsQueueOnce(pool, ecache) {
           });
           log.debug`token ${tokenId} (Art Blocks #${artblocksTokenId}): found=${token.found}`;
           if (!token.found) {
+            const expirationTime =
+              Date.now() + FAILED_FETCH_DELAY_SECONDS * 1000;
+            ecache.add(tokenId, expirationTime);
             return { tokenId, rawTokenData: null };
           }
           return { tokenId, rawTokenData: token.raw };
