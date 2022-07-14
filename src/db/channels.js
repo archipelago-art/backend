@@ -47,7 +47,7 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //        currency: "ETH",
 //        price: string(wei),
 //        timestamp: string(iso8601),
-//        expirationTime: null | string(iso8601),
+//        deadline: null | string(iso8601),
 //      }
 //
 //  - For `type: "ASK_CANCELLED"`, `data` looks like:
@@ -74,7 +74,7 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //        currency: "ETH",
 //        price: string(wei),
 //        timestamp: string(iso8601),
-//        expirationTime: null | string(iso8601),
+//        deadline: null | string(iso8601),
 //      }
 //
 //  - For `type: "BID_CANCELLED"`, `data` looks like:
