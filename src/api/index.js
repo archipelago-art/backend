@@ -215,13 +215,14 @@ async function collection({ client, slug }) {
 }
 
 function feesForCollection(
-  type /*: "ARTBLOCKS" | "CRYPTOADZ" | "AUTOGLYPHS" */
+  type /*: "ARTBLOCKS" | "CRYPTOADZ" | "AUTOGLYPHS" | "BRIGHT_MOMENTS" */
 ) {
   const ARCHIPELAGO_PROTOCOL_PAYEE =
     "0x1fC12C9f68A6B0633Ba5897A40A8e61ed9274dC9";
   const ARCHIPELAGO_FRONTEND_PAYEE =
     "0xA76456bb6aBC50FB38e17c042026bc27a95C3314";
   const ARTBLOCKS_ROYALTY_ORACLE = "0x8A3F65eF24021D401815792c4B65676FBF90663c";
+  const PBAB_ROYALTY_ORACLE = "0xEB94e1Ae8d208CA8E5e25D415d326df34B41008D";
   // CrypToadz payee determined from:
   //   - the CrypToadz contract is 0x1CB1A5e65610AEFF2551A50f76a87a7d3fB649C6;
   //   - its `contractURI()` returns "ipfs://QmV1SZzgaCWGvExViNRaRYg396NgEknp4cmYihcrJSPhKm"
@@ -248,6 +249,11 @@ function feesForCollection(
       });
       break;
     case "BRIGHT_MOMENTS":
+      fees.push({
+        target: PBAB_ROYALTY_ORACLE,
+        micros: 75000,
+        static: false,
+      });
       break;
     case "CRYPTOADZ":
       fees.push({ target: CRYPTOADZ_PAYEE, micros: 25000, static: true });
