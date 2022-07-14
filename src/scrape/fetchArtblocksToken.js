@@ -31,6 +31,10 @@ function parseTokenData(text, { checkFeaturesPresent = true } = {}) {
   }
   try {
     const parsed = JSON.parse(text);
+    if (parsed.minted === false) {
+      // Bright moments provides json with found: false for unminted tokens.
+      return { found: false };
+    }
     if (!parsed.features) throw new Error(`no "features": ${text}`);
     const projectId = Number(parsed.project_id);
     if (isNaN(projectId))
