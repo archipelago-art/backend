@@ -94,19 +94,23 @@ async function removeDroppedAsks({ client, tokenId, apiKey }) {
   );
 }
 
-async function removeAllDroppedAsks({ client, apiKey, slug }) {
-  const tokensWithAsks = await client.query(
+async function tokensWithAsks({ client, slug }) {
+  const res = await client.query(
     `
     SELECT DISTINCT token_id AS id
     FROM opensea_asks
     JOIN projects USING (project_id)
-    WHERE active AND slug=$1 OR $1 IS NULL
+    WHERE active AND (slug=$1 OR $1 IS NULL)
     `,
     [slug]
   );
+  return res.rows.map((x) => x.id);
+}
 
-  for (const { id } of tokensWithAsks.rows) {
-    await removeDroppedAsks({ client, tokenId: id, apiKey });
+async function removeAllDroppedAsks({ client, apiKey, slug }) {
+  const tokensToCheck = await tokensWithAsks({ client, slug });
+  for (const tokenId of tokensToCheck) {
+    await removeDroppedAsks({ client, tokenId, apiKey });
   }
 }
 
@@ -168,4 +172,5 @@ module.exports = {
   downloadEventsForTokens,
   removeDroppedAsks,
   removeAllDroppedAsks,
+  tokensWithAsks,
 };
