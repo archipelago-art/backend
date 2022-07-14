@@ -8,6 +8,7 @@ const tokens = require("./tokens");
 const snapshots = require("../scrape/snapshots");
 const { parseProjectData } = require("../scrape/fetchArtblocksProject");
 const adHocPromise = require("../util/adHocPromise");
+const ws = require("./ws");
 
 describe("db/tokens", () => {
   const withTestDb = testDbProvider();
@@ -108,6 +109,8 @@ describe("db/tokens", () => {
             tokenId: tokenId1,
             slug: "archetype",
             tokenIndex: 250,
+            tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+            onChainTokenId: 23000250,
           },
         });
 
@@ -179,12 +182,53 @@ describe("db/tokens", () => {
         await tokens.setTokenTraits({
           client: client2,
           tokenId: tokenId2,
-          featureData: { Foo: "Bar" },
+          featureData: { Foo: "Bar", Baz: "Quux" },
         });
         await client2.query("COMMIT");
         expect(await getCommittedQueueSize()).toEqual(1);
         await client1.query("ROLLBACK");
         expect(await getCommittedQueueSize()).toEqual(1);
+
+        const messages = await ws.getMessages({
+          client: client2,
+          topic: "archetype",
+          since: new Date(0),
+        });
+        expect(messages).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "TRAITS_UPDATED",
+              topic: "archetype",
+              data: expect.objectContaining({
+                projectId: archetype,
+                tokenId: tokenId2,
+                slug: "archetype",
+                tokenIndex: 66,
+                traits: [
+                  // in insertion order...
+                  {
+                    featureId: expect.any(String),
+                    traitId: expect.any(String),
+                    featureName: "Foo",
+                    traitValue: "Bar",
+                    featureSlug: "foo",
+                    traitSlug: "bar",
+                  },
+                  {
+                    featureId: expect.any(String),
+                    traitId: expect.any(String),
+                    featureName: "Baz",
+                    traitValue: "Quux",
+                    featureSlug: "baz",
+                    traitSlug: "quux",
+                  },
+                ],
+              }),
+            },
+          ])
+        );
 
         await client1.query("BEGIN");
         await client2.query("BEGIN");
@@ -228,6 +272,8 @@ describe("db/tokens", () => {
           imageTemplate: "{baseUrl}/artblocks/{sz}/23/{hi}/{lo}",
           tokenIndex: 36,
           aspectRatio: 1,
+          onChainTokenId: "23000036",
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
         },
         {
           name: "Autoglyphs",
@@ -236,6 +282,8 @@ describe("db/tokens", () => {
           imageTemplate: "{baseUrl}/autoglyphs/svg/{lo}",
           tokenIndex: 2,
           aspectRatio: 1,
+          onChainTokenId: "2",
+          tokenContract: autoglyphs.CONTRACT_ADDRESS,
         },
       ]);
     })

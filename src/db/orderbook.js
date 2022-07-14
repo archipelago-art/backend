@@ -1078,20 +1078,22 @@ async function fillsForAddress({ client, address }) {
   const res = await client.query(
     `
     SELECT
-      p.project_id as "projectId",
+      p.project_id AS "projectId",
       p.name,
       p.slug,
-      p.image_template as "imageTemplate",
-      t.token_index as "tokenIndex",
-      t.token_id as "tokenId",
+      p.image_template AS "imageTemplate",
+      t.token_index AS "tokenIndex",
+      t.token_id AS "tokenId",
       f.buyer,
       f.seller,
       f.price,
-      f.block_number as "blockNumber",
-      f.trade_id as "tradeId"
+      f.block_number AS "blockNumber",
+      f.trade_id AS "tradeId",
+      t.on_chain_token_id AS "onChainTokenId",
+      t.token_contract AS "tokenContract"
     FROM fills f
-      JOIN projects p using (project_id)
-      JOIN tokens t using (token_id)
+      JOIN projects p USING (project_id)
+      JOIN tokens t USING (token_id)
     WHERE f.buyer = $1 OR f.seller = $1
     `,
     [hexToBuf(address)]
@@ -1108,6 +1110,8 @@ async function fillsForAddress({ client, address }) {
     seller: bufToAddress(r.seller),
     price: String(r.price),
     blockNumber: r.blockNumber,
+    onChainTokenId: r.onChainTokenId,
+    tokenContract: bufToAddress(r.tokenContract),
   }));
 }
 

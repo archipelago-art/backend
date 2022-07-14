@@ -16,6 +16,7 @@ const commands = [
   ["generate-image", require("./generateImage")],
   ["generate-squiggle", require("./generateSquiggle")],
   ["migrate-artblocks-images", require("./migrateArtblocksImages")],
+  ["find-missing-images", require("./findMissingImages")],
   ["token-feed-wss", require("./tokenFeedWss")],
   ["watch-cnf-queue", require("./watchCnfQueue")],
   ["watch-token-traits-queue", require("./watchTokenTraitsQueue")],

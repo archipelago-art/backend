@@ -1603,6 +1603,8 @@ describe("db/orderbook", () => {
             seller: alice,
             price: "1000",
             blockNumber: 1,
+            tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+            onChainTokenId: String(snapshots.THE_CUBE),
           },
         ]);
       })

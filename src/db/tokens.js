@@ -1,5 +1,6 @@
+const slugify = require("../util/slugify");
 const channels = require("./channels");
-const { hexToBuf } = require("./util");
+const { hexToBuf, bufToAddress } = require("./util");
 const { ObjectType, newId, newIds } = require("./id");
 const ws = require("./ws");
 
@@ -22,14 +23,16 @@ async function addBareToken({
     UPDATE projects
     SET num_tokens = num_tokens + 1
     WHERE project_id = $1
-    RETURNING slug
+    RETURNING slug, token_contract AS "tokenContract"
     `,
     [projectId]
   );
   if (updateProjectsRes.rowCount === 0) {
     throw new Error("no such project: " + projectId);
   }
-  const { slug } = updateProjectsRes.rows[0]; // for new token event
+  // Pluck project metadata for new token event.
+  const slug = updateProjectsRes.rows[0].slug;
+  const tokenContract = bufToAddress(updateProjectsRes.rows[0].tokenContract);
 
   const tokenId = newId(ObjectType.TOKEN);
   await client.query(
@@ -69,6 +72,8 @@ async function addBareToken({
       tokenId,
       slug,
       tokenIndex,
+      tokenContract,
+      onChainTokenId,
     },
   };
   await ws.sendMessages({ client, messages: [message] });
@@ -138,13 +143,20 @@ async function setTokenTraits({
 }) {
   if (!alreadyInTransaction) await client.query("BEGIN");
 
-  const projectIdRes = await client.query(
-    'SELECT project_id AS "projectId" FROM tokens WHERE token_id = $1::tokenid',
+  const tokenMetadataRes = await client.query(
+    `
+    SELECT
+      t.token_index AS "tokenIndex",
+      p.project_id AS "projectId",
+      p.slug AS "slug"
+    FROM tokens t JOIN projects p USING (project_id)
+    WHERE token_id = $1::tokenid
+    `,
     [tokenId]
   );
-  if (projectIdRes.rows.length === 0)
+  if (tokenMetadataRes.rows.length === 0)
     throw new Error("no such token: " + tokenId);
-  const { projectId } = projectIdRes.rows[0];
+  const { tokenIndex, projectId, slug } = tokenMetadataRes.rows[0];
 
   // Get relevant feature IDs, adding new features as necessary.
   if (typeof featureData !== "object" /* arrays are okay */) {
@@ -152,35 +164,36 @@ async function setTokenTraits({
       "expected object or array for features; got: " + featureData
     );
   }
+  // Arrays `featureNames`, `featureIds`, `traitValues`, and `traitIds`
+  // all use the same ordering: i.e., the trait with ID `traitIds[i]`
+  // belongs to the feature with ID `featureIds[i]`, etc.
   const featureNames = Object.keys(featureData);
   await client.query(
     `
     INSERT INTO features (project_id, feature_id, name)
-    VALUES (
-      $1::projectid,
-      unnest($2::featureid[]),
-      unnest($3::text[])
-    )
+    VALUES ($1::projectid, unnest($2::featureid[]), unnest($3::text[]))
     ON CONFLICT (project_id, name) DO NOTHING
     `,
     [projectId, newIds(featureNames.length, ObjectType.FEATURE), featureNames]
   );
   const featureIdsRes = await client.query(
     `
-    SELECT feature_id AS "id", name
+    SELECT feature_id AS "featureId"
     FROM features
-    WHERE project_id = $1 AND name = ANY($2::text[])
+    JOIN unnest($2::text[]) WITH ORDINALITY AS inputs(name, i) USING (name)
+    WHERE project_id = $1::projectid
+    ORDER BY i
     `,
     [projectId, featureNames]
   );
-  const featureIds = featureIdsRes.rows.map((r) => r.id);
+  const featureIds = featureIdsRes.rows.map((r) => r.featureId);
 
   // Get relevant trait IDs, adding new traits as necessary.
-  const traitValues = featureIdsRes.rows.map((r) => {
-    const traitValue = featureData[r.name];
+  const traitValues = featureNames.map((name) => {
+    const traitValue = featureData[name];
     if (typeof traitValue !== "string") {
       throw new Error(
-        `expected string trait value for feature "${r.name}"; got: ${traitValue}`
+        `expected string trait value for feature "${name}"; got: ${traitValue}`
       );
     }
     return traitValue;
@@ -188,31 +201,66 @@ async function setTokenTraits({
   await client.query(
     `
     INSERT INTO traits (feature_id, trait_id, value)
-    VALUES (
-      unnest($1::featureid[]),
-      unnest($2::traitid[]),
-      unnest($3::text[])
-    )
+    VALUES (unnest($1::featureid[]), unnest($2::traitid[]), unnest($3::text[]))
     ON CONFLICT (feature_id, value) DO NOTHING
     `,
     [featureIds, newIds(traitValues.length, ObjectType.TRAIT), traitValues]
   );
+  const traitIdsRes = await client.query(
+    `
+    SELECT trait_id AS "traitId"
+    FROM traits
+    JOIN
+      unnest($1::featureid[], $2::text[]) WITH ORDINALITY
+        AS inputs(feature_id, value, i)
+      USING (feature_id, value)
+    ORDER BY i
+    `,
+    [featureIds, traitValues]
+  );
+  const traitIds = traitIdsRes.rows.map((r) => r.traitId);
+  if (traitIds.length !== featureIds.length) {
+    throw new Error(`${traitIds.length} != ${featureIds.length}`);
+  }
 
   // Update token traits.
   await client.query("DELETE FROM trait_members WHERE token_id = $1", [
     tokenId,
   ]);
-  await client.query(
+  const insertTraitMembersRes = await client.query(
     `
-    INSERT INTO trait_members (trait_id, token_id)
-    SELECT trait_id, $1::tokenid
-    FROM traits
-    JOIN unnest($2::featureid[], $3::text[]) AS my_traits(feature_id, value)
-      USING (feature_id, value)
-    ON CONFLICT DO NOTHING
+    INSERT INTO trait_members (token_id, trait_id)
+    VALUES ($1::tokenid, unnest($2::traitid[]))
     `,
-    [tokenId, featureIds, traitValues]
+    [tokenId, traitIds]
   );
+
+  const message = {
+    type: "TRAITS_UPDATED",
+    topic: slug,
+    data: {
+      projectId,
+      tokenId,
+      slug,
+      tokenIndex,
+      traits: traitIds.map((traitId, i) => {
+        const featureId = featureIds[i];
+        const featureName = featureNames[i];
+        const traitValue = traitValues[i];
+        const featureSlug = slugify(featureName);
+        const traitSlug = slugify(traitValue);
+        return {
+          featureId,
+          traitId,
+          featureName,
+          traitValue,
+          featureSlug,
+          traitSlug,
+        };
+      }),
+    },
+  };
+  await ws.sendMessages({ client, messages: [message] });
 
   await client.query(
     `
@@ -277,7 +325,7 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
       token_index AS "tokenIndex",
       artist_name AS "artistName",
       aspect_ratio AS "aspectRatio",
-      token_contract AS "tokenContract",
+      tokens.token_contract AS "tokenContract",
       on_chain_token_id AS "onChainTokenId"
     FROM tokens
     JOIN
