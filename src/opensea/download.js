@@ -70,9 +70,22 @@ async function removeDroppedAsks({ client, tokenId, apiKey }) {
     [tokenId]
   );
   const asks = res2.rows;
-  const { listings: legacyListings, seaport_listings: seaportListings } =
-    await fetchListings({ contractAddress, onChainTokenId, apiKey });
+  let listingsResponse;
+  try {
+    listingsResponse = await fetchListings({
+      contractAddress,
+      onChainTokenId,
+      apiKey,
+    });
+  } catch (e) {
+    log.warn`Failed to get listings for ${slug} #${tokenIndex}: ${JSON.stringify(
+      e
+    )}}`;
+    return;
+  }
   const validPrices = new Set();
+  const { listings: legacyListings, seaport_listings: seaportListings } =
+    listingsResponse;
   for (const { base_price: price } of legacyListings) {
     validPrices.add(price);
   }
