@@ -14,7 +14,7 @@ describe("scrape/fetchArtblocksToken", () => {
       found: true,
       raw: rawCube,
       parsed: expect.objectContaining({
-        tokenID: String(snapshots.THE_CUBE),
+        tokenID: String(snapshots.THE_CUBE.onChainTokenId),
         name: "Archetype #250",
         features: {
           Scene: "Cube",

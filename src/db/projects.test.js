@@ -9,22 +9,13 @@ describe("db/projects", () => {
   const withTestDb = testDbProvider();
   const sc = new snapshots.SnapshotCache();
 
-  async function addProject(client, projectId) {
-    const project = await parseProjectData(
-      projectId,
-      await sc.project(projectId)
-    );
-    const id = await artblocks.addProject({ client, project });
-    return { project, id };
-  }
-
   describe("projectIdForSlug", () => {
     it(
       "can retrieve a project id by slug",
       withTestDb(async ({ client }) => {
-        const { project, id } = await addProject(client, [snapshots.ARCHETYPE]);
+        const { projectId } = await sc.addProject(client, snapshots.ARCHETYPE);
         expect(await projectIdForSlug({ client, slug: "archetype" })).toEqual(
-          id
+          projectId
         );
       })
     );

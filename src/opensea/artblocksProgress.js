@@ -6,7 +6,7 @@ const {
   setLastUpdated,
 } = require("../db/opensea/progress");
 const {
-  getProjectIndices,
+  getProjectSpecs,
   ARTBLOCKS_CONTRACT_THRESHOLD,
   CONTRACT_ARTBLOCKS_STANDARD,
   CONTRACT_ARTBLOCKS_LEGACY,
@@ -34,26 +34,28 @@ const PURGATORY_SLUG = "qxj0iejsb2nrcybqdxjnyxrvcnk";
  * for this collection (or null if never downloaded).
  */
 async function initializeArtblocksProgress({ client, apiKey }) {
-  const projects = await getProjectIndices({ client });
+  const projects = await getProjectSpecs({ client });
   for (project of projects) {
     const lastUpdated = await getLastUpdated({
       client,
       projectId: project.projectId,
     });
     if (lastUpdated == null) {
-      const slug = await getSlugForArtblocksProject(
+      const slug = await getOpenseaCollectionSlug({
+        contractAddress: project.tokenContract,
+        tokenId: project.projectIndex * 1e6,
         apiKey,
-        project.artblocksProjectIndex
-      );
+      });
+      const pretty = `${project.tokenContract}-${project.projectIndex}`;
       if (slug === PURGATORY_SLUG) {
-        log.warn`got purgatory slug ${slug} for artblocks project with idx ${project.artblocksProjectIndex} (id: ${project.projectId}; skipping`;
+        log.warn`got purgatory slug ${slug} for ${pretty}; skipping`;
         continue;
       }
       if (slug == null) {
-        log.warn`can't find slug for artblocks project with idx ${project.artblocksProjectIndex} (id: ${project.projectId})`;
+        log.warn`can't find slug for ${pretty}`;
         continue;
       }
-      log.info`setting slug ${slug} for project with index ${project.artblocksProjectIndex} (id: ${project.projectId})`;
+      log.info`setting slug ${slug} for ${pretty}`;
       await setLastUpdated({
         client,
         projectId: project.projectId,
@@ -71,11 +73,11 @@ const slugParser = C.fmap(
   (x) => x.collection.slug
 );
 
-async function getSlugForArtblocksProject(apiKey, artblocksProjectIndex) {
-  const contractAddress =
-    artblocksProjectIndex < ARTBLOCKS_CONTRACT_THRESHOLD
-      ? CONTRACT_ARTBLOCKS_LEGACY
-      : CONTRACT_ARTBLOCKS_STANDARD;
+async function getSlugForArtblocksProject(
+  apiKey,
+  artblocksProjectIndex,
+  contractAddress
+) {
   const tokenId = artblocksProjectIndex * 1e6;
   return getOpenseaCollectionSlug({ apiKey, tokenId, contractAddress });
 }

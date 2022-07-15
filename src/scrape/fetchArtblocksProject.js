@@ -17,23 +17,18 @@ query GetProject($projectId: Int!, $contracts: [String!]) {
 }
 `;
 
-// These must be all lowercase.
-const CONTRACT_ARTBLOCKS_LEGACY = "0x059edd72cd353df5106d2b9cc5ab83a52287ac3a";
-const CONTRACT_ARTBLOCKS_STANDARD =
-  "0xa7d8d9ef8d8ce8992df33d8b8cf4aebabd5bd270";
-
-function normalizeProjectId(projectId) {
+function normalizeProjectIndex(projectId) {
   const result = Number.parseInt(projectId, 10);
   if (Number.isNaN(result)) throw new Error("Invalid project ID: " + projectId);
   return result;
 }
 
-async function fetchProjectText(projectId) {
+async function fetchProjectText(projectSpec) {
   const payload = {
     query: GQL_PROJECT_QUERY,
     variables: {
-      projectId: normalizeProjectId(projectId),
-      contracts: [CONTRACT_ARTBLOCKS_LEGACY, CONTRACT_ARTBLOCKS_STANDARD],
+      projectId: normalizeProjectIndex(projectSpec.projectIndex),
+      contracts: [projectSpec.tokenContract.toLowerCase()],
     },
   };
   const res = await fetchWithRetries(THEGRAPH_API, {
@@ -44,7 +39,7 @@ async function fetchProjectText(projectId) {
   return res.text;
 }
 
-function parseProjectData(projectId, text) {
+function parseProjectData(projectSpec, text) {
   const json = JSON.parse(text);
   if (
     typeof json !== "object" ||
@@ -61,8 +56,8 @@ function parseProjectData(projectId, text) {
   }
   const project = projects[0];
 
-  projectId = normalizeProjectId(projectId);
-  const returnedProjectId = normalizeProjectId(project.projectId);
+  const projectId = normalizeProjectIndex(projectSpec.projectIndex);
+  const returnedProjectId = normalizeProjectIndex(project.projectId);
   if (projectId !== returnedProjectId) {
     throw new Error(
       `wrong project: ` +
@@ -88,8 +83,8 @@ function parseProjectData(projectId, text) {
   };
 }
 
-async function fetchProjectData(projectId) {
-  return parseProjectData(projectId, await fetchProjectText(projectId));
+async function fetchProjectData(projectSpec) {
+  return parseProjectData(projectSpec, await fetchProjectText(projectSpec));
 }
 
 module.exports = {

@@ -710,6 +710,31 @@ async function lastFillsByProject({ client, projectId }) {
   return res.rows;
 }
 
+async function getArchipelagoVolume({ client, projectId, from, to }) {
+  console.log("from/to", from, to);
+  const res = await client.query(
+    `
+    SELECT
+      p.slug,
+      SUM(f.price) AS "totalVolume"
+    FROM fills f
+      JOIN projects p using (project_id)
+      JOIN eth_blocks b using (block_hash)
+    WHERE
+      (p.project_id = $1 OR $1 IS NULL)
+      AND (b.block_timestamp >= $2 OR $2 IS NULL)
+      AND (b.block_timestamp < $3 OR $3 IS NULL)
+    GROUP BY p.slug
+    ORDER BY p.slug;
+    `,
+    [projectId, from, to]
+  );
+  return res.rows.reduce(
+    (obj, item) => ({ ...obj, [item.slug]: item.totalVolume }),
+    {}
+  );
+}
+
 async function addErc20Deltas({
   client,
   currencyId,
@@ -910,6 +935,7 @@ module.exports = {
   deleteFills,
   fillsByToken,
   lastFillsByProject,
+  getArchipelagoVolume,
 
   addErc20Deltas,
   deleteErc20Deltas,

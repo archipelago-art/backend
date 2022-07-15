@@ -77,34 +77,13 @@ describe("db/orderbook", () => {
   const sc = new snapshots.SnapshotCache();
 
   async function addProjects(client, projectIds) {
-    const projects = await Promise.all(
-      projectIds.map(async (id) => parseProjectData(id, await sc.project(id)))
-    );
-    const result = [];
-    for (const project of projects) {
-      const id = await artblocks.addProject({ client, project });
-      result.push(id);
-    }
-    return result;
+    const results = await sc.addProjects(client, projectIds);
+    return results.map((x) => x.projectId);
   }
 
   async function addTokens(client, artblocksTokenIds) {
-    const tokens = await Promise.all(
-      artblocksTokenIds.map(async (artblocksTokenId) => ({
-        artblocksTokenId,
-        rawTokenData: await sc.token(artblocksTokenId),
-      }))
-    );
-    const result = [];
-    for (const { artblocksTokenId, rawTokenData } of tokens) {
-      const id = await artblocks.addToken({
-        client,
-        artblocksTokenId,
-        rawTokenData,
-      });
-      result.push(id);
-    }
-    return result;
+    const results = await sc.addTokens(client, artblocksTokenIds);
+    return results.map((x) => x.tokenId);
   }
 
   async function findTraitId(client, tokenId, featureName, traitValue) {
@@ -179,7 +158,7 @@ describe("db/orderbook", () => {
           extraRoyalties: [],
           trait: ethers.utils.defaultAbiCoder.encode(
             ["uint256"],
-            [snapshots.THE_CUBE]
+            [snapshots.THE_CUBE.onChainTokenId]
           ),
           traitOracle: ethers.constants.AddressZero,
         };
@@ -1561,8 +1540,8 @@ describe("db/orderbook", () => {
 
         const aliceSellsCube = {
           tradeId: tradeId1,
-          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-          onChainTokenId: snapshots.THE_CUBE,
+          tokenContract: snapshots.THE_CUBE.tokenContract,
+          onChainTokenId: snapshots.THE_CUBE.onChainTokenId,
           buyer: bob,
           seller: alice,
           currency: wellKnownCurrencies.weth9.address,
@@ -1575,8 +1554,8 @@ describe("db/orderbook", () => {
         };
         const bobSellsCube = {
           tradeId: tradeId2,
-          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-          onChainTokenId: snapshots.THE_CUBE,
+          tokenContract: snapshots.THE_CUBE.tokenContract,
+          onChainTokenId: snapshots.THE_CUBE.onChainTokenId,
           buyer: charlie,
           seller: bob,
           currency: wellKnownCurrencies.weth9.address,
@@ -1604,7 +1583,7 @@ describe("db/orderbook", () => {
             price: "1000",
             blockNumber: 1,
             tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-            onChainTokenId: String(snapshots.THE_CUBE),
+            onChainTokenId: String(snapshots.THE_CUBE.onChainTokenId),
           },
         ]);
       })

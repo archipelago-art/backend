@@ -1,5 +1,7 @@
 const artblocks = require("../../db/artblocks");
 
+const contracts = require("../../api/contracts");
+
 const makeEchoJob = require("./echo");
 const makeErc721TransfersJob = require("./erc721Transfers");
 const makeFillsJob = require("./fills");
@@ -102,6 +104,11 @@ const JOB_SPECS = [
     type: "weth9Transfers",
     args: {},
     startBlock: 4719568,
+  },
+  {
+    type: "erc721Transfers",
+    args: { address: contracts.brightMoments.address },
+    startBlock: 14484184,
   },
   // ...
 ];

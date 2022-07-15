@@ -14,40 +14,10 @@ describe("db/tokens", () => {
   const withTestDb = testDbProvider();
   const sc = new snapshots.SnapshotCache();
 
-  async function addProjects(client, projectIds) {
-    const projects = await Promise.all(
-      projectIds.map(async (id) => parseProjectData(id, await sc.project(id)))
-    );
-    const result = [];
-    for (const project of projects) {
-      const id = await artblocks.addProject({ client, project });
-      result.push({ project, id });
-    }
-    return result;
-  }
-  async function addTokens(client, tokenIds) {
-    const tokens = await Promise.all(
-      tokenIds.map(async (id) => ({
-        artblocksTokenId: id,
-        rawTokenData: await sc.token(id),
-      }))
-    );
-    const result = [];
-    for (const { artblocksTokenId, rawTokenData } of tokens) {
-      const id = await artblocks.addToken({
-        client,
-        artblocksTokenId,
-        rawTokenData,
-      });
-      result.push({ artblocksTokenId, rawTokenData, id });
-    }
-    return result;
-  }
-
   it(
     "adds tokens to an existing project",
     withTestDb(async ({ pool, client }) => {
-      const [{ id: archetype }] = await addProjects(client, [
+      const [{ projectId: archetype }] = await sc.addProjects(client, [
         snapshots.ARCHETYPE,
       ]);
       async function getTokenCount() {
@@ -93,7 +63,7 @@ describe("db/tokens", () => {
           client,
           projectId: archetype,
           tokenIndex: 250,
-          onChainTokenId: snapshots.THE_CUBE,
+          onChainTokenId: snapshots.THE_CUBE.onChainTokenId,
         });
         expect(JSON.parse(await newTokensEvent.promise)).toEqual({
           projectId: archetype,
@@ -120,24 +90,24 @@ describe("db/tokens", () => {
       expect(tokenId1).toEqual(expect.any(String));
       expect(await getTokenCount()).toEqual(1);
 
-      expect(await getTokenId(snapshots.ARCH_66)).toEqual(null);
+      expect(await getTokenId(snapshots.ARCH_66.onChainTokenId)).toEqual(null);
       const tokenId2 = await tokens.addBareToken({
         client,
         projectId: archetype,
         tokenIndex: 66,
-        onChainTokenId: snapshots.ARCH_66,
+        onChainTokenId: snapshots.ARCH_66.onChainTokenId,
       });
       expect(await getTokenCount()).toEqual(2);
       expect(tokenId2).toEqual(expect.any(String));
       expect(tokenId1).not.toEqual(tokenId2);
-      expect(await getTokenId(snapshots.ARCH_66)).toEqual(tokenId2);
+      expect(await getTokenId(snapshots.ARCH_66.onChainTokenId)).toEqual(tokenId2);
     })
   );
 
   it(
     "claims entries from the token-traits queue",
     withTestDb(async ({ client: client1, pool }) => {
-      const [{ id: archetype }] = await addProjects(client1, [
+      const [{ projectId: archetype }] = await sc.addProjects(client1, [
         snapshots.ARCHETYPE,
       ]);
       async function getCommittedQueueSize() {
@@ -151,13 +121,13 @@ describe("db/tokens", () => {
         client: client1,
         projectId: archetype,
         tokenIndex: 250,
-        onChainTokenId: snapshots.THE_CUBE,
+        onChainTokenId: snapshots.THE_CUBE.onChainTokenId,
       });
       const tokenId2 = await tokens.addBareToken({
         client: client1,
         projectId: archetype,
         tokenIndex: 66,
-        onChainTokenId: snapshots.ARCH_66,
+        onChainTokenId: snapshots.ARCH_66.onChainTokenId,
       });
       expect(await getCommittedQueueSize()).toEqual(2);
 
@@ -253,15 +223,21 @@ describe("db/tokens", () => {
   it(
     "supports tokenSummariesByOnChainId",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
+      await sc.addProjects(client, [snapshots.ARCHETYPE]);
       await autoglyphs.addAutoglyphs({ client });
-      const tokenId1 = snapshots.ARCH_TRIPTYCH_1;
-      await addTokens(client, [tokenId1]);
+      const tokenSpec = snapshots.ARCH_TRIPTYCH_1;
+      await sc.addTokens(client, [tokenSpec]);
       const res = await tokens.tokenSummariesByOnChainId({
         client,
         tokens: [
-          { address: artblocks.CONTRACT_ARTBLOCKS_STANDARD, tokenId: tokenId1 },
-          { address: autoglyphs.CONTRACT_ADDRESS, tokenId: 2 },
+          {
+            address: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+            tokenId: tokenSpec.onChainTokenId,
+          },
+          {
+            address: autoglyphs.CONTRACT_ADDRESS,
+            tokenId: 2,
+          },
         ],
       });
       expect(res).toEqual([
@@ -291,9 +267,11 @@ describe("db/tokens", () => {
   it(
     "supports tokenInfoById",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
+      await sc.addProjects(client, [snapshots.ARCHETYPE]);
       const tokenId = snapshots.ARCH_TRIPTYCH_1;
-      const [{ id: archipelagoTokenId }] = await addTokens(client, [tokenId]);
+      const [{ tokenId: archipelagoTokenId }] = await sc.addTokens(client, [
+        tokenId,
+      ]);
       const res = await tokens.tokenInfoById({
         client,
         tokenIds: [archipelagoTokenId],
@@ -310,9 +288,11 @@ describe("db/tokens", () => {
   it(
     "adds tokens to the image_ingestion_queue",
     withTestDb(async ({ client }) => {
-      await addProjects(client, [snapshots.ARCHETYPE]);
+      await sc.addProjects(client, [snapshots.ARCHETYPE]);
       const tokenId = snapshots.ARCH_TRIPTYCH_1;
-      const [{ id: archipelagoTokenId }] = await addTokens(client, [tokenId]);
+      const [{ tokenId: archipelagoTokenId }] = await sc.addTokens(client, [
+        tokenId,
+      ]);
       const res = await client.query(`
         SELECT token_id AS "tokenId", create_time AS "createTime"
         FROM image_ingestion_queue

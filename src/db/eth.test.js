@@ -219,33 +219,13 @@ describe("db/eth", () => {
   );
 
   async function addProjects(client, projectIds) {
-    const projects = await Promise.all(
-      projectIds.map(async (id) => parseProjectData(id, await sc.project(id)))
-    );
-    const result = [];
-    for (const project of projects) {
-      const id = await artblocks.addProject({ client, project });
-      result.push(id);
-    }
-    return result;
+    const results = await sc.addProjects(client, projectIds);
+    return results.map((x) => x.projectId);
   }
-  async function addTokens(client, tokenIds) {
-    const tokens = await Promise.all(
-      tokenIds.map(async (id) => ({
-        artblocksTokenId: id,
-        rawTokenData: await sc.token(id),
-      }))
-    );
-    const result = [];
-    for (const { artblocksTokenId, rawTokenData } of tokens) {
-      const id = await artblocks.addToken({
-        client,
-        artblocksTokenId,
-        rawTokenData,
-      });
-      result.push(id);
-    }
-    return result;
+
+  async function addTokens(client, artblocksTokenIds) {
+    const results = await sc.addTokens(client, artblocksTokenIds);
+    return results.map((x) => x.tokenId);
   }
 
   function dummyTx(id) {
@@ -555,8 +535,8 @@ describe("db/eth", () => {
 
         const aliceSellsCube = {
           tradeId: tradeId1,
-          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-          onChainTokenId: snapshots.THE_CUBE,
+          tokenContract: snapshots.THE_CUBE.tokenContract,
+          onChainTokenId: snapshots.THE_CUBE.onChainTokenId,
           buyer: bob.toLowerCase(),
           seller: alice.toLowerCase(),
           currency: wellKnownCurrencies.weth9.address,
@@ -653,6 +633,73 @@ describe("db/eth", () => {
         });
         expect(n).toEqual(1);
         expect(await getTradeIds()).toEqual([tradeId1]);
+      })
+    );
+    it.only(
+      "tracks Archipelago volume",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
+
+        const alice = dummyAddress("alice");
+        const bob = dummyAddress("bob");
+        const market = dummyAddress("market");
+
+        const [tradeId1, tradeId2] = [
+          ethers.utils.id("tradeid:1"),
+          ethers.utils.id("tradeid:2"),
+        ].sort();
+
+        const blocks = realBlocks();
+        await eth.addBlocks({ client, blocks });
+
+        const aliceSellsCube = {
+          tradeId: tradeId1,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+          onChainTokenId: snapshots.THE_CUBE,
+          buyer: bob.toLowerCase(),
+          seller: alice.toLowerCase(),
+          currency: wellKnownCurrencies.weth9.address,
+          price: "1000",
+          proceeds: "995",
+          cost: "1005",
+          blockHash: blocks[1].hash,
+          logIndex: 1,
+          transactionHash: dummyTx(1),
+        };
+        const bobSellsCube = {
+          tradeId: tradeId2,
+          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+          onChainTokenId: snapshots.THE_CUBE,
+          buyer: alice,
+          seller: bob,
+          currency: wellKnownCurrencies.weth9.address,
+          price: "2345",
+          proceeds: "2345",
+          cost: "2345",
+          blockHash: blocks[2].hash,
+          logIndex: 2,
+          transactionHash: dummyTx(2),
+        };
+        const fills = [aliceSellsCube, bobSellsCube];
+        await eth.addFills({ client, marketContract: market, fills });
+        expect(
+          await eth.getArchipelagoVolume({ client, projectId: archetype })
+        ).toEqual({ archetype: "3345" });
+        expect(
+          await eth.getArchipelagoVolume({
+            client,
+            projectId: archetype,
+            from: new Date(1438269988000),
+          })
+        ).toEqual({ archetype: "3345" });
+        expect(
+          await eth.getArchipelagoVolume({
+            client,
+            projectId: archetype,
+            to: new Date(0),
+          })
+        ).toEqual({});
       })
     );
   });

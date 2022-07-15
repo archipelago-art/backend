@@ -13,6 +13,7 @@ const {
   aggregateSalesByProject,
   lastSalesByProject,
   asksForProject,
+  unlistedOpenseaAsks,
 } = require("./api");
 const artblocks = require("../artblocks");
 const eth = require("../eth");
@@ -50,8 +51,7 @@ describe("db/opensea/api", () => {
 
   function sale({
     id = "2",
-    address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-    tokenId = snapshots.THE_CUBE,
+    tokenSpec = snapshots.THE_CUBE,
     listingTime = listed,
     toAddress = dandelion,
     fromAddress = wchargin,
@@ -60,6 +60,8 @@ describe("db/opensea/api", () => {
     transactionHash = "0xef7e95ce1c085611cb5186a55cec026cd3f2f266c1f581bb6a9e9258cf3019f4",
     currency = wellKnownCurrencies.eth,
   } = {}) {
+    const address = tokenSpec.tokenContract;
+    const tokenId = tokenSpec.onChainTokenId;
     return {
       asset: { address, token_id: String(tokenId) },
       id,
@@ -78,14 +80,15 @@ describe("db/opensea/api", () => {
 
   function ask({
     id = "3",
-    address = artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-    tokenId = snapshots.THE_CUBE,
+    tokenSpec = snapshots.THE_CUBE,
     listingTime = listed,
     duration = null,
     sellerAddress = wchargin,
     price = "1000000000000000000",
     currency = wellKnownCurrencies.eth,
   } = {}) {
+    const address = tokenSpec.tokenContract;
+    const tokenId = tokenSpec.onChainTokenId;
     return {
       asset: { address, token_id: String(tokenId) },
       id,
@@ -126,42 +129,19 @@ describe("db/opensea/api", () => {
   }
 
   async function exampleProjectAndToken({ client }) {
-    const archetypeProject = parseProjectData(
-      snapshots.ARCHETYPE,
-      await sc.project(snapshots.ARCHETYPE)
-    );
-    const archetypeId = await artblocks.addProject({
-      client,
-      project: archetypeProject,
-    });
-    const archetypeTokenId1 = await artblocks.addToken({
-      client,
-      artblocksTokenId: snapshots.THE_CUBE,
-      rawTokenData: await sc.token(snapshots.THE_CUBE),
-    });
-    const archetypeTokenId2 = await artblocks.addToken({
-      client,
-      artblocksTokenId: snapshots.ARCH_TRIPTYCH_1,
-      rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_1),
-    });
-    const archetypeTokenId3 = await artblocks.addToken({
-      client,
-      artblocksTokenId: snapshots.ARCH_TRIPTYCH_2,
-      rawTokenData: await sc.token(snapshots.ARCH_TRIPTYCH_2),
-    });
-    const squigglesProject = parseProjectData(
-      snapshots.SQUIGGLES,
-      await sc.project(snapshots.SQUIGGLES)
-    );
-    const squigglesId = await artblocks.addProject({
-      client,
-      project: squigglesProject,
-    });
-    const squiggleTokenId = await artblocks.addToken({
-      client,
-      artblocksTokenId: snapshots.PERFECT_CHROMATIC,
-      rawTokenData: await sc.token(snapshots.PERFECT_CHROMATIC),
-    });
+    const [{ projectId: archetypeId }, { projectId: squigglesId }] =
+      await sc.addProjects(client, [snapshots.ARCHETYPE, snapshots.SQUIGGLES]);
+    const [
+      { tokenId: archetypeTokenId1 },
+      { tokenId: archetypeTokenId2 },
+      { tokenId: archetypeTokenId3 },
+      { tokenId: squiggleTokenId },
+    ] = await sc.addTokens(client, [
+      snapshots.THE_CUBE,
+      snapshots.ARCH_TRIPTYCH_1,
+      snapshots.ARCH_TRIPTYCH_2,
+      snapshots.PERFECT_CHROMATIC,
+    ]);
     return {
       archetypeId,
       archetypeTokenId1,
@@ -385,19 +365,19 @@ describe("db/opensea/api", () => {
         const a1 = ask({
           id: "1",
           price: "1000",
-          tokenId: snapshots.THE_CUBE,
+          tokenSpec: snapshots.THE_CUBE,
           sellerAddress: dandelion,
         });
         const a2 = ask({
           id: "2",
           price: "950",
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_1,
           sellerAddress: dandelion,
         });
         const a3 = ask({
           id: "3",
           price: "55",
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_1,
           sellerAddress: ijd,
         });
         await eth.addBlock({ client, block: genesis() });
@@ -574,20 +554,20 @@ describe("db/opensea/api", () => {
         const a1 = ask({
           id: "1",
           price: "500",
-          tokenId: snapshots.THE_CUBE,
+          tokenSpec: snapshots.THE_CUBE,
           listingTime: dateToOpenseaString(new Date("2023-01-01")),
         });
         const a2 = ask({
           id: "2",
           price: "1000",
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_1,
           sellerAddress: dandelion, // wrong owner
           listingTime: dateToOpenseaString(new Date("2023-02-02")),
         });
         const a3 = ask({
           id: "3",
           price: "900",
-          tokenId: snapshots.ARCH_TRIPTYCH_2,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_2,
           listingTime: dateToOpenseaString(new Date("2023-03-03")),
         });
         await addAndIngest(client, [a1, a2, a3]);
@@ -677,12 +657,12 @@ describe("db/opensea/api", () => {
         const { archetypeId } = await exampleProjectAndToken({ client });
         const s1 = sale({
           id: "1",
-          tokenId: snapshots.THE_CUBE,
+          tokenSpec: snapshots.THE_CUBE,
           price: "1000",
         });
         const s2 = sale({
           id: "2",
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_1,
           price: "500",
         });
         await addAndIngest(client, [s1, s2]);
@@ -697,19 +677,19 @@ describe("db/opensea/api", () => {
         const { archetypeId } = await exampleProjectAndToken({ client });
         const s1 = sale({
           id: "1",
-          tokenId: snapshots.THE_CUBE,
+          tokenSpec: snapshots.THE_CUBE,
           price: "1000",
           currency: wellKnownCurrencies.eth,
         });
         const s2 = sale({
           id: "2",
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_1,
           price: "500",
           currency: wellKnownCurrencies.weth9,
         });
         const s3 = sale({
           id: "3",
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_1,
           price: "99",
           currency: wellKnownCurrencies.usdc,
         });
@@ -725,14 +705,14 @@ describe("db/opensea/api", () => {
         const { archetypeId } = await exampleProjectAndToken({ client });
         const s1 = sale({
           id: "1",
-          tokenId: snapshots.THE_CUBE,
+          tokenSpec: snapshots.THE_CUBE,
           price: "1000",
           currency: wellKnownCurrencies.eth,
           transactionTimestamp: "2020-01-01",
         });
         const s2 = sale({
           id: "2",
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_1,
           price: "500",
           currency: wellKnownCurrencies.weth9,
           transactionTimestamp: "2023-02-02",
@@ -754,18 +734,17 @@ describe("db/opensea/api", () => {
         });
         const s1 = sale({
           id: "1",
-          tokenId: snapshots.THE_CUBE,
+          tokenSpec: snapshots.THE_CUBE,
           price: "1000",
         });
         const s2 = sale({
           id: "2",
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_1,
           price: "500",
         });
         const s3 = sale({
           id: "3",
-          tokenId: snapshots.PERFECT_CHROMATIC,
-          address: artblocks.CONTRACT_ARTBLOCKS_LEGACY,
+          tokenSpec: snapshots.PERFECT_CHROMATIC,
           price: "99",
         });
         await addAndIngest(client, [s1, s2, s3]);
@@ -797,21 +776,21 @@ describe("db/opensea/api", () => {
           await exampleProjectAndToken({ client });
         const s1 = sale({
           id: "1",
-          tokenId: snapshots.THE_CUBE,
+          tokenSpec: snapshots.THE_CUBE,
           price: "1000",
           transactionTimestamp: dateToOpenseaString(new Date("2023-01-01")),
           currency: wellKnownCurrencies.eth,
         });
         const s2 = sale({
           id: "2",
-          tokenId: snapshots.THE_CUBE,
+          tokenSpec: snapshots.THE_CUBE,
           price: "1200",
           transactionTimestamp: dateToOpenseaString(new Date("2023-01-02")),
           currency: wellKnownCurrencies.weth9,
         });
         const s3 = sale({
           id: "3",
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_1,
           price: "800",
           transactionTimestamp: dateToOpenseaString(new Date("2023-01-03")),
           currency: wellKnownCurrencies.eth,
@@ -819,7 +798,7 @@ describe("db/opensea/api", () => {
         // Irrelevant sale (wrong currency).
         const s4 = sale({
           id: "4",
-          tokenId: snapshots.ARCH_TRIPTYCH_1,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_1,
           price: "11111",
           transactionTimestamp: dateToOpenseaString(new Date("2023-01-04")),
           currency: wellKnownCurrencies.usdc, // sale will be ignored
@@ -827,7 +806,7 @@ describe("db/opensea/api", () => {
         // Irrelevant sale (wrong currency). This token has no relevant sales.
         const s5 = sale({
           id: "5",
-          tokenId: snapshots.ARCH_TRIPTYCH_2,
+          tokenSpec: snapshots.ARCH_TRIPTYCH_2,
           price: "22222",
           transactionTimestamp: dateToOpenseaString(new Date("2023-01-05")),
           currency: wellKnownCurrencies.usdc,
@@ -835,7 +814,7 @@ describe("db/opensea/api", () => {
         // Irrelevant sale (wrong project).
         const s6 = sale({
           id: "6",
-          tokenId: snapshots.PERFECT_CHROMATIC,
+          tokenSpec: snapshots.PERFECT_CHROMATIC,
           price: "75837583",
           transactionTimestamp: dateToOpenseaString(new Date("2023-01-06")),
           currency: wellKnownCurrencies.eth,
@@ -856,6 +835,44 @@ describe("db/opensea/api", () => {
             tokenId: archetypeTokenId2,
             saleTime: new Date("2023-01-03"),
             priceWei: "800",
+          },
+        ]);
+      })
+    );
+  });
+  describe("lookup for OS listing imports", () => {
+    it(
+      "reports the best OS ask with no archipelago ask",
+      withTestDb(async ({ client }) => {
+        const { archetypeTokenId1 } = await exampleProjectAndToken({ client });
+        await eth.addBlock({ client, block: genesis() });
+        const t = transfer({ tokenId: archetypeTokenId1, to: ijd });
+        await eth.addErc721Transfers({ client, transfers: [t] });
+        const a1 = ask({
+          id: "1",
+          tokenId: snapshots.THE_CUBE,
+          sellerAddress: ijd,
+          price: "5000",
+          listingTime: dateToOpenseaString(new Date("2022-01-01")),
+        });
+        const a2 = ask({
+          id: "2",
+          tokenId: snapshots.THE_CUBE,
+          sellerAddress: ijd,
+          price: "100",
+          listingTime: dateToOpenseaString(new Date("2022-02-02")),
+        });
+        await addAndIngest(client, [a1, a2]);
+        const res = await unlistedOpenseaAsks({ client, address: ijd });
+        expect(res).toEqual([
+          {
+            askId: "opensea:2",
+            tokenId: expect.any(String),
+            price: "100",
+            name: "Archetype",
+            slug: "archetype",
+            tokenIndex: 250,
+            deadline: null,
           },
         ]);
       })

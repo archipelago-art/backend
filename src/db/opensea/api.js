@@ -1,4 +1,4 @@
-const { bufToAddress } = require("../util");
+const { bufToAddress, hexToBuf } = require("../util");
 const wellKnownCurrencies = require("../wellKnownCurrencies");
 
 async function _findOwners({ client, projectIds, tokenIds }) {
@@ -253,6 +253,54 @@ async function salesByToken({ client, tokenId }) {
   }));
 }
 
+async function unlistedOpenseaAsks({ client, address }) {
+  const res = await client.query(
+    `
+    SELECT DISTINCT ON (unlisted_asks.token_id)
+      unlisted_asks.token_id as "tokenId",
+      CONCAT('opensea:', os.event_id) AS "askId",
+      p.name,
+      p.slug,
+      t.token_index as "tokenIndex",
+      os.price,
+      os.expiration_time as "deadline"
+    FROM (
+      SELECT token_id
+        FROM opensea_asks
+        WHERE active
+        AND seller_address = $1::address
+      EXCEPT (
+        SELECT token_id
+        FROM asks
+        WHERE active
+        AND asker = $1::address
+      )
+    ) AS unlisted_asks
+    JOIN opensea_asks os USING (token_id)
+    JOIN tokens t on (unlisted_asks.token_id = t.token_id)
+    JOIN projects p on (t.project_id = p.project_id),
+    LATERAL (
+      SELECT DISTINCT ON (token_id) token_id, to_address AS owner FROM erc721_transfers tr
+      WHERE tr.token_id = t.token_id
+      ORDER BY token_id, block_number DESC, log_index DESC
+    ) token_owners
+    WHERE token_owners.owner = $1::address
+    ORDER BY unlisted_asks.token_id, os.price ASC;
+    `,
+    [hexToBuf(address)]
+  );
+  return res.rows.map((r) => ({
+    askId: r.askId,
+    tokenId: r.tokenId,
+    price: String(r.price),
+    name: r.name,
+    slug: r.slug,
+    tokenIndex: r.tokenIndex,
+    price: String(r.price),
+    deadline: r.deadline,
+  }));
+}
+
 module.exports = {
   _findOwners,
   askForToken,
@@ -262,4 +310,5 @@ module.exports = {
   lastSalesByProject,
   asksForProject,
   salesByToken,
+  unlistedOpenseaAsks,
 };

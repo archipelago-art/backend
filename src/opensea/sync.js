@@ -31,7 +31,11 @@ async function syncLoop({ apiKey, client, sleepDurationMs }) {
 
 const ASKS_PER_SYNC = 5;
 
-async function focusedSync({ apiKey, client, slug }) {
+async function focusedSync({ apiKey, client, slug, timeoutMinutes }) {
+  if (timeoutMinutes == null) {
+    timeoutMinutes = Infinity;
+  }
+  const endTime = Date.now() + timeoutMinutes * 60 * 1000;
   const projectId = await projectIdForSlug({ client, slug });
   const progress = await getProgress({ client, projectId });
   const openseaSlug = progress[0].slug;
@@ -60,6 +64,10 @@ async function focusedSync({ apiKey, client, slug }) {
       log.info`checking ${slug}#${tokenIndex} for dropped asks`;
       await removeDroppedAsks({ client, tokenId, apiKey });
       i++;
+    }
+    if (Date.now() > endTime) {
+      log.info`Finished focused sync (duration: ${timeoutMinutes} mins), breaking loop`;
+      return;
     }
   }
 }

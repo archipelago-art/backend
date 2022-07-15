@@ -37,6 +37,7 @@ async function addProject({
   client,
   project,
   slugOverride,
+  tokenContract,
   alreadyInTransaction = false,
 }) {
   if (typeof project.scriptJson !== "string") {
@@ -52,8 +53,9 @@ async function addProject({
     `
     SELECT project_id AS id FROM artblocks_projects
     WHERE artblocks_project_index = $1
+    AND token_contract = $2
     `,
-    [project.projectId]
+    [project.projectId, hexToBuf(tokenContract)]
   );
   const projectId =
     projectIdRes.rows.length > 0
@@ -96,7 +98,7 @@ async function addProject({
       project.description,
       aspectRatio,
       slugOverride ?? slug(project.name),
-      hexToBuf(artblocksContractAddress(project.projectId)),
+      hexToBuf(tokenContract),
       `{baseUrl}/artblocks/{sz}/${project.projectId}/{hi}/{lo}`,
     ]
   );
@@ -119,36 +121,44 @@ async function addProject({
       project.projectId,
       project.scriptJson,
       project.script,
-      hexToBuf(artblocksContractAddress(project.projectId)),
+      hexToBuf(tokenContract),
     ]
   );
   if (!alreadyInTransaction) await client.query("COMMIT");
   return projectId;
 }
 
-async function projectIdsFromArtblocksIndices({ client, indices }) {
+async function projectIdsFromArtblocksSpecs({ client, specs }) {
   const res = await client.query(
     `
     SELECT project_id AS "id"
     FROM unnest($1::int[]) WITH ORDINALITY AS inputs(artblocks_project_index, i)
-    LEFT OUTER JOIN artblocks_projects USING (artblocks_project_index)
+    JOIN unnest($2::address[]) WITH ORDINALITY AS inputs2(token_contract, i) USING (i)
+    LEFT OUTER JOIN artblocks_projects USING (artblocks_project_index, token_contract)
     ORDER BY i
     `,
-    [indices]
+    [
+      specs.map((x) => x.projectIndex),
+      specs.map((x) => hexToBuf(x.tokenContract)),
+    ]
   );
   return res.rows.map((r) => r.id);
 }
 
-async function artblocksProjectIndicesFromIds({ client, projectIds }) {
+async function artblocksProjectSpecsFromIds({ client, projectIds }) {
   const res = await client.query(
     `
-    SELECT artblocks_project_index AS "idx"
+    SELECT artblocks_project_index AS "projectIndex", token_contract AS "tokenContract"
     FROM unnest($1::projectid[]) WITH ORDINALITY AS inputs(project_id, i)
     LEFT OUTER JOIN artblocks_projects USING (project_id)
     ORDER BY i
     `,
     [projectIds]
   );
+  return res.rows.map((x) => ({
+    projectIndex: x.projectIndex,
+    tokenContract: bufToAddress(x.tokenContract),
+  }));
   return res.rows.map((r) => r.idx);
 }
 
@@ -185,9 +195,13 @@ async function getProjectIdBySlug({ client, slug }) {
 async function addBareToken({
   client,
   artblocksTokenId,
+  tokenContract,
   alreadyInTransaction = false,
 }) {
   if (!alreadyInTransaction) await client.query("BEGIN");
+  if (tokenContract == null) {
+    throw new Error("need tokenContract");
+  }
 
   const { tokenIndex, artblocksProjectIndex } =
     splitOnChainTokenId(artblocksTokenId);
@@ -197,12 +211,13 @@ async function addBareToken({
     SELECT project_id AS "projectId"
     FROM artblocks_projects JOIN projects USING (project_id)
     WHERE artblocks_project_index = $1
+    AND projects.token_contract = $2
     `,
-    [artblocksProjectIndex]
+    [artblocksProjectIndex, hexToBuf(tokenContract)]
   );
   if (projectIdRes.rows.length !== 1) {
     throw new Error(
-      `expected project ${artblocksProjectIndex} to exist for token ${artblocksTokenId}`
+      `expected project ${tokenContract}-${artblocksProjectIndex} to exist for token ${artblocksTokenId}`
     );
   }
   const { projectId } = projectIdRes.rows[0];
@@ -215,18 +230,33 @@ async function addBareToken({
   });
 
   if (!alreadyInTransaction) await client.query("COMMIT");
-  return { tokenId, projectId, tokenIndex, artblocksProjectIndex };
+  return {
+    tokenId,
+    projectId,
+    tokenIndex,
+    artblocksProjectIndex,
+    tokenContract,
+  };
 }
 
-async function addToken({ client, artblocksTokenId, rawTokenData }) {
+async function addToken({
+  client,
+  artblocksTokenId,
+  rawTokenData,
+  tokenContract,
+}) {
   if (rawTokenData == null) {
     throw new Error("no token data given");
+  }
+  if (tokenContract == null) {
+    throw new Error("no token contract given");
   }
 
   await client.query("BEGIN");
   const { tokenId, projectId } = await addBareToken({
     client,
     artblocksTokenId,
+    tokenContract,
     alreadyInTransaction: true,
   });
   await updateTokenData({
@@ -356,14 +386,19 @@ async function getArtblocksTokenIds({ client, tokenIds }) {
   const res = await client.query(
     `
     SELECT
-      token_id AS "tokenId",
-      artblocks_project_index * 1000000 + token_index AS "artblocksTokenId"
-    FROM tokens JOIN artblocks_projects USING (project_id)
-    WHERE token_id = ANY($1::tokenid[])
+      t.token_id AS "tokenId",
+      abp.artblocks_project_index * 1000000 + t.token_index AS "artblocksTokenId",
+      abp.token_contract AS "tokenContract"
+    FROM tokens t JOIN artblocks_projects abp USING (project_id)
+    WHERE t.token_id = ANY($1::tokenid[])
     `,
     [tokenIds]
   );
-  return res.rows;
+  return res.rows.map((x) => ({
+    tokenContract: bufToAddress(x.tokenContract),
+    artblocksTokenId: x.artblocksTokenId,
+    tokenId: x.tokenId,
+  }));
 }
 
 /**
@@ -641,16 +676,21 @@ async function updateImageProgress({ client, progress }) {
   await client.query("COMMIT");
 }
 
-async function getProjectIndices({ client }) {
+async function getProjectSpecs({ client }) {
   const res = await client.query(
     `
-    SELECT artblocks_project_index AS "artblocksProjectIndex",
+    SELECT artblocks_project_index AS "projectIndex",
+      token_contract AS "tokenContract",
       project_id AS "projectId"
     FROM artblocks_projects
-    ORDER BY artblocks_project_index
+    ORDER BY token_contract, artblocks_project_index
     `
   );
-  return res.rows;
+  return res.rows.map((x) => ({
+    projectIndex: x.projectIndex,
+    tokenContract: bufToAddress(x.tokenContract),
+    projectId: x.projectId,
+  }));
 }
 
 async function getOnChainTokenData({ client }) {
@@ -679,8 +719,8 @@ module.exports = {
   imageProgressChannel,
   splitOnChainTokenId,
   addProject,
-  projectIdsFromArtblocksIndices,
-  artblocksProjectIndicesFromIds,
+  projectIdsFromArtblocksSpecs,
+  artblocksProjectSpecsFromIds,
   setProjectSlug,
   getProjectIdBySlug,
   addBareToken,
@@ -700,6 +740,7 @@ module.exports = {
   getTokenHash,
   getImageProgress,
   updateImageProgress,
-  getProjectIndices,
+  getProjectSpecs,
   getOnChainTokenData,
+  artblocksContractAddress,
 };
