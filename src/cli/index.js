@@ -15,6 +15,7 @@ const commands = [
   ["ingest-images2", require("./ingestImages2")],
   ["generate-image", require("./generateImage")],
   ["generate-squiggle", require("./generateSquiggle")],
+  ["reingest-project-images", require("./reingestProjectImages")],
   ["migrate-artblocks-images", require("./migrateArtblocksImages")],
   ["find-missing-images", require("./findMissingImages")],
   ["token-feed-wss", require("./tokenFeedWss")],
