@@ -711,7 +711,6 @@ async function lastFillsByProject({ client, projectId }) {
 }
 
 async function getArchipelagoVolume({ client, projectId, from, to }) {
-  console.log("from/to", from, to);
   const res = await client.query(
     `
     SELECT
