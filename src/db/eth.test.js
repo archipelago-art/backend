@@ -635,7 +635,7 @@ describe("db/eth", () => {
         expect(await getTradeIds()).toEqual([tradeId1]);
       })
     );
-    it.only(
+    it(
       "tracks Archipelago volume",
       withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
@@ -655,8 +655,8 @@ describe("db/eth", () => {
 
         const aliceSellsCube = {
           tradeId: tradeId1,
-          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-          onChainTokenId: snapshots.THE_CUBE,
+          tokenContract: snapshots.THE_CUBE.tokenContract,
+          onChainTokenId: snapshots.THE_CUBE.onChainTokenId,
           buyer: bob.toLowerCase(),
           seller: alice.toLowerCase(),
           currency: wellKnownCurrencies.weth9.address,
@@ -669,8 +669,8 @@ describe("db/eth", () => {
         };
         const bobSellsCube = {
           tradeId: tradeId2,
-          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-          onChainTokenId: snapshots.THE_CUBE,
+          tokenContract: snapshots.THE_CUBE.tokenContract,
+          onChainTokenId: snapshots.THE_CUBE.onChainTokenId,
           buyer: alice,
           seller: bob,
           currency: wellKnownCurrencies.weth9.address,
