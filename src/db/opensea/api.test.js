@@ -206,7 +206,7 @@ describe("db/opensea/api", () => {
         });
         expect(result).toEqual({
           eventId: "2",
-          expirationTime: null,
+          deadline: null,
           listingTime: utcDateFromString(listed),
           price: "950",
           sellerAddress: wchargin,
@@ -235,7 +235,7 @@ describe("db/opensea/api", () => {
         expect(result).toEqual([
           {
             eventId: "2",
-            expirationTime: null,
+            deadline: null,
             listingTime: utcDateFromString(listed),
             price: "950",
             sellerAddress: wchargin,
@@ -243,7 +243,7 @@ describe("db/opensea/api", () => {
           },
           {
             eventId: "3",
-            expirationTime: null,
+            deadline: null,
             listingTime: utcDateFromString(listed),
             price: "975",
             sellerAddress: wchargin,
