@@ -100,7 +100,9 @@ describe("db/tokens", () => {
       expect(await getTokenCount()).toEqual(2);
       expect(tokenId2).toEqual(expect.any(String));
       expect(tokenId1).not.toEqual(tokenId2);
-      expect(await getTokenId(snapshots.ARCH_66.onChainTokenId)).toEqual(tokenId2);
+      expect(await getTokenId(snapshots.ARCH_66.onChainTokenId)).toEqual(
+        tokenId2
+      );
     })
   );
 

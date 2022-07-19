@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const pg = require("pg");
 
 const migrations = require("./migrations");
-const { acqrel } = require("./util");
+const { acqrel, newPool } = require("./util");
 
 function generateTestDbName() {
   return "archipelago_test_" + crypto.randomBytes(8).toString("hex");
@@ -52,7 +52,7 @@ function testDbProvider(options = {}) {
         await client.end();
       }
 
-      const pool = new pg.Pool({ ...templateConnInfo, database });
+      const pool = newPool({ ...templateConnInfo, database });
       try {
         return await acqrel(pool, async (client) => {
           if (migrate) await migrations.applyAll({ pool });
