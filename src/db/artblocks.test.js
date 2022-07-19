@@ -416,25 +416,24 @@ describe("db/artblocks", () => {
         rawTokenData: s({ features: { Size: "small", Color: "blue" } }),
       },
     ];
-    const projectIds = await Promise.all(
-      projects.map((p) =>
-        artblocks.addProject({
+    const projectIds = [];
+    for (const p of projects) {
+      projectIds.push(
+        await artblocks.addProject({
           client,
           project: p,
           tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
         })
-      )
-    );
-    await Promise.all(
-      tokens.map((t) =>
-        artblocks.addToken({
-          client,
-          tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
-          artblocksTokenId: t.tokenId,
-          rawTokenData: t.rawTokenData,
-        })
-      )
-    );
+      );
+    }
+    for (const t of tokens) {
+      await artblocks.addToken({
+        client,
+        tokenContract: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+        artblocksTokenId: t.tokenId,
+        rawTokenData: t.rawTokenData,
+      });
+    }
     return projectIds;
   }
 
