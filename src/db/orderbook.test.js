@@ -551,7 +551,7 @@ describe("db/orderbook", () => {
     );
 
     it(
-      "always sets bids to active",
+      "can deactivate bids after they expire",
       withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const initialDeadline = new Date("2099-01-01");
@@ -772,7 +772,7 @@ describe("db/orderbook", () => {
     );
 
     it(
-      "always sets asks to active",
+      "marks new asks as inactive if they have already expired",
       withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
         const [theCube] = await addTokens(client, [snapshots.THE_CUBE]);
@@ -789,7 +789,18 @@ describe("db/orderbook", () => {
           signature: SIG_CLEAN,
         });
         const active = await isAskActive(client, askId);
-        expect(active).toBe(true); // for now...
+        expect(active).toBe(false); // for now...
+        expect(
+          await ws.getMessages({
+            client,
+            topic: "archetype",
+            since: new Date(0),
+          })
+        ).not.toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ type: "ASK_PLACED" }),
+          ])
+        );
       })
     );
     it(
@@ -918,11 +929,34 @@ describe("db/orderbook", () => {
           message: "0x",
           signature: SIG_DIRTY,
         });
-        await updateActivityForNonce({
+        const blocks = realBlocks();
+        await eth.addBlocks({ client, blocks });
+        // Cancel the nonce for the lowest ask, which should mark the ask as
+        // cancelled.
+        await eth.addNonceCancellations({
           client,
-          account: asker,
-          nonce: "789",
-          active: false,
+          marketContract: DEFAULT_MARKET,
+          cancellations: [
+            {
+              account: asker,
+              nonce: "789",
+              blockHash: blocks[1].hash,
+              logIndex: 2,
+              transactionHash: dummyTx(1),
+            },
+          ],
+        });
+        // Another ask with the cancelled nonce *added later* should still be marked as inactive.
+        const ask4 = await addAsk({
+          client,
+          tokenId: arch1,
+          price: ethers.BigNumber.from("4"),
+          deadline,
+          asker,
+          nonce: ethers.BigNumber.from("789"),
+          agreement: "0x",
+          message: "0x",
+          signature: SIG_DIRTY,
         });
         const floor = await floorAsk({ client, projectId: archetype });
         expect(floor).toEqual(ask2);

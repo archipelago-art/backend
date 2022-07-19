@@ -115,6 +115,14 @@ async function addBid({
         $8::bytea AS agreement,
         $9::bytea AS message,
         $10::signature AS signature
+    ),
+    activity AS (
+      SELECT
+        NOT EXISTS (
+          SELECT 1 FROM nonce_cancellations
+          WHERE account = $6::address AND nonce = $7::uint256
+        ) AS active_nonce,
+        now() <= $5::timestamptz AS active_deadline
     )
     INSERT INTO bids (
       bid_id, project_id, scope,
@@ -130,13 +138,14 @@ async function addBid({
     )
     SELECT
       bid_id, project_id, scope,
-      true, true, true, true, true,
+      active_nonce AND active_deadline,
+      true, true, active_nonce, active_deadline,
       price,
       deadline, now(),
       bidder, nonce,
       agreement, message, signature
-    FROM inputs
-    RETURNING create_time AS "createTime"
+    FROM inputs, activity
+    RETURNING active
     `,
     [
       bidId,
@@ -152,7 +161,8 @@ async function addBid({
     ]
   );
 
-  await sendBidActivityMessages({ client, bidIds: [bidId] });
+  if (insertRes.rows[0].active)
+    await sendBidActivityMessages({ client, bidIds: [bidId] });
 
   await client.query("COMMIT");
   log.debug`addBid: added bid ${bidId}`;
@@ -512,6 +522,14 @@ async function addAsk({
         $8::bytea AS agreement,
         $9::bytea AS message,
         $10::signature AS signature
+    ),
+    activity AS (
+      SELECT
+        NOT EXISTS (
+          SELECT 1 FROM nonce_cancellations
+          WHERE account = $6::address AND nonce = $7::uint256
+        ) AS active_nonce,
+        now() <= $5::timestamptz AS active_deadline
     )
     INSERT INTO asks (
       ask_id, project_id, token_id,
@@ -527,17 +545,17 @@ async function addAsk({
     )
     SELECT
       ask_id, project_id, token_id,
-      true,
+      active_nonce AND active_deadline,
       true, false, false,
       false, true,
-      true,
-      true,
+      active_nonce,
+      active_deadline,
       price,
       deadline, now(),
       asker, nonce,
       agreement, message, signature
-    FROM inputs
-    RETURNING create_time AS "createTime"
+    FROM inputs, activity
+    RETURNING active, create_time AS "createTime"
     `,
     [
       askId,
@@ -553,26 +571,28 @@ async function addAsk({
     ]
   );
 
-  const { createTime } = insertRes.rows[0];
+  const { active, createTime } = insertRes.rows[0];
 
-  const wsMessage = {
-    type: "ASK_PLACED",
-    topic: slug,
-    data: {
-      askId,
-      projectId,
-      slug,
-      tokenIndex,
-      venue: "ARCHIPELAGO",
-      asker,
-      nonce: String(nonce),
-      currency: "ETH",
-      price: String(price),
-      timestamp: createTime.toISOString(),
-      expirationTime: deadline && deadline.toISOString(),
-    },
-  };
-  await ws.sendMessages({ client, messages: [wsMessage] });
+  if (active) {
+    const wsMessage = {
+      type: "ASK_PLACED",
+      topic: slug,
+      data: {
+        askId,
+        projectId,
+        slug,
+        tokenIndex,
+        venue: "ARCHIPELAGO",
+        asker,
+        nonce: String(nonce),
+        currency: "ETH",
+        price: String(price),
+        timestamp: createTime.toISOString(),
+        expirationTime: deadline && deadline.toISOString(),
+      },
+    };
+    await ws.sendMessages({ client, messages: [wsMessage] });
+  }
 
   await client.query("COMMIT");
   log.debug`addBid: added ask ${askId}`;
