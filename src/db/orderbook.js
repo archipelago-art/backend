@@ -103,41 +103,40 @@ async function addBid({
   const bidId = newId(ObjectType.BID);
   const insertRes = await client.query(
     `
+    WITH inputs AS (
+      SELECT
+        $1::bidid AS bid_id,
+        $2::projectid AS project_id,
+        $3::bidscope AS scope,
+        $4::uint256 AS price,
+        $5::timestamptz AS deadline,
+        $6::address AS bidder,
+        $7::uint256 AS nonce,
+        $8::bytea AS agreement,
+        $9::bytea AS message,
+        $10::signature AS signature
+    )
     INSERT INTO bids (
-      bid_id,
-      project_id,
-      scope,
+      bid_id, project_id, scope,
       active,
       active_currency_balance,
       active_market_approved,
       active_nonce,
       active_deadline,
       price,
-      deadline,
-      create_time,
-      bidder,
-      nonce,
-      agreement,
-      message,
-      signature
-    ) VALUES (
-      $1::bidid,
-      $2::projectid,
-      $3::bidscope,
-      true,
-      true,
-      true,
-      true,
-      true,
-      $4::uint256,
-      $5::timestamptz,
-      now(),
-      $6::address,
-      $7::uint256,
-      $8::bytea,
-      $9::bytea,
-      $10::signature
-    ) RETURNING create_time AS "createTime"
+      deadline, create_time,
+      bidder, nonce,
+      agreement, message, signature
+    )
+    SELECT
+      bid_id, project_id, scope,
+      true, true, true, true, true,
+      price,
+      deadline, now(),
+      bidder, nonce,
+      agreement, message, signature
+    FROM inputs
+    RETURNING create_time AS "createTime"
     `,
     [
       bidId,
@@ -501,41 +500,44 @@ async function addAsk({
   const askId = newId(ObjectType.ASK);
   const insertRes = await client.query(
     `
+    WITH inputs AS (
+      SELECT
+        $1::askid AS ask_id,
+        $2::projectid AS project_id,
+        $3::tokenid AS token_id,
+        $4::uint256 AS price,
+        $5::timestamptz AS deadline,
+        $6::address AS asker,
+        $7::uint256 AS nonce,
+        $8::bytea AS agreement,
+        $9::bytea AS message,
+        $10::signature AS signature
+    )
     INSERT INTO asks (
-      ask_id,
-      project_id,
-      token_id,
+      ask_id, project_id, token_id,
       active,
       active_token_owner, active_token_operator, active_token_operator_for_all,
       active_market_approved, active_market_approved_for_all,
       active_nonce,
       active_deadline,
       price,
-      deadline,
-      create_time,
-      asker,
-      nonce,
-      agreement,
-      message,
-      signature
-    ) VALUES (
-      $1::askid,
-      $2::projectid,
-      $3::tokenid,
+      deadline, create_time,
+      asker, nonce,
+      agreement, message, signature
+    )
+    SELECT
+      ask_id, project_id, token_id,
       true,
       true, false, false,
       false, true,
       true,
       true,
-      $4::uint256,
-      $5::timestamptz,
-      now(),
-      $6::address,
-      $7::uint256,
-      $8::bytea,
-      $9::bytea,
-      $10::signature
-    ) RETURNING create_time AS "createTime"
+      price,
+      deadline, now(),
+      asker, nonce,
+      agreement, message, signature
+    FROM inputs
+    RETURNING create_time AS "createTime"
     `,
     [
       askId,
