@@ -588,7 +588,7 @@ async function addAsk({
         currency: "ETH",
         price: String(price),
         timestamp: createTime.toISOString(),
-        expirationTime: deadline && deadline.toISOString(),
+        deadline: deadline && deadline.toISOString(),
       },
     };
     await ws.sendMessages({ client, messages: [wsMessage] });
