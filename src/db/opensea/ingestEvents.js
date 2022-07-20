@@ -340,7 +340,7 @@ async function ingestAsks(client, askIds) {
       seller_address AS "seller",
       price AS "price",
       listing_time AS "timestamp",
-      expiration_time AS "expirationTime"
+      expiration_time AS "deadline"
     `,
     [askIds]
   );
@@ -359,7 +359,7 @@ async function ingestAsks(client, askIds) {
       currency: "ETH",
       price: r.price,
       timestamp: r.timestamp.toISOString(),
-      expirationTime: r.expirationTime && r.expirationTime.toISOString(),
+      deadline: r.deadline && r.deadline.toISOString(),
     },
   }));
   await ws.sendMessages({ client, messages });

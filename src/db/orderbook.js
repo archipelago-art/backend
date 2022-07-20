@@ -257,7 +257,7 @@ async function sendBidActivityMessages({ client, bidIds }) {
           currency: "ETH",
           price: row.price,
           timestamp: row.createTime.toISOString(),
-          expirationTime: row.deadline && row.deadline.toISOString(),
+          deadline: row.deadline && row.deadline.toISOString(),
         },
       });
     } else {
@@ -618,28 +618,36 @@ async function askDetails({ client, askIds }) {
     `
     SELECT
       ask_id AS "askId",
+      slug,
+      name,
       price,
       create_time AS "createTime",
       deadline,
       asker,
       nonce,
       token_id AS "tokenId",
+      token_index AS "tokenIndex",
       signature,
       message,
       agreement
     FROM asks
+    JOIN projects using (project_id)
+    JOIN tokens using (token_id)
     WHERE ask_id = ANY($1::askid[])
     `,
     [askIds]
   );
   return res.rows.map((r) => ({
     askId: r.askId,
+    slug: r.slug,
+    name: r.name,
     price: ethers.BigNumber.from(r.price),
     createTime: r.createTime,
     deadline: r.deadline,
     asker: bufToAddress(r.asker),
     nonce: String(r.nonce),
     tokenId: r.tokenId,
+    tokenIndex: r.tokenIndex,
     message: bufToHex(r.message),
     signature: bufToHex(r.signature),
     agreement: bufToHex(r.agreement),

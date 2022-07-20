@@ -46,7 +46,7 @@ async function asksForToken({ client, tokenId, limit }) {
     SELECT
       seller_address AS "sellerAddress",
       listing_time AS "listingTime",
-      expiration_time AS "expirationTime",
+      expiration_time AS "deadline",
       price,
       token_id AS "tokenId",
       event_id as "eventId"

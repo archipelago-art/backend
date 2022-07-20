@@ -275,7 +275,7 @@ describe("db/orderbook", () => {
                 currency: "ETH",
                 price: String(price),
                 timestamp: expect.any(String),
-                expirationTime: deadline.toISOString(),
+                deadline: deadline.toISOString(),
               },
             },
           ])
@@ -348,7 +348,7 @@ describe("db/orderbook", () => {
                 currency: "ETH",
                 price: String(price),
                 timestamp: expect.any(String),
-                expirationTime: deadline.toISOString(),
+                deadline: deadline.toISOString(),
               },
             },
           ])
@@ -442,7 +442,7 @@ describe("db/orderbook", () => {
                 currency: "ETH",
                 price: String(price),
                 timestamp: expect.any(String),
-                expirationTime: deadline.toISOString(),
+                deadline: deadline.toISOString(),
               },
             },
           ])
@@ -527,7 +527,7 @@ describe("db/orderbook", () => {
                 currency: "ETH",
                 price: String(price),
                 timestamp: expect.any(String),
-                expirationTime: deadline.toISOString(),
+                deadline: deadline.toISOString(),
               },
             },
           ])
@@ -704,6 +704,8 @@ describe("db/orderbook", () => {
         const price = ethers.BigNumber.from("100");
         const asker = ethers.constants.AddressZero;
         const deadline = new Date("2099-01-01");
+        const slug = "archetype";
+        const name = "Archetype";
 
         const nonce = ethers.BigNumber.from("0xabcd");
         const askId = await addAsk({
@@ -733,7 +735,7 @@ describe("db/orderbook", () => {
               data: {
                 askId,
                 projectId: archetype,
-                slug: "archetype",
+                slug: slug,
                 tokenIndex: 250,
                 venue: "ARCHIPELAGO",
                 asker,
@@ -741,7 +743,7 @@ describe("db/orderbook", () => {
                 currency: "ETH",
                 price: String(price),
                 timestamp: expect.any(String),
-                expirationTime: deadline.toISOString(),
+                deadline: deadline.toISOString(),
               },
             },
           ])
@@ -749,6 +751,8 @@ describe("db/orderbook", () => {
         const result = [
           {
             askId,
+            slug,
+            name,
             price,
             createTime: expect.any(Date),
             deadline,
@@ -758,6 +762,7 @@ describe("db/orderbook", () => {
             message: "0x",
             agreement: "0x",
             tokenId: theCube,
+            tokenIndex: 250,
           },
         ];
         expect(await floorAsk({ client, tokenId: theCube })).toEqual(askId);
