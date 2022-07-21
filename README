@@ -3,7 +3,7 @@
 # Local Setup
 ## Prerequisites
 1. Use node version 16.13.0
-1. Install the following dependencies with `homebrew`: `pixman`, `cairo`, `pango`
+1. (Mac only) Install the following dependencies with `homebrew`: `pixman`, `cairo`, `pango`
 1. Install postgres (many options, including `homebrew`)
 
 ## Local Development
