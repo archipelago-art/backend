@@ -29,6 +29,7 @@
     "jsdom": "^20.0.0",
     "koa": "^2.13.4",
     "lodash.isequal": "^4.5.0",
+    "luxon": "^3.0.1",
     "node-html-parser": "^4.1.4",
     "pg": "^8.7.1",
     "slug": "^5.1.0",
