@@ -6,6 +6,13 @@ const mail = require("@sendgrid/mail");
 
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 
+//// Keys into the user preferences JSON object.
+//
+// Value: boolean, `true` to receive daily emails or `false`/absent otherwise.
+const PREF_BID_EMAILS = "bidEmails";
+// Value: IANA time zone string, like "America/Los_Angeles".
+const PREF_EMAIL_TIMEZONE = "emailTimezone";
+
 if (process.env.SENDGRID_TOKEN != null) {
   mail.setApiKey(process.env.SENDGRID_TOKEN);
 }
@@ -75,6 +82,18 @@ async function getUserDetails({ client, authToken }) {
     email: row.email,
     preferences: row.preferences,
   };
+}
+
+async function updatePreferences({ client, account, newPreferences }) {
+  const res = await client.query(
+    `
+    UPDATE account_emails
+    SET preferences = preferences || $2::jsonb
+    WHERE account = $1::address
+    `,
+    [hexToBuf(account), JSON.stringify(newPreferences)]
+  );
+  return res.rowCount === 1;
 }
 
 // Authenticated method. Creates a new pending email confirmation.
@@ -195,11 +214,14 @@ async function confirmEmail({ client, address, authToken, nonce }) {
 }
 
 module.exports = {
+  PREF_BID_EMAILS,
+  PREF_EMAIL_TIMEZONE,
   signLoginRequest,
   verifyLoginRequest,
   signIn,
   signOut,
   getUserDetails,
+  updatePreferences,
   setEmailUnconfirmed,
   confirmEmail,
 };

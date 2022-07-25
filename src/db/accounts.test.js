@@ -121,6 +121,64 @@ describe("db/accounts", () => {
   );
 
   it(
+    "updates preferences",
+    withTestDb(async ({ client }) => {
+      const signer = wallet1;
+      const account = await signer.getAddress();
+      const timestamp = 1651003500;
+      const signature = await accounts.signLoginRequest({ signer, timestamp });
+
+      async function getPreferences() {
+        const details = await accounts.getUserDetails({ client, authToken });
+        return details.preferences;
+      }
+
+      const authToken = await accounts.signIn({ client, timestamp, signature });
+      expect(await getPreferences()).toEqual(null);
+
+      const email = "alice@example.com";
+      await accounts.setEmailUnconfirmed({ client, authToken, email });
+      const nonce = await (async () => {
+        const nonces = await getPendingConfirmationNonces({ client, account });
+        expect(nonces).toEqual([expect.any(String)]);
+        return nonces[0];
+      })();
+      await accounts.confirmEmail({
+        client,
+        address: account,
+        authToken,
+        nonce,
+      });
+      expect(await getPreferences()).toEqual({});
+
+      const tz = "America/Los_Angeles";
+
+      await accounts.updatePreferences({
+        client,
+        account,
+        newPreferences: {
+          [accounts.PREF_BID_EMAILS]: true,
+          [accounts.PREF_EMAIL_TIMEZONE]: tz,
+        },
+      });
+      expect(await getPreferences()).toEqual({
+        [accounts.PREF_BID_EMAILS]: true,
+        [accounts.PREF_EMAIL_TIMEZONE]: tz,
+      });
+
+      await accounts.updatePreferences({
+        client,
+        account,
+        newPreferences: { [accounts.PREF_BID_EMAILS]: false },
+      });
+      expect(await getPreferences()).toEqual({
+        [accounts.PREF_BID_EMAILS]: false,
+        [accounts.PREF_EMAIL_TIMEZONE]: tz,
+      });
+    })
+  );
+
+  it(
     "retains the old email while a new one is being confirmed",
     withTestDb(async ({ client }) => {
       const signer = wallet1;
