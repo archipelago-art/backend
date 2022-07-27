@@ -873,6 +873,7 @@ describe("db/opensea/api", () => {
             slug: "archetype",
             tokenIndex: 250,
             tokenContract: "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270",
+            onChainTokenId: "23000250",
             deadline: null,
           },
         ]);

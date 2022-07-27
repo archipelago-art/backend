@@ -263,6 +263,7 @@ async function unlistedOpenseaAsks({ client, address }) {
       p.slug,
       t.token_index as "tokenIndex",
       t.token_contract as "tokenContract",
+      t.on_chain_token_id as "onChainTokenId",
       os.price,
       os.expiration_time as "deadline"
     FROM (
@@ -298,6 +299,7 @@ async function unlistedOpenseaAsks({ client, address }) {
     slug: r.slug,
     tokenIndex: r.tokenIndex,
     tokenContract: bufToAddress(r.tokenContract),
+    onChainTokenId: String(r.onChainTokenId),
     price: String(r.price),
     deadline: r.deadline,
   }));
