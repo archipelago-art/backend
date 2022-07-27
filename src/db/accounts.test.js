@@ -160,7 +160,7 @@ describe("db/accounts", () => {
       const tz = "America/Los_Angeles";
       await accounts.updatePreferences({
         client,
-        account,
+        authToken,
         newPreferences: {
           [accounts.PREF_BID_EMAILS]: true,
           [accounts.PREF_EMAIL_TIMEZONE]: tz,
@@ -173,7 +173,7 @@ describe("db/accounts", () => {
 
       await accounts.updatePreferences({
         client,
-        account,
+        authToken,
         newPreferences: { [accounts.PREF_BID_EMAILS]: false },
       });
       expect(await getPreferences()).toEqual({

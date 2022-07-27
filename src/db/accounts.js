@@ -84,16 +84,30 @@ async function getUserDetails({ client, authToken }) {
   };
 }
 
-async function updatePreferences({ client, account, newPreferences }) {
+// Authenticated method. Shallow-merges in new preferences.
+async function updatePreferences({ client, authToken, newPreferences }) {
   const res = await client.query(
     `
-    UPDATE account_emails
-    SET preferences = preferences || $2::jsonb
-    WHERE account = $1::address
+    WITH
+    this_account AS (
+      SELECT account FROM auth_tokens
+      WHERE auth_token = $1::uuid
+    ),
+    update_res AS (
+      UPDATE account_emails
+      SET preferences = preferences || $2::jsonb
+      WHERE account = (SELECT account FROM this_account)
+      RETURNING 1
+    )
+    SELECT
+      EXISTS (SELECT 1 FROM this_account) AS "authOk",
+      EXISTS (SELECT 1 FROM update_res) AS "updateOk"
     `,
-    [hexToBuf(account), JSON.stringify(newPreferences)]
+    [authToken, JSON.stringify(newPreferences)]
   );
-  return res.rowCount === 1;
+  const row = res.rows[0];
+  if (!row.authOk) throw new Error("unknown auth token");
+  if (!row.updateOk) throw new Error("no email set");
 }
 
 // Authenticated method. Creates a new pending email confirmation.
