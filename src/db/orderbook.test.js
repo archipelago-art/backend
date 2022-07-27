@@ -1417,7 +1417,12 @@ describe("db/orderbook", () => {
           signature: SIG_DIRTY,
         });
         expect(await floorAskForEveryProject({ client })).toEqual([
-          { projectId: archetype, askId: ask1 },
+          {
+            projectId: archetype,
+            askId: ask1,
+            asker: asker,
+            price: ethers.BigNumber.from("100"),
+          },
         ]);
         const ask2 = await addAsk({
           client,
@@ -1442,8 +1447,18 @@ describe("db/orderbook", () => {
           signature: SIG_DIRTY,
         });
         expect(await floorAskForEveryProject({ client })).toEqual([
-          { projectId: archetype, askId: ask1 },
-          { projectId: squiggles, askId: ask3 },
+          {
+            projectId: archetype,
+            askId: ask1,
+            asker: asker,
+            price: ethers.BigNumber.from("100"),
+          },
+          {
+            projectId: squiggles,
+            askId: ask3,
+            asker: asker,
+            price: ethers.BigNumber.from("5"),
+          },
         ]);
         await updateActivityForNonce({
           client,
@@ -1452,8 +1467,18 @@ describe("db/orderbook", () => {
           active: false,
         });
         expect(await floorAskForEveryProject({ client })).toEqual([
-          { projectId: archetype, askId: ask1 },
-          { projectId: squiggles, askId: ask2 },
+          {
+            projectId: archetype,
+            askId: ask1,
+            asker: asker,
+            price: ethers.BigNumber.from("100"),
+          },
+          {
+            projectId: squiggles,
+            askId: ask2,
+            asker: asker,
+            price: ethers.BigNumber.from("50"),
+          },
         ]);
       })
     );

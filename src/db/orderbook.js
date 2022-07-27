@@ -722,15 +722,17 @@ async function floorAskIdsForAllTokensInProject({ client, projectId }) {
 async function floorAskForEveryProject({ client }) {
   const res = await client.query(
     `
-    SELECT ask_id AS "askId", project_id AS "projectId"
+    SELECT ask_id AS "askId", asker, project_id AS "projectId", price
     FROM (
       SELECT
         ask_id,
+        asker,
         project_id,
         rank() OVER (
           PARTITION BY project_id
           ORDER BY price ASC, create_time ASC
-        ) AS ask_rank
+        ) AS ask_rank,
+        price
       FROM asks
       WHERE active AND deadline > now()
     ) AS ranked_asks
@@ -738,7 +740,11 @@ async function floorAskForEveryProject({ client }) {
     ORDER BY project_id
     `
   );
-  return res.rows;
+  return res.rows.map((r) => ({
+    ...r,
+    price: ethers.BigNumber.from(r.price),
+    asker: bufToAddress(r.asker),
+  }));
 }
 
 /**
