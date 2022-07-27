@@ -94,14 +94,15 @@ async function floorAskByProject({ client, projectIds = null }) {
   await _findOwners({ client, projectIds });
   const res = await client.query(
     `
-    SELECT project_id AS "projectId", price
+    SELECT these_projects.project_id AS "projectId", floors.price, tokens.token_index as "tokenIndex"
     FROM (
       SELECT project_id FROM projects
       WHERE project_id = ANY($1::projectid[]) OR $1 IS NULL
     ) AS these_projects
     LEFT OUTER JOIN
     (
-      SELECT project_id, min(price) AS price
+      SELECT DISTINCT ON (project_id)
+      project_id, price, token_id
       FROM
         opensea_asks
         JOIN token_owners USING (token_id)
@@ -111,17 +112,21 @@ async function floorAskByProject({ client, projectIds = null }) {
         AND currency_id = $2
         AND (project_id = ANY($1::projectid[]) OR $1 IS NULL)
         AND seller_address = owner
-      GROUP BY project_id
-      ORDER BY project_id
+      ORDER BY project_id, price ASC
     ) AS floors
     USING (project_id)
+    LEFT OUTER JOIN tokens USING (token_id)
     `,
     [projectIds, wellKnownCurrencies.eth.currencyId]
   );
   await client.query("ROLLBACK");
   const result = {};
-  for (const { projectId, price } of res.rows) {
-    result[projectId] = price;
+  for (const { projectId, price, tokenIndex } of res.rows) {
+    if (price === null) {
+      result[projectId] = null;
+    } else {
+      result[projectId] = { price, tokenIndex };
+    }
   }
   return result;
 }

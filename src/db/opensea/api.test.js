@@ -399,7 +399,7 @@ describe("db/opensea/api", () => {
           client,
         });
         expect(result).toEqual({
-          [archetypeId]: "950",
+          [archetypeId]: { price: "950", tokenIndex: 36},
           [squigglesId]: null,
         });
       })
