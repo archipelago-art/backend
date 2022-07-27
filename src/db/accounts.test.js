@@ -1,5 +1,6 @@
 const ethers = require("ethers");
 
+const Cmp = require("../util/cmp");
 const { testDbProvider } = require("./testUtil");
 const { hexToBuf } = require("./util");
 
@@ -48,7 +49,7 @@ describe("db/accounts", () => {
       authToken,
       nonce,
     });
-    return { email, authToken };
+    return { account, email, authToken };
   }
 
   it("signs and verifies a login message", async () => {
@@ -294,6 +295,64 @@ describe("db/accounts", () => {
       expect(
         await accounts.getUserDetails({ client, authToken: confirmRes })
       ).toEqual({ account, email, preferences: {} });
+    })
+  );
+
+  it(
+    "groups emails by time zone",
+    withTestDb(async ({ client }) => {
+      function makePrefs(enabled, tz) {
+        return {
+          [accounts.PREF_BID_EMAILS]: enabled,
+          [accounts.PREF_EMAIL_TIMEZONE]: tz,
+        };
+      }
+      const preferences = [
+        makePrefs(true, "America/Los_Angeles"),
+        makePrefs(true, "America/Los_Angeles"),
+        makePrefs(false, "America/Los_Angeles"),
+        makePrefs(false, "Europe/Berlin"),
+        makePrefs(true, "Africa/Accra"),
+      ];
+      const signers = await Promise.all(
+        preferences.map(async (_, i) => {
+          const signer = makeWallet(i);
+          const address = await signer.getAddress();
+          return { signer, address };
+        })
+      ).then((xs) =>
+        xs.sort(Cmp.comparing((x) => x.address)).map((x) => x.signer)
+      );
+      const users = [];
+      for (let i = 0; i < preferences.length; i++) {
+        const signer = signers[i];
+        const { account, authToken, email } = await doAuth({ client, signer });
+        const prefs = preferences[i];
+        await accounts.updatePreferences({
+          client,
+          authToken,
+          newPreferences: prefs,
+        });
+        users.push({ signer, account, authToken, email, prefs });
+      }
+      const res = await accounts.getAllEmailsByTimezone({ client });
+      expect(res).toEqual([
+        // "Africa/Accra" precedes "America/Los_Angeles"
+        {
+          timezone: "Africa/Accra",
+          members: [{ account: users[4].account, email: users[4].email }],
+        },
+        {
+          timezone: "America/Los_Angeles",
+          members: [
+            // User 0 precedes user 1 lexicographically
+            { account: users[0].account, email: users[0].email },
+            { account: users[1].account, email: users[1].email },
+            // User 2 is missing because email is disabled
+          ],
+        },
+        // "Europe/Berlin" is missing because it has no email-enabled accounts
+      ]);
     })
   );
 });

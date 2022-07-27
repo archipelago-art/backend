@@ -110,6 +110,45 @@ async function updatePreferences({ client, authToken, newPreferences }) {
   if (!row.updateOk) throw new Error("no email set");
 }
 
+/**
+ * Returns Ethereum account and email address details for all addresses that
+ * have the `PREF_BID_EMAILS` bit set.
+ */
+async function getAllEmailsByTimezone({ client }) /*: Promise<Array<{
+  timezone: string,
+  members: Array<{
+    account: address,
+    email: string,
+  }>,
+}>> */ {
+  const res = await client.query(
+    `
+    SELECT timezone, account, email FROM (
+      SELECT preferences->>$1 AS timezone, account, email
+      FROM account_emails
+      WHERE preferences->$2 = 'true'::jsonb
+    ) q
+    ORDER BY timezone, account
+    `,
+    [PREF_EMAIL_TIMEZONE, PREF_BID_EMAILS]
+  );
+  const result = [];
+  let lastTimezone = null;
+  let thisRecord = null;
+  for (const row of res.rows) {
+    const timezone = row.timezone;
+    if (timezone !== lastTimezone) {
+      lastTimezone = timezone;
+      thisRecord = { timezone, members: [] };
+      result.push(thisRecord);
+    }
+    const account = bufToAddress(row.account);
+    const email = row.email;
+    thisRecord.members.push({ account, email });
+  }
+  return result;
+}
+
 // Authenticated method. Creates a new pending email confirmation.
 async function setEmailUnconfirmed({
   client,
@@ -236,6 +275,7 @@ module.exports = {
   signOut,
   getUserDetails,
   updatePreferences,
+  getAllEmailsByTimezone,
   setEmailUnconfirmed,
   confirmEmail,
 };
