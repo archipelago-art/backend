@@ -28,6 +28,29 @@ describe("db/accounts", () => {
     return res.rows.map((r) => r.nonce);
   }
 
+  async function doAuth({ client, signer }) {
+    const timestamp = 1651003500;
+    const signature = await accounts.signLoginRequest({ signer, timestamp });
+    const authToken = await accounts.signIn({ client, timestamp, signature });
+
+    const account = await signer.getAddress();
+    const email = `${account.toLowerCase()}@eth.example.com`;
+    await accounts.setEmailUnconfirmed({ client, authToken, email });
+
+    const nonces = await getPendingConfirmationNonces({ client, account });
+    if (nonces.length !== 1) {
+      throw new Error(`expected 1 nonce for ${account}, got ${nonces.length}`);
+    }
+    const [nonce] = nonces;
+    await accounts.confirmEmail({
+      client,
+      address: account,
+      authToken,
+      nonce,
+    });
+    return { email, authToken };
+  }
+
   it("signs and verifies a login message", async () => {
     const signer = wallet1;
     const timestamp = 1651003500;
@@ -125,34 +148,16 @@ describe("db/accounts", () => {
     withTestDb(async ({ client }) => {
       const signer = wallet1;
       const account = await signer.getAddress();
-      const timestamp = 1651003500;
-      const signature = await accounts.signLoginRequest({ signer, timestamp });
+
+      const { authToken, email } = await doAuth({ client, signer });
 
       async function getPreferences() {
         const details = await accounts.getUserDetails({ client, authToken });
         return details.preferences;
       }
-
-      const authToken = await accounts.signIn({ client, timestamp, signature });
-      expect(await getPreferences()).toEqual(null);
-
-      const email = "alice@example.com";
-      await accounts.setEmailUnconfirmed({ client, authToken, email });
-      const nonce = await (async () => {
-        const nonces = await getPendingConfirmationNonces({ client, account });
-        expect(nonces).toEqual([expect.any(String)]);
-        return nonces[0];
-      })();
-      await accounts.confirmEmail({
-        client,
-        address: account,
-        authToken,
-        nonce,
-      });
       expect(await getPreferences()).toEqual({});
 
       const tz = "America/Los_Angeles";
-
       await accounts.updatePreferences({
         client,
         account,
