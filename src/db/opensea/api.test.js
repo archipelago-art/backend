@@ -872,6 +872,7 @@ describe("db/opensea/api", () => {
             name: "Archetype",
             slug: "archetype",
             tokenIndex: 250,
+            tokenContract: "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270",
             deadline: null,
           },
         ]);
