@@ -697,6 +697,103 @@ describe("db/orderbook", () => {
 
   describe("addAsk", () => {
     it(
+      "requires a valid signature and order agreement hash",
+      withTestDb(async ({ client }) => {
+        const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
+        const [tokenId] = await addTokens(client, [snapshots.THE_CUBE]);
+        const price = ethers.BigNumber.from("100");
+        const deadline = new Date("2099-01-01");
+        const asker = ethers.constants.AddressZero;
+
+        function swizzleBytes(bytes) {
+          const b0 = ethers.BigNumber.from(255).sub(
+            ethers.utils.hexDataSlice(bytes, 0, 1)
+          );
+          return ethers.utils.hexConcat([
+            b0,
+            ethers.utils.hexDataSlice(bytes, 1),
+          ]);
+        }
+
+        const agreementStruct = {
+          currencyAddress: wellKnownCurrencies.weth9.address,
+          price,
+          tokenAddress: artblocks.CONTRACT_ARTBLOCKS_STANDARD,
+          requiredRoyalties: [ethers.constants.HashZero], // TODO
+        };
+        const agreementHash = sdk.market.hash.orderAgreement(agreementStruct);
+        const askStruct = {
+          agreementHash,
+          nonce: "0xabcd",
+          deadline: Math.floor(+deadline / 1000),
+          extraRoyalties: [],
+          tokenId: snapshots.THE_CUBE.onChainTokenId,
+          unwrapWeth: false,
+          authorizedBidder: ethers.constants.AddressZero,
+        };
+        const signer = new ethers.Wallet(ethers.constants.MaxUint256);
+        const domainInfo = { chainId: 7, marketAddress: DEFAULT_MARKET };
+        const goodSignature = await sdk.market.sign712.ask(
+          signer,
+          domainInfo,
+          askStruct
+        );
+        const badSigner = new ethers.Wallet(ethers.constants.MaxUint256.sub(1));
+        const badSignature = await sdk.market.sign712.ask(
+          badSigner,
+          domainInfo,
+          askStruct
+        );
+
+        const askStructBadAgreement = {
+          ...askStruct,
+          agreementHash: swizzleBytes(agreementHash),
+        };
+        const goodSignatureBadAgreement = await sdk.market.sign712.ask(
+          signer,
+          domainInfo,
+          askStructBadAgreement
+        );
+
+        async function go(askStruct, signature) {
+          try {
+            return await addAsk({
+              client,
+              noVerify: false,
+              chainId: 7,
+              tokenId,
+              price,
+              deadline,
+              asker: signer.address,
+              nonce: ethers.BigNumber.from(askStruct.nonce),
+              agreement: ethers.utils.defaultAbiCoder.encode(
+                [sdk.market.abi.OrderAgreement],
+                [agreementStruct]
+              ),
+              message: ethers.utils.defaultAbiCoder.encode(
+                [sdk.market.abi.Ask],
+                [askStruct]
+              ),
+              signature,
+            });
+          } finally {
+            await client.query("ROLLBACK");
+          }
+        }
+
+        await expect(go(askStruct, badSignature)).rejects.toThrow(
+          /ask signer: want 0x.*, got 0x.*/
+        );
+        await expect(
+          go(askStructBadAgreement, goodSignatureBadAgreement)
+        ).rejects.toThrow(/ask agreement hash: want 0x.*, got 0x.*/);
+        await expect(go(askStruct, goodSignature)).resolves.toEqual(
+          expect.any(String)
+        );
+      })
+    );
+
+    it(
       "adds an ask",
       withTestDb(async ({ client }) => {
         const [archetype] = await addProjects(client, [snapshots.ARCHETYPE]);
@@ -710,6 +807,7 @@ describe("db/orderbook", () => {
         const nonce = ethers.BigNumber.from("0xabcd");
         const askId = await addAsk({
           client,
+          noVerify: true,
           tokenId: theCube,
           price,
           deadline,
@@ -784,6 +882,7 @@ describe("db/orderbook", () => {
         const deadline = new Date("2000-01-01"); // expired!
         const askId = await addAsk({
           client,
+          noVerify: true,
           tokenId: theCube,
           price: ethers.BigNumber.from("100"),
           deadline,
@@ -826,6 +925,7 @@ describe("db/orderbook", () => {
 
         const askIdOwned = await addAsk({
           client,
+          noVerify: true,
           tokenId: theCube,
           price,
           deadline,
@@ -837,6 +937,7 @@ describe("db/orderbook", () => {
         });
         const askIdUnowned = await addAsk({
           client,
+          noVerify: true,
           tokenId: perfectChromatic,
           price,
           deadline,
@@ -903,6 +1004,7 @@ describe("db/orderbook", () => {
         const deadline = new Date("2099-01-01");
         const ask1 = await addAsk({
           client,
+          noVerify: true,
           tokenId: theCube,
           price: ethers.BigNumber.from("100"),
           deadline,
@@ -914,6 +1016,7 @@ describe("db/orderbook", () => {
         });
         const ask2 = await addAsk({
           client,
+          noVerify: true,
           tokenId: arch1,
           price: ethers.BigNumber.from("50"),
           deadline,
@@ -925,6 +1028,7 @@ describe("db/orderbook", () => {
         });
         const ask3 = await addAsk({
           client,
+          noVerify: true,
           tokenId: arch1,
           price: ethers.BigNumber.from("5"),
           deadline,
@@ -954,6 +1058,7 @@ describe("db/orderbook", () => {
         // Another ask with the cancelled nonce *added later* should still be marked as inactive.
         const ask4 = await addAsk({
           client,
+          noVerify: true,
           tokenId: arch1,
           price: ethers.BigNumber.from("4"),
           deadline,
@@ -1008,6 +1113,7 @@ describe("db/orderbook", () => {
         const deadline = new Date("2099-01-01");
         const ask1 = await addAsk({
           client,
+          noVerify: true,
           tokenId: theCube,
           price: ethers.BigNumber.from("100"),
           deadline,
@@ -1019,6 +1125,7 @@ describe("db/orderbook", () => {
         });
         const ask2 = await addAsk({
           client,
+          noVerify: true,
           tokenId: theCube,
           price: ethers.BigNumber.from("50"),
           deadline,
@@ -1030,6 +1137,7 @@ describe("db/orderbook", () => {
         });
         const ask3 = await addAsk({
           client,
+          noVerify: true,
           tokenId: theCube,
           price: ethers.BigNumber.from("5"),
           deadline,
@@ -1047,6 +1155,7 @@ describe("db/orderbook", () => {
         });
         const ask4 = await addAsk({
           client,
+          noVerify: true,
           tokenId: arch1,
           price: ethers.BigNumber.from("5"),
           deadline,
@@ -1101,6 +1210,7 @@ describe("db/orderbook", () => {
         const deadline = new Date("2099-01-01");
         const ask1 = await addAsk({
           client,
+          noVerify: true,
           tokenId: theCube,
           price: ethers.BigNumber.from("100"),
           deadline,
@@ -1112,6 +1222,7 @@ describe("db/orderbook", () => {
         });
         const ask2 = await addAsk({
           client,
+          noVerify: true,
           tokenId: arch1,
           price: ethers.BigNumber.from("50"),
           deadline,
@@ -1123,6 +1234,7 @@ describe("db/orderbook", () => {
         });
         const ask3 = await addAsk({
           client,
+          noVerify: true,
           tokenId: arch1,
           price: ethers.BigNumber.from("5"),
           deadline,
@@ -1407,6 +1519,7 @@ describe("db/orderbook", () => {
         const deadline = new Date("2099-01-01");
         const ask1 = await addAsk({
           client,
+          noVerify: true,
           tokenId: theCube,
           price: ethers.BigNumber.from("100"),
           deadline,
@@ -1421,6 +1534,7 @@ describe("db/orderbook", () => {
         ]);
         const ask2 = await addAsk({
           client,
+          noVerify: true,
           tokenId: aSquiggle,
           price: ethers.BigNumber.from("50"),
           deadline,
@@ -1432,6 +1546,7 @@ describe("db/orderbook", () => {
         });
         const ask3 = await addAsk({
           client,
+          noVerify: true,
           tokenId: aSquiggle,
           price: ethers.BigNumber.from("5"),
           deadline,

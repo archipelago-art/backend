@@ -314,6 +314,7 @@ describe("db/eth", () => {
 
         const askId = await orderbook.addAsk({
           client,
+          noVerify: true,
           tokenId: squiggle,
           price: "1000",
           deadline: new Date("2099-01-01"),
@@ -451,6 +452,7 @@ describe("db/eth", () => {
 
         const askId = await orderbook.addAsk({
           client,
+          noVerify: true,
           tokenId,
           price: "1000",
           deadline: new Date("2099-01-01"),

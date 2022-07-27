@@ -484,6 +484,9 @@ async function deactivateExpiredOrders({ client }) {
 
 async function addAsk({
   client,
+  noVerify = false,
+  chainId = 1,
+  marketAddress = DEFAULT_MARKET,
   tokenId /*: tokenid */,
   price /*: ethers.BigNumber */,
   deadline /*: Date */,
@@ -493,6 +496,32 @@ async function addAsk({
   message /*: bytes: ABI-encoded [Bid] */,
   signature /*: bytes65 */,
 }) {
+  // Verify signatures and hash integrity.
+  if (!noVerify) {
+    const [agreementStruct] = ethers.utils.defaultAbiCoder.decode(
+      [sdk.market.abi.OrderAgreement],
+      agreement
+    );
+    const [askStruct] = ethers.utils.defaultAbiCoder.decode(
+      [sdk.market.abi.Ask],
+      message
+    );
+    const agreementStructHash = sdk.market.hash.orderAgreement(agreementStruct);
+    if (askStruct.agreementHash !== agreementStructHash) {
+      throw new Error(
+        `ask agreement hash: want ${agreementStructHash}, got ${askStruct.agreementHash}`
+      );
+    }
+    const recoveredSigner = sdk.market.verify712.ask(
+      signature,
+      { chainId, marketAddress },
+      askStruct
+    );
+    if (recoveredSigner !== asker) {
+      throw new Error(`ask signer: want ${asker}, got ${recoveredSigner}`);
+    }
+  }
+
   await client.query("BEGIN");
   const projectId = await projectForTokenId(client, tokenId);
   const tokenDetailsRes = await client.query(
