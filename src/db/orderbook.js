@@ -496,6 +496,24 @@ async function addAsk({
   message /*: bytes: ABI-encoded [Bid] */,
   signature /*: bytes65 */,
 }) {
+  await client.query("BEGIN");
+  const projectId = await projectForTokenId(client, tokenId);
+  const tokenDetailsRes = await client.query(
+    `
+    SELECT
+      p.slug,
+      t.token_index as "tokenIndex",
+      t.token_contract AS "tokenContract",
+      t.on_chain_token_id AS "onChainTokenId"
+    FROM tokens t
+    JOIN projects p USING (project_id)
+    WHERE t.token_id = $1
+    `,
+    [tokenId]
+  );
+  const { slug, tokenIndex, onChainTokenId } = tokenDetailsRes.rows[0];
+  const tokenContract = bufToAddress(tokenDetailsRes.rows[0].tokenContract);
+
   // Verify signatures and hash integrity.
   if (!noVerify) {
     const [agreementStruct] = ethers.utils.defaultAbiCoder.decode(
@@ -512,6 +530,16 @@ async function addAsk({
         `ask agreement hash: want ${agreementStructHash}, got ${askStruct.agreementHash}`
       );
     }
+    if (agreementStruct.tokenAddress !== tokenContract) {
+      throw new Error(
+        `ask tokenContract: want ${tokenContract}, got ${agreementStruct.tokenAddress}`
+      );
+    }
+    if (String(askStruct.tokenId) !== onChainTokenId) {
+      throw new Error(
+        `ask tokenId: want ${onChainTokenId}, got ${askStruct.tokenId}`
+      );
+    }
     const recoveredSigner = sdk.market.verify712.ask(
       signature,
       { chainId, marketAddress },
@@ -522,20 +550,6 @@ async function addAsk({
     }
   }
 
-  await client.query("BEGIN");
-  const projectId = await projectForTokenId(client, tokenId);
-  const tokenDetailsRes = await client.query(
-    `
-    SELECT
-      t.token_index as "tokenIndex",
-      p.slug
-    FROM tokens t
-    JOIN projects p USING (project_id)
-    WHERE t.token_id = $1
-    `,
-    [tokenId]
-  );
-  const { tokenIndex, slug } = tokenDetailsRes.rows[0];
   const askId = newId(ObjectType.ASK);
   const insertRes = await client.query(
     `

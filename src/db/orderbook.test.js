@@ -755,6 +755,16 @@ describe("db/orderbook", () => {
           askStructBadAgreement
         );
 
+        const askStructBadTokenId = {
+          ...askStruct,
+          tokenId: 12345,
+        };
+        const goodSignatureBadTokenId = await sdk.market.sign712.ask(
+          signer,
+          domainInfo,
+          askStructBadTokenId
+        );
+
         async function go(askStruct, signature) {
           try {
             return await addAsk({
@@ -787,6 +797,9 @@ describe("db/orderbook", () => {
         await expect(
           go(askStructBadAgreement, goodSignatureBadAgreement)
         ).rejects.toThrow(/ask agreement hash: want 0x.*, got 0x.*/);
+        await expect(
+          go(askStructBadTokenId, goodSignatureBadTokenId)
+        ).rejects.toThrow(/ask tokenId: want 23000250, got 12345/);
         await expect(go(askStruct, goodSignature)).resolves.toEqual(
           expect.any(String)
         );
