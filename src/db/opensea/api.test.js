@@ -862,7 +862,14 @@ describe("db/opensea/api", () => {
           price: "100",
           listingTime: dateToOpenseaString(new Date("2022-02-02")),
         });
-        await addAndIngest(client, [a1, a2]);
+        const a3 = ask({
+          id: "3",
+          tokenId: snapshots.THE_CUBE,
+          sellerAddress: wchargin, // previous owner
+          price: "99",
+          listingTime: dateToOpenseaString(new Date("2021-12-12")),
+        });
+        await addAndIngest(client, [a1, a2, a3]);
         const res = await unlistedOpenseaAsks({ client, address: ijd });
         expect(res).toEqual([
           {

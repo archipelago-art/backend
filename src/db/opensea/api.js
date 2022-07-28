@@ -286,8 +286,10 @@ async function unlistedOpenseaAsks({ client, address }) {
       WHERE tr.token_id = t.token_id
       ORDER BY token_id, block_number DESC, log_index DESC
     ) token_owners
-    WHERE token_owners.owner = $1::address
-    ORDER BY unlisted_asks.token_id, os.price ASC;
+    WHERE
+      token_owners.owner = $1::address
+      AND os.seller_address = $1::address
+    ORDER BY unlisted_asks.token_id, os.price ASC
     `,
     [hexToBuf(address)]
   );
