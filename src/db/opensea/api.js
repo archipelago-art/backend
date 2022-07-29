@@ -267,6 +267,8 @@ async function unlistedOpenseaAsks({ client, address }) {
       p.name,
       p.slug,
       t.token_index as "tokenIndex",
+      t.token_contract as "tokenContract",
+      t.on_chain_token_id as "onChainTokenId",
       os.price,
       os.expiration_time as "deadline"
     FROM (
@@ -289,8 +291,11 @@ async function unlistedOpenseaAsks({ client, address }) {
       WHERE tr.token_id = t.token_id
       ORDER BY token_id, block_number DESC, log_index DESC
     ) token_owners
-    WHERE token_owners.owner = $1::address
-    ORDER BY unlisted_asks.token_id, os.price ASC;
+    WHERE
+      token_owners.owner = $1::address
+      AND os.seller_address = $1::address
+      AND os.active
+    ORDER BY unlisted_asks.token_id, os.price ASC
     `,
     [hexToBuf(address)]
   );
@@ -301,6 +306,8 @@ async function unlistedOpenseaAsks({ client, address }) {
     name: r.name,
     slug: r.slug,
     tokenIndex: r.tokenIndex,
+    tokenContract: bufToAddress(r.tokenContract),
+    onChainTokenId: String(r.onChainTokenId),
     price: String(r.price),
     deadline: r.deadline,
   }));

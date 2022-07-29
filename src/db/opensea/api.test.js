@@ -862,7 +862,14 @@ describe("db/opensea/api", () => {
           price: "100",
           listingTime: dateToOpenseaString(new Date("2022-02-02")),
         });
-        await addAndIngest(client, [a1, a2]);
+        const a3 = ask({
+          id: "3",
+          tokenId: snapshots.THE_CUBE,
+          sellerAddress: wchargin, // previous owner
+          price: "99",
+          listingTime: dateToOpenseaString(new Date("2021-12-12")),
+        });
+        await addAndIngest(client, [a1, a2, a3]);
         const res = await unlistedOpenseaAsks({ client, address: ijd });
         expect(res).toEqual([
           {
@@ -872,6 +879,8 @@ describe("db/opensea/api", () => {
             name: "Archetype",
             slug: "archetype",
             tokenIndex: 250,
+            tokenContract: "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270",
+            onChainTokenId: "23000250",
             deadline: null,
           },
         ]);

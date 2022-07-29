@@ -484,6 +484,9 @@ async function deactivateExpiredOrders({ client }) {
 
 async function addAsk({
   client,
+  noVerify = false,
+  chainId = 1,
+  marketAddress = DEFAULT_MARKET,
   tokenId /*: tokenid */,
   price /*: ethers.BigNumber */,
   deadline /*: Date */,
@@ -498,15 +501,55 @@ async function addAsk({
   const tokenDetailsRes = await client.query(
     `
     SELECT
+      p.slug,
       t.token_index as "tokenIndex",
-      p.slug
+      t.token_contract AS "tokenContract",
+      t.on_chain_token_id AS "onChainTokenId"
     FROM tokens t
     JOIN projects p USING (project_id)
     WHERE t.token_id = $1
     `,
     [tokenId]
   );
-  const { tokenIndex, slug } = tokenDetailsRes.rows[0];
+  const { slug, tokenIndex, onChainTokenId } = tokenDetailsRes.rows[0];
+  const tokenContract = bufToAddress(tokenDetailsRes.rows[0].tokenContract);
+
+  // Verify signatures and hash integrity.
+  if (!noVerify) {
+    const [agreementStruct] = ethers.utils.defaultAbiCoder.decode(
+      [sdk.market.abi.OrderAgreement],
+      agreement
+    );
+    const [askStruct] = ethers.utils.defaultAbiCoder.decode(
+      [sdk.market.abi.Ask],
+      message
+    );
+    const agreementStructHash = sdk.market.hash.orderAgreement(agreementStruct);
+    if (askStruct.agreementHash !== agreementStructHash) {
+      throw new Error(
+        `ask agreement hash: want ${agreementStructHash}, got ${askStruct.agreementHash}`
+      );
+    }
+    if (agreementStruct.tokenAddress !== tokenContract) {
+      throw new Error(
+        `ask tokenContract: want ${tokenContract}, got ${agreementStruct.tokenAddress}`
+      );
+    }
+    if (String(askStruct.tokenId) !== onChainTokenId) {
+      throw new Error(
+        `ask tokenId: want ${onChainTokenId}, got ${askStruct.tokenId}`
+      );
+    }
+    const recoveredSigner = sdk.market.verify712.ask(
+      signature,
+      { chainId, marketAddress },
+      askStruct
+    );
+    if (recoveredSigner !== asker) {
+      throw new Error(`ask signer: want ${asker}, got ${recoveredSigner}`);
+    }
+  }
+
   const askId = newId(ObjectType.ASK);
   const insertRes = await client.query(
     `
