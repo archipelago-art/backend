@@ -556,6 +556,7 @@ describe("db/opensea/api", () => {
           price: "500",
           tokenSpec: snapshots.THE_CUBE,
           listingTime: dateToOpenseaString(new Date("2023-01-01")),
+          duration: 86400,
         });
         const a2 = ask({
           id: "2",
@@ -563,12 +564,14 @@ describe("db/opensea/api", () => {
           tokenSpec: snapshots.ARCH_TRIPTYCH_1,
           sellerAddress: dandelion, // wrong owner
           listingTime: dateToOpenseaString(new Date("2023-02-02")),
+          duration: 86400,
         });
         const a3 = ask({
           id: "3",
           price: "900",
           tokenSpec: snapshots.ARCH_TRIPTYCH_2,
           listingTime: dateToOpenseaString(new Date("2023-03-03")),
+          duration: 86400,
         });
         await addAndIngest(client, [a1, a2, a3]);
         const t1 = transfer({ tokenId: archetypeTokenId1, logIndex: 123 });
@@ -587,12 +590,20 @@ describe("db/opensea/api", () => {
         });
         expect(result).toEqual({
           [archetypeTokenId1]: {
-            priceWei: "500",
-            listingTime: new Date("2023-01-01"),
+            createTime: new Date("2023-01-01"),
+            deadline: new Date("2023-01-02"),
+            eventId: "1",
+            price: "500",
+            sellerAddress: wchargin,
+            tokenId: archetypeTokenId1
           },
           [archetypeTokenId3]: {
-            priceWei: "900",
-            listingTime: new Date("2023-03-03"),
+            createTime: new Date("2023-03-03"),
+            deadline: new Date("2023-03-04"),
+            eventId: "3",
+            price: "900",
+            sellerAddress: wchargin,
+            tokenId: archetypeTokenId3
           },
         });
       })
@@ -607,16 +618,19 @@ describe("db/opensea/api", () => {
           id: "1",
           price: "5000",
           listingTime: dateToOpenseaString(new Date("2023-01-01")),
+          duration: 86400,
         });
         const a2 = ask({
           id: "2",
           price: "100",
           listingTime: dateToOpenseaString(new Date("2023-02-02")),
+          duration: 86400,
         });
         const a3 = ask({
           id: "3",
           price: "1000",
           listingTime: dateToOpenseaString(new Date("2023-03-03")),
+          duration: 86400,
         });
         await addAndIngest(client, [a1, a2, a3]);
         await eth.addBlock({ client, block: genesis() });
@@ -629,8 +643,12 @@ describe("db/opensea/api", () => {
         });
         expect(result).toEqual({
           [archetypeTokenId1]: {
-            priceWei: "100",
-            listingTime: new Date("2023-02-02"),
+            createTime: new Date("2023-02-02"),
+            deadline: new Date("2023-02-03"),
+            eventId: "2",
+            price: "100",
+            sellerAddress: wchargin,
+            tokenId: archetypeTokenId1,
           },
         });
       })

@@ -181,9 +181,12 @@ async function asksForProject({ client, projectId }) {
   const res = await client.query(
     `
     SELECT DISTINCT ON (token_id)
+      event_id as "eventId",
       token_id AS "tokenId",
-      price AS "priceWei",
-      listing_time AS "listingTime"
+      price,
+      seller_address AS "sellerAddress",
+      listing_time AS "listingTime",
+      expiration_time AS "expirationTime"
     FROM opensea_asks JOIN token_owners USING (token_id)
     WHERE
       active
@@ -197,8 +200,15 @@ async function asksForProject({ client, projectId }) {
   );
   await client.query("ROLLBACK");
   const result = {};
-  for (const { tokenId, priceWei, listingTime } of res.rows) {
-    result[tokenId] = { priceWei, listingTime };
+  for (const row of res.rows) {
+    result[row.tokenId] = {
+      eventId: row.eventId,
+      sellerAddress: bufToAddress(row.sellerAddress),
+      tokenId: row.tokenId,
+      price: row.price,
+      createTime: row.listingTime,
+      deadline: row.expirationTime,
+    };
   }
   return result;
 }
