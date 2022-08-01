@@ -207,7 +207,7 @@ describe("db/opensea/api", () => {
         expect(result).toEqual({
           eventId: "2",
           deadline: null,
-          listingTime: utcDateFromString(listed),
+          createTime: utcDateFromString(listed),
           price: "950",
           sellerAddress: wchargin,
           tokenId: archetypeTokenId1,
@@ -236,7 +236,7 @@ describe("db/opensea/api", () => {
           {
             eventId: "2",
             deadline: null,
-            listingTime: utcDateFromString(listed),
+            createTime: utcDateFromString(listed),
             price: "950",
             sellerAddress: wchargin,
             tokenId: archetypeTokenId1,
@@ -244,7 +244,7 @@ describe("db/opensea/api", () => {
           {
             eventId: "3",
             deadline: null,
-            listingTime: utcDateFromString(listed),
+            createTime: utcDateFromString(listed),
             price: "975",
             sellerAddress: wchargin,
             tokenId: archetypeTokenId1,

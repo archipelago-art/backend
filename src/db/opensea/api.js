@@ -45,7 +45,7 @@ async function asksForToken({ client, tokenId, limit }) {
     `
     SELECT
       seller_address AS "sellerAddress",
-      listing_time AS "listingTime",
+      listing_time AS "createTime",
       expiration_time AS "deadline",
       price,
       token_id AS "tokenId",
@@ -185,7 +185,7 @@ async function asksForProject({ client, projectId }) {
       token_id AS "tokenId",
       price,
       seller_address AS "sellerAddress",
-      listing_time AS "listingTime",
+      listing_time AS "createTime",
       expiration_time AS "expirationTime"
     FROM opensea_asks JOIN token_owners USING (token_id)
     WHERE
@@ -206,7 +206,7 @@ async function asksForProject({ client, projectId }) {
       sellerAddress: bufToAddress(row.sellerAddress),
       tokenId: row.tokenId,
       price: row.price,
-      createTime: row.listingTime,
+      createTime: row.createTime,
       deadline: row.expirationTime,
     };
   }
