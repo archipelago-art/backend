@@ -86,6 +86,20 @@ async function getUserDetails({ client, authToken }) {
 
 // Authenticated method. Shallow-merges in new preferences.
 async function updatePreferences({ client, authToken, newPreferences }) {
+  if (
+    typeof newPreferences !== "object" ||
+    newPreferences == null ||
+    Array.isArray(newPreferences)
+  ) {
+    throw new Error(
+      "newPreferences: want object, got " + JSON.stringify(newPreferences)
+    );
+  }
+  const okKeys = new Set([PREF_BID_EMAILS, PREF_EMAIL_TIMEZONE]);
+  const badKeys = Object.keys(newPreferences).filter((k) => !okKeys.has(k));
+  if (badKeys.length > 0) {
+    throw new Error("newPreferences: unknown keys: " + badKeys.join(", "));
+  }
   const res = await client.query(
     `
     WITH
