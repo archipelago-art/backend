@@ -399,7 +399,7 @@ describe("db/opensea/api", () => {
           client,
         });
         expect(result).toEqual({
-          [archetypeId]: { price: "950", tokenIndex: 36},
+          [archetypeId]: { price: "950", tokenIndex: 36 },
           [squigglesId]: null,
         });
       })
@@ -595,7 +595,7 @@ describe("db/opensea/api", () => {
             eventId: "1",
             price: "500",
             sellerAddress: wchargin,
-            tokenId: archetypeTokenId1
+            tokenId: archetypeTokenId1,
           },
           [archetypeTokenId3]: {
             createTime: new Date("2023-03-03"),
@@ -603,7 +603,7 @@ describe("db/opensea/api", () => {
             eventId: "3",
             price: "900",
             sellerAddress: wchargin,
-            tokenId: archetypeTokenId3
+            tokenId: archetypeTokenId3,
           },
         });
       })
