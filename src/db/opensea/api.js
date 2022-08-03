@@ -305,9 +305,14 @@ async function unlistedOpenseaAsks({ client, address }) {
       token_owners.owner = $1::address
       AND os.seller_address = $1::address
       AND os.active
+      AND os.currency_id IN ($2::currencyid, $3::currencyid)
     ORDER BY unlisted_asks.token_id, os.price ASC
     `,
-    [hexToBuf(address)]
+    [
+      hexToBuf(address),
+      wellKnownCurrencies.eth.currencyId,
+      wellKnownCurrencies.weth9.currencyId,
+    ]
   );
   return res.rows.map((r) => ({
     askId: r.askId,
