@@ -871,7 +871,7 @@ describe("db/opensea/api", () => {
           tokenId: snapshots.THE_CUBE,
           sellerAddress: ijd,
           price: "5000",
-          listingTime: dateToOpenseaString(new Date("2022-01-01")),
+          listingTime: dateToOpenseaString(new Date("2022-02-02")),
         });
         const a2 = ask({
           id: "2",
@@ -885,7 +885,7 @@ describe("db/opensea/api", () => {
           tokenId: snapshots.THE_CUBE,
           sellerAddress: wchargin, // previous owner
           price: "99",
-          listingTime: dateToOpenseaString(new Date("2021-12-12")),
+          listingTime: dateToOpenseaString(new Date("2021-02-02")),
         });
         await addAndIngest(client, [a1, a2, a3]);
         const res = await unlistedOpenseaAsks({ client, address: ijd });
