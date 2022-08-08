@@ -18,7 +18,6 @@ const commands = [
   ["reingest-project-images", require("./reingestProjectImages")],
   ["migrate-artblocks-images", require("./migrateArtblocksImages")],
   ["find-missing-images", require("./findMissingImages")],
-  ["token-feed-wss", require("./tokenFeedWss")],
   ["watch-cnf-queue", require("./watchCnfQueue")],
   ["watch-token-traits-queue", require("./watchTokenTraitsQueue")],
   ["deactivate-expired-orders", require("./deactivateExpiredOrders")],
