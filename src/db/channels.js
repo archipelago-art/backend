@@ -56,6 +56,7 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //        askId: string,
 //        projectId: string,
 //        slug: string,
+//        tokenIndex: number,
 //      }
 //
 //  - For `type: "BID_PLACED"`, `data` looks like:
