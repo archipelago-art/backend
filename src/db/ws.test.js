@@ -3,6 +3,7 @@ const { testDbProvider } = require("./testUtil");
 
 const adHocPromise = require("../util/adHocPromise");
 const channels = require("./channels");
+const { channel } = require("./events");
 const ws = require("./ws");
 
 describe("db/ws", () => {
@@ -14,16 +15,19 @@ describe("db/ws", () => {
       await acqrel(pool, async (listenClient) => {
         const receivedMessages = [];
         const doneEvent = new adHocPromise();
-        const DONE_MESSAGE = "!!! DONE !!!";
+        const doneChannel = channel("__test_done");
         listenClient.on("notification", (n) => {
-          if (n.channel !== channels.websocketMessages.name) return;
-          if (n.payload === DONE_MESSAGE) {
-            doneEvent.resolve();
-          } else {
-            receivedMessages.push(JSON.parse(n.payload));
+          switch (n.channel) {
+            case doneChannel.name:
+              doneEvent.resolve();
+              break;
+            case channels.websocketMessages.name:
+              receivedMessages.push(JSON.parse(n.payload));
+              break;
           }
         });
         await channels.websocketMessages.listen(listenClient);
+        await doneChannel.listen(listenClient);
 
         const spectralColors = [
           "red",
@@ -48,10 +52,7 @@ describe("db/ws", () => {
           ),
         });
         await client.query("COMMIT");
-        await client.query("SELECT pg_notify($1, $2)", [
-          channels.websocketMessages.name,
-          DONE_MESSAGE,
-        ]);
+        await doneChannel.send(client, null);
         await doneEvent.promise;
 
         expect(receivedMessages).toEqual(
