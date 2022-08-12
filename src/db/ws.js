@@ -93,13 +93,24 @@ async function sendMessages({ client, messages }) {
 
 /**
  * Retrieves all messages posted with the given topic since the given date.
+ * Set `type` to a non-null value to filter by message type.
  *
  * The result is an array of objects that can be JSON-serialized and sent out
  * over a WebSocket.
  */
-async function getMessages({ client, topic, since }) {
+async function getMessages({
+  client,
+  topic,
+  type,
+  since,
+  afterMessageId,
+  limit = 1e9,
+}) {
   if (topic === undefined) {
     throw new Error("must explicitly set `topic` to a string or `null`");
+  }
+  if ((since == null) === (afterMessageId == null)) {
+    throw new Error("set exactly one of `since` or `afterMessageId`");
   }
   const res = await client.query(
     `
@@ -111,11 +122,21 @@ async function getMessages({ client, topic, since }) {
       data AS "data"
     FROM websocket_log
     WHERE
-      (topic = $1::text OR $1 IS NULL)
-      AND create_time > $2::timestamptz
+      true
+      AND (topic = $1::text OR $1 IS NULL)
+      AND (message_type = $2::text OR $2 IS NULL)
+      AND (create_time > $3::timestamptz OR $3 IS NULL)
+      AND (
+        (create_time, message_id) > (
+          SELECT create_time, message_id FROM websocket_log
+          WHERE message_id = $4::uuid
+        )
+        OR $4 IS NULL
+      )
     ORDER BY create_time, message_id
+    LIMIT $5
     `,
-    [topic, since]
+    [topic, type, since, afterMessageId, limit]
   );
   return res.rows.map(formatWebsocketMessage);
 }

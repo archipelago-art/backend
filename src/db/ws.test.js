@@ -92,6 +92,93 @@ describe("db/ws", () => {
   );
 
   it(
+    "allows filtering by type",
+    withTestDb(async ({ pool, client }) => {
+      await client.query("BEGIN");
+      await ws.sendMessages({
+        client,
+        messages: ["A", "B", "B", "A"].map((type, i) => ({
+          type,
+          topic: "top",
+          data: i,
+        })),
+      });
+      await client.query("COMMIT");
+
+      const query = { topic: "top", since: new Date(0) };
+      const as = await ws.getMessages({ client, ...query, type: "A" });
+      const bs = await ws.getMessages({ client, ...query, type: "B" });
+
+      const baseMessage = {
+        messageId: expect.stringMatching(/[0-9a-fA-F-]{36}/),
+        timestamp: expect.any(String),
+        topic: "top",
+      };
+      expect(as).toEqual([
+        { ...baseMessage, type: "A", data: 0 },
+        { ...baseMessage, type: "A", data: 3 },
+      ]);
+      expect(bs).toEqual([
+        { ...baseMessage, type: "B", data: 1 },
+        { ...baseMessage, type: "B", data: 2 },
+      ]);
+    })
+  );
+
+  it(
+    "paginates through messages",
+    withTestDb(async ({ pool, client }) => {
+      const rounds = 10;
+      const messagesPerRound = 3;
+      const pageSize = 2; // should not divide `messagesPerRound`
+
+      for (let i = 0; i < rounds; i++) {
+        await client.query("BEGIN");
+        await ws.sendMessages({
+          client,
+          messages: Array(messagesPerRound)
+            .fill()
+            .map((_, j) => ({
+              type: "NUMBER",
+              topic: "top",
+              data: i * messagesPerRound + j,
+            })),
+        });
+        await client.query("COMMIT");
+        if (i === 0) await new Promise((res) => setTimeout(res, 1));
+      }
+
+      const dump = await ws.getMessages({
+        client,
+        topic: "top",
+        since: new Date(0),
+      });
+      expect(dump).toHaveLength(rounds * messagesPerRound);
+      // Skip the first round of messages. Have to add 1ms to the
+      // timestamp because the internal timestamp has micros precision
+      // that's almost certainly (p=99.9%) non-integer.
+      const t0 = new Date(Date.parse(dump[0].timestamp) + 1);
+
+      const paginatedMessages = [];
+      {
+        const query = { topic: "top", type: "NUMBER", limit: pageSize };
+        let res = await ws.getMessages({ client, ...query, since: t0 });
+        let queries = 0;
+        while (res.length > 0) {
+          paginatedMessages.push(...res);
+          res = await ws.getMessages({
+            client,
+            ...query,
+            afterMessageId: res[res.length - 1].messageId,
+          });
+          if (queries++ > 100) throw new Error("too long; something's wrong");
+        }
+      }
+      expect(paginatedMessages).toEqual(dump.slice(messagesPerRound));
+    })
+  );
+
+  it(
     "deletes messages older than a given date",
     withTestDb(async ({ pool, client }) => {
       const type = "TYPE";
