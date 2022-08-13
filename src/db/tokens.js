@@ -3,6 +3,7 @@ const channels = require("./channels");
 const { hexToBuf, bufToAddress } = require("./util");
 const { ObjectType, newId, newIds } = require("./id");
 const ws = require("./ws");
+var format = require("pg-format");
 
 /**
  * Adds a new token to an existing project without populating any traits. This
@@ -352,7 +353,7 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
 async function tokenInfoById({ client, tokenIds }) {
   const res = await client.query(
     `
-    SELECT t.token_index as "tokenIndex", t.token_id as "tokenId", p.slug
+    SELECT t.token_index as "tokenIndex", t.token_id as "tokenId", p.slug, t.rarity_rank as "rarityRank"
     FROM tokens t JOIN projects p USING (project_id)
     WHERE token_id = ANY($1::tokenid[])
     ORDER BY token_id
@@ -360,6 +361,23 @@ async function tokenInfoById({ client, tokenIds }) {
     [tokenIds]
   );
   return res.rows;
+}
+
+// Updates the rarity of a token (pulled from Artacle).
+async function updateTokenRarity({
+  client,
+  updates /*: [[token_id, rarity_rank], [token_id, rarity_rank], ...] */,
+}) {
+  const rarityUpdate = await client.query(
+    format(
+      `
+    INSERT INTO token_rarity (token_id, rarity_rank, last_modified) VALUES %L
+    ON CONFLICT (token_id) DO UPDATE SET rarity_rank = excluded.rarity_rank, last_modified = now();
+    `,
+      updates
+    ),
+    []
+  );
 }
 
 module.exports = {
@@ -370,4 +388,5 @@ module.exports = {
   tokenIdByChainData,
   tokenSummariesByOnChainId,
   tokenInfoById,
+  updateTokenRarity,
 };

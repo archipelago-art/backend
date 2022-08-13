@@ -283,6 +283,7 @@ describe("db/tokens", () => {
           tokenId: archipelagoTokenId,
           slug: "archetype",
           tokenIndex: 36,
+          rarityRank: null
         },
       ]);
     })
@@ -302,6 +303,31 @@ describe("db/tokens", () => {
       expect(res.rows.length).toEqual(1);
       const [row] = res.rows;
       expect(row.tokenId).toEqual(archipelagoTokenId);
+    })
+  );
+
+  it(
+    "updates a token's rarity",
+    withTestDb(async ({ client }) => {
+      await sc.addProjects(client, [snapshots.ARCHETYPE]);
+      const tokenId = snapshots.ARCH_TRIPTYCH_1;
+      const [{ tokenId: archipelagoTokenId }] = await sc.addTokens(client, [
+        tokenId,
+      ]);
+
+      const res = await tokens.updateTokenRarity({
+        client,
+        tokenId: snapshots.ARCH_TRIPTYCH_1,
+        rarity: 50,
+      });
+
+      expect(res).toEqual([
+        {
+          tokenId: archipelagoTokenId,
+          slug: "archetype",
+          tokenIndex: 36,
+        },
+      ]);
     })
   );
 });
