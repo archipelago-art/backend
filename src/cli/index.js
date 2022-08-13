@@ -26,6 +26,7 @@ const commands = [
   ["add-historical-blocks", require("./addHistoricalBlocks")],
   ["add-new-jobs", require("./addNewJobs")],
   ["autorestart", require("./autorestart")],
+  ["refresh-token-rarity", require("./refreshTokenRarity")],
 ];
 
 module.exports = commands;
