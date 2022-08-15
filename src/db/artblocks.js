@@ -430,12 +430,20 @@ async function getProjectTokens({ client, projectId }) {
   }
   const res = await client.query(
     `
-    SELECT token_id AS "id" FROM tokens
+    SELECT 
+      token_id AS "tokenId",
+      token_index AS "tokenIndex",
+      on_chain_token_id AS "onChainTokenId",
+      token_contract AS "tokenContract"
+    FROM tokens
     WHERE project_id = $1
     `,
     [projectId]
   );
-  return res.rows.map((r) => r.id);
+  return res.rows.map((r) => ({
+    ...r,
+    tokenContract: bufToAddress(r.tokenContract),
+  }));
 }
 
 async function getTokenFeaturesAndTraits({

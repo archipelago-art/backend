@@ -22,9 +22,10 @@ async function getAllProjects({ client }) {
        slug,
        num_tokens AS "numTokens",
        projects.token_contract AS "tokenContract",
-       artblocks_project_index AS "artblocksProjectIndex"
+       artblocks_project_index AS "artblocksProjectIndex",
+       image_template AS "imageTemplate"
     FROM projects
-    JOIN artblocks_projects USING (project_id)
+    LEFT OUTER JOIN artblocks_projects USING (project_id)
     `
   );
   return res.rows.map((row) => ({
