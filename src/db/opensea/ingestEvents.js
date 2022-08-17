@@ -404,7 +404,10 @@ async function ingestCancellations(client, cancellationIds) {
       ON hexaddr(json->'asset'->>'address') = token_contract
       AND (json->'asset'->>'token_id')::uint256 = on_chain_token_id
     WHERE event_id = ANY($1::text[])
-    RETURNING event_id AS id
+    RETURNING event_id AS "id",
+      project_id AS "projectId",
+      (SELECT token_index FROM tokens t WHERE token_id = opensea_ask_cancellations.token_id) AS "tokenIndex",
+      (SELECT slug FROM projects p WHERE project_id = opensea_ask_cancellations.project_id) AS "slug"
     `,
     [cancellationIds]
   );
@@ -423,6 +426,19 @@ async function ingestCancellations(client, cancellationIds) {
     `,
     [insertedCancellations]
   );
+
+  const messages = result.rows.map((r) => ({
+    type: "ASK_CANCELLED",
+    topic: r.slug,
+    data: {
+      askId: `opensea:${r.id}`,
+      projectId: r.projectId,
+      slug: r.slug,
+      tokenIndex: r.tokenIndex,
+      venue: "OPENSEA",
+    },
+  }));
+  await ws.sendMessages({ client, messages });
   return insertedCancellations;
 }
 
