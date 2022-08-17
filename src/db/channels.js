@@ -140,6 +140,26 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //        transactionHash: string(bytes32),
 //      }
 //
+//  - For `type: "TOKEN_TRADED"`, `data` looks like:
+//
+//      {
+//        slug: string,
+//        buyer: address (0xstring),
+//        seller: address (0xstring),
+//        price: string(wei),
+//        cost: string(wei),
+//        tokenId: string,
+//        tokenIndex: number,
+//        tradeId: string,
+//        currency: string,
+//        logIndex: number,
+//        proceeds: string(wei),
+//        blockHash: string(bytes32),
+//        blockNumber: number,
+//        blockTimestamp: string(iso8601),
+//        transactionHash: string(bytes32),
+//      }
+//
 const websocketMessages = events.channel("websocket_messages");
 
 module.exports = {
