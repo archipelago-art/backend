@@ -401,6 +401,28 @@ describe("db/opensea/ingestEvents", () => {
         const { projectId, tokenId } = await exampleProjectAndToken({ client });
         const ev = cancellation();
         await addAndIngest(client, [ev]);
+        const messages = await ws.getMessages({
+          client,
+          topic: "archetype",
+          since: new Date(0),
+        });
+        expect(messages).toEqual(
+          expect.arrayContaining([
+            {
+              messageId: expect.any(String),
+              timestamp: expect.any(String),
+              type: "ASK_CANCELLED",
+              topic: "archetype",
+              data: {
+                askId: "opensea:" + String(ev.id),
+                projectId,
+                slug: "archetype",
+                tokenIndex: 250,
+                venue: "OPENSEA",
+              },
+            },
+          ])
+        );
         expect(await getCancellation(client, ev.id)).toEqual({
           id: ev.id,
           projectId,
