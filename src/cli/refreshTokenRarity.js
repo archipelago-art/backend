@@ -24,6 +24,13 @@ async function refreshTokenRarity(args) {
 
   // Loop over Archipelago collections, lookup Artacle collection, and update rarity
   for (const archiCollection of archiCollections) {
+    const isFullyMinted = await withClient(async (client) => {
+      return projects.isProjectFullyMinted({ client, projectId: archiCollection.projectId });
+    });
+    if (!isFullyMinted) {
+      log.info`Skipping ${archiCollection.slug} because it is not fully minted.`;
+      continue;
+    }
     const now = new Date();
     const tokenContract = archiCollection.tokenContract.toLowerCase();
 

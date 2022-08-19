@@ -34,4 +34,18 @@ async function getAllProjects({ client }) {
   }));
 }
 
-module.exports = { projectIdForSlug, getAllProjects };
+async function isProjectFullyMinted({ client, projectId }) {
+  const res = await client.query(
+    `
+    SELECT p.num_tokens as totalTokens, count(t.token_id) as totalMinted
+    FROM projects p
+    JOIN tokens t ON p.project_id = t.project_id
+    WHERE p.project_id = $1
+    group by num_tokens;
+    `,
+    [projectId]
+  );
+  return res.totalMinted === res.totalTokens;
+}
+
+module.exports = { projectIdForSlug, getAllProjects, isProjectFullyMinted };
