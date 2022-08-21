@@ -380,6 +380,16 @@ async function updateTokenRarity({
   );
 }
 
+async function getTokenRarity({ client, tokenId }) {
+  const res = await client.query(
+    `
+    SELECT rarity_rank FROM token_rarity WHERE token_id = $1::tokenid
+    `,
+    [tokenId]
+  );
+  return res.rows[0]?.rarityRank;
+}
+
 module.exports = {
   addBareToken,
   claimTokenTraitsQueueEntries,
@@ -389,4 +399,5 @@ module.exports = {
   tokenSummariesByOnChainId,
   tokenInfoById,
   updateTokenRarity,
+  getTokenRarity,
 };

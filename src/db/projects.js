@@ -41,11 +41,31 @@ async function isProjectFullyMinted({ client, projectId }) {
     FROM projects p
     JOIN tokens t ON p.project_id = t.project_id
     WHERE p.project_id = $1
-    group by num_tokens;
+    group by num_tokens
     `,
     [projectId]
   );
   return res.totalMinted === res.totalTokens;
 }
 
-module.exports = { projectIdForSlug, getAllProjects, isProjectFullyMinted };
+async function getRarityForProjectTokens({ client, projectId }) {
+  const res = await client.query(
+    `
+    SELECT t.token_id AS "tokenId",
+        tr.rarity_rank AS "rarityRank"
+    FROM tokens t
+    JOIN token_rarity tr USING (token_id)
+    WHERE t.project_id = $1
+    ORDER BY tr.rarity_rank
+    `,
+    [projectId]
+  );
+  return res.rows.map((row) => row.rarity);
+}
+
+module.exports = {
+  projectIdForSlug,
+  getAllProjects,
+  isProjectFullyMinted,
+  getRarityForProjectTokens,
+};
