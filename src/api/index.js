@@ -11,6 +11,7 @@ const slugify = require("../util/slugify");
 const { sortAsciinumeric } = require("../util/sortAsciinumeric");
 const openseaApi = require("../db/opensea/api");
 const dbTokens = require("../db/tokens");
+const dbProjects = require("../db/projects");
 const contracts = require("./contracts");
 
 const PROJECT_STRIDE = 1e6;
@@ -504,6 +505,14 @@ async function lastSalesByProject({ client, projectId }) {
   return await eth.lastFillsByProject({ client, projectId });
 }
 
+async function projectRarity({ client, projectId }) {
+  return await dbProjects.getRarityForProjectTokens({ client, projectId });
+}
+
+async function tokenRarity({ client, tokenId }) {
+  return await dbTokens.getTokenRarity({ client, tokenId });
+}
+
 // Adds a new email address to the signups list. Returns `true` if this made a
 // change or `false` if the email already existed in the database. Idempotent.
 async function addEmailSignup({ client, email }) {
@@ -548,6 +557,8 @@ module.exports = {
   addEmailSignup,
   getWebsocketMessages: ws.getMessages,
   formatImageUrl,
+  projectRarity,
+  tokenRarity,
 
   opensea: openseaApi,
   tokens: dbTokens,
