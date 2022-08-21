@@ -353,7 +353,7 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
 async function tokenInfoById({ client, tokenIds }) {
   const res = await client.query(
     `
-    SELECT t.token_index as "tokenIndex", t.token_id as "tokenId", p.slug, t.rarity_rank as "rarityRank"
+    SELECT t.token_index as "tokenIndex", t.token_id as "tokenId", p.slug
     FROM tokens t JOIN projects p USING (project_id)
     WHERE token_id = ANY($1::tokenid[])
     ORDER BY token_id
