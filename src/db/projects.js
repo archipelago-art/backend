@@ -52,6 +52,7 @@ async function getRarityForProjectTokens({ client, projectId }) {
   const res = await client.query(
     `
     SELECT t.token_id AS "tokenId",
+        t.token_index AS "tokenIndex",
         tr.rarity_rank AS "rarityRank"
     FROM tokens t
     JOIN token_rarity tr USING (token_id)
