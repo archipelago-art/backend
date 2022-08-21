@@ -383,7 +383,7 @@ async function updateTokenRarity({
 async function getTokenRarity({ client, tokenId }) {
   const res = await client.query(
     `
-    SELECT rarity_rank FROM token_rarity WHERE token_id = $1::tokenid
+    SELECT rarity_rank AS "rarityRank" FROM token_rarity WHERE token_id = $1::tokenid
     `,
     [tokenId]
   );
