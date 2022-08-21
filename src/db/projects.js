@@ -55,7 +55,7 @@ async function getRarityForProjectTokens({ client, projectId }) {
         t.token_index AS "tokenIndex",
         tr.rarity_rank AS "rarityRank"
     FROM tokens t
-    JOIN token_rarity tr USING (token_id)
+    LEFT OUTER JOIN token_rarity tr USING (token_id)
     WHERE t.project_id = $1
     ORDER BY tr.rarity_rank
     `,
