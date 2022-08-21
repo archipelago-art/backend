@@ -383,11 +383,16 @@ async function updateTokenRarity({
 async function getTokenRarity({ client, tokenId }) {
   const res = await client.query(
     `
-    SELECT rarity_rank AS "rarityRank" FROM token_rarity WHERE token_id = $1::tokenid
+    SELECT 
+      tr.rarity_rank AS "rarityRank",
+      (SELECT num_tokens FROM projects WHERE project_id = t.project_id) AS "total"
+    FROM token_rarity tr
+    JOIN tokens t USING (token_id)
+    WHERE token_id = $1::tokenid
     `,
     [tokenId]
   );
-  return res.rows[0]?.rarityRank;
+  return res.rows[0];
 }
 
 module.exports = {
