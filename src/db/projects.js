@@ -60,7 +60,7 @@ async function getRarityForProjectTokens({ client, projectId }) {
     `,
     [projectId]
   );
-  return res.rows.map((row) => row.rarity);
+  return res.rows;
 }
 
 module.exports = {
