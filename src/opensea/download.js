@@ -84,11 +84,7 @@ async function removeDroppedAsks({ client, tokenId, apiKey }) {
     return;
   }
   const validPrices = new Set();
-  const { listings: legacyListings, seaport_listings: seaportListings } =
-    listingsResponse;
-  for (const { base_price: price } of legacyListings) {
-    validPrices.add(price);
-  }
+  const { seaport_listings: seaportListings } = listingsResponse;
   for (const { current_price: price } of seaportListings) {
     validPrices.add(price);
   }
