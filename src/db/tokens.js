@@ -3,7 +3,6 @@ const channels = require("./channels");
 const { hexToBuf, bufToAddress } = require("./util");
 const { ObjectType, newId, newIds } = require("./id");
 const ws = require("./ws");
-var format = require("pg-format");
 
 /**
  * Adds a new token to an existing project without populating any traits. This
