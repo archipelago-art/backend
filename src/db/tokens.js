@@ -366,17 +366,27 @@ async function tokenInfoById({ client, tokenIds }) {
 // Updates the rarity of a token (pulled from Artacle).
 async function updateTokenRarity({
   client,
-  updates /*: [[token_id, rarity_rank], [token_id, rarity_rank], ...] */,
+  updates, // array of {tokenId, rarityRank} objects
 }) {
-  const rarityUpdate = await client.query(
-    format(
-      `
-    INSERT INTO token_rarity (token_id, rarity_rank, last_modified) VALUES %L
-    ON CONFLICT (token_id) DO UPDATE SET rarity_rank = excluded.rarity_rank, last_modified = now();
+  await client.query(
+    `
+      WITH updates AS (
+        SELECT
+          inputs.token_id,
+          tokens.project_id,
+          inputs.rarity_rank
+        FROM unnest($1::tokenid[], $2::int[]) as inputs(token_id, rarity_rank)
+        JOIN tokens USING (token_id)
+      )
+      INSERT INTO token_rarity (token_id, project_id, rarity_rank, update_time)
+      SELECT token_id, project_id, rarity_rank, now()
+      FROM updates
+      ON CONFLICT (token_id) DO UPDATE 
+        SET rarity_rank = excluded.rarity_rank, 
+        project_id = excluded.project_id, 
+        update_time = excluded.update_time;
     `,
-      updates
-    ),
-    []
+    [updates.map((x) => x.tokenId), updates.map((x) => x.rarityRank)]
   );
 }
 
