@@ -1,4 +1,52 @@
-const { bufToAddress } = require("./util");
+const slug = require("../util/slugify");
+const { ObjectType, newId, newIds } = require("./id");
+const { hexToBuf, bufToAddress } = require("./util");
+
+async function addProject({
+  client,
+  name,
+  maxInvocations,
+  artistName,
+  description,
+  aspectRatio,
+  tokenContract,
+  imageTemplate,
+}) {
+  const projectId = newId(ObjectType.PROJECT);
+  await client.query(
+    `
+    INSERT INTO projects (
+      project_id,
+      name,
+      max_invocations,
+      artist_name,
+      description,
+      aspect_ratio,
+      num_tokens,
+      slug,
+      token_contract,
+      image_template
+    )
+    SELECT
+      $1::projectid,
+      $2, $3, $4, $5, $6,
+      0,  -- no tokens to start: tokens must be added after project
+      $7, $8, $9
+    `,
+    [
+      projectId,
+      name,
+      maxInvocations,
+      artistName,
+      description,
+      aspectRatio,
+      slug(name),
+      hexToBuf(tokenContract),
+      imageTemplate,
+    ]
+  );
+  return projectId;
+}
 
 async function projectIdForSlug({ client, slug }) {
   const res = await client.query(
@@ -28,6 +76,7 @@ async function isProjectFullyMinted({ client, projectId }) {
 }
 
 module.exports = {
+  addProject,
   projectIdForSlug,
   isProjectFullyMinted,
 };
