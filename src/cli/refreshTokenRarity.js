@@ -52,7 +52,7 @@ async function refreshTokenRarity(args) {
     );
     const artacleRarityMap = new Map(
       artacleRarity.map((r) => [r.tokenId, r.rank])
-    )
+    );
     log.info`Rarity retrieved for ${archiCollection.slug}`;
 
     // Get all tokens in the Archipelago collection and create onChainTokenId -> token map for lookups
@@ -70,7 +70,7 @@ async function refreshTokenRarity(args) {
       const artacleRank = artacleRarityMap.get(token.onChainTokenId);
       updates.push({
         tokenId: token.tokenId,
-        rarityRank: artacleRank??null,
+        rarityRank: artacleRank ?? null,
       });
       if (artacleRank == null) nullCount++;
     }
