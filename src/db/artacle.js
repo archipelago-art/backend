@@ -27,7 +27,7 @@ async function updateTokenRarity({
         tokens.project_id,
         inputs.rarity_rank
       FROM unnest($1::tokenid[], $2::int[]) as inputs(token_id, rarity_rank)
-      JOIN tokens USING (token_id)
+      LEFT OUTER JOIN tokens USING (token_id)
     )
     INSERT INTO token_rarity (token_id, project_id, rarity_rank, update_time)
     SELECT token_id, project_id, rarity_rank, now()
