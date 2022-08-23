@@ -42,12 +42,21 @@ async function getRarityForProjectTokens({ client, projectId }) {
   return res.rows;
 }
 
+// Note: if a token has rarity rank `null`, then its `numTies` value will be 0
+// (it's not considered to be tied even with itself).
 async function getTokenRarity({ client, tokenId }) {
   const res = await client.query(
     `
     SELECT
       tr.rarity_rank AS "rarityRank",
-      (SELECT num_tokens FROM projects WHERE project_id = t.project_id) AS "total"
+      (SELECT num_tokens FROM projects WHERE project_id = t.project_id) AS "total",
+      (
+        SELECT count(1)::int
+        FROM token_rarity tr2
+        WHERE
+          tr2.project_id = tr.project_id
+          AND tr2.rarity_rank = tr.rarity_rank
+      ) AS "numTies"
     FROM token_rarity tr
     JOIN tokens t USING (token_id)
     WHERE token_id = $1::tokenid

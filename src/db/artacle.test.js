@@ -94,9 +94,16 @@ describe("db/artacle", () => {
         { tokenId: tokenIds.get(p1)[0], tokenIndex: 0, rarityRank: 3 },
         { tokenId: tokenIds.get(p1)[3], tokenIndex: 3, rarityRank: null },
       ]);
+
       expect(
         await artacle.getTokenRarity({ client, tokenId: tokenIds.get(p1)[0] })
-      ).toEqual({ rarityRank: 3, total: 4 });
+      ).toEqual({ rarityRank: 3, total: 4, numTies: 1 });
+      expect(
+        await artacle.getTokenRarity({ client, tokenId: tokenIds.get(p1)[1] })
+      ).toEqual({ rarityRank: 1, total: 4, numTies: 2 });
+      expect(
+        await artacle.getTokenRarity({ client, tokenId: tokenIds.get(p1)[3] })
+      ).toEqual({ rarityRank: null, total: 4, numTies: 0 });
 
       // Delay 1ms so that the timestamps are ~guaranteed different even
       // when downcasted to millisecond-precision JS dates.
@@ -126,7 +133,7 @@ describe("db/artacle", () => {
       ]);
       expect(
         await artacle.getTokenRarity({ client, tokenId: tokenIds.get(p1)[0] })
-      ).toEqual({ rarityRank: 4, total: 4 });
+      ).toEqual({ rarityRank: 4, total: 4, numTies: 1 });
     })
   );
 });
