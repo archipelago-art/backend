@@ -1,5 +1,5 @@
 const api = require("../api");
-const fetcher = require("../artacle/artacle");
+const fetcher = require("../artacle/fetcher");
 const artacle = require("../db/artacle");
 const artblocks = require("../db/artblocks");
 const projects = require("../db/projects");
