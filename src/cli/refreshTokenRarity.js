@@ -1,8 +1,8 @@
 const api = require("../api");
+const fetcher = require("../artacle/artacle");
+const artacle = require("../db/artacle");
 const artblocks = require("../db/artblocks");
-const tokens = require("../db/tokens");
 const projects = require("../db/projects");
-const artacle = require("../artacle/artacle");
 const { withClient } = require("../db/util");
 const log = require("../util/log")(__filename);
 
@@ -10,7 +10,7 @@ async function refreshTokenRarity(args) {
   log.info`Beginning refresh token rarity job.`;
 
   // Get all Artacle collections and create a map for lookups
-  const artacleCollections = await artacle.getCollections();
+  const artacleCollections = await fetcher.getCollections();
   const artacleCollectionMap = new Map(
     artacleCollections.map((c) => [
       `${_buildProjectKey(c.tokenAddress.toLowerCase(), c.subProjectId)}`,
@@ -75,7 +75,7 @@ async function refreshTokenRarity(args) {
       if (artacleRank == null) nullCount++;
     }
     await withClient(async (client) => {
-      tokens.updateTokenRarity({ client, updates });
+      artacle.updateTokenRarity({ client, updates });
     });
     log.info`Updated rarity for ${updates.length} tokens (${nullCount} null) in ${archiCollection.slug}`;
   }
