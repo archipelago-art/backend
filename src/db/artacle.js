@@ -1,19 +1,3 @@
-async function getRarityForProjectTokens({ client, projectId }) {
-  const res = await client.query(
-    `
-    SELECT tr.token_id AS "tokenId",
-        t.token_index AS "tokenIndex",
-        tr.rarity_rank AS "rarityRank"
-    FROM token_rarity tr
-    JOIN tokens t USING (token_id)
-    WHERE tr.project_id = $1::projectid
-    ORDER BY tr.rarity_rank
-    `,
-    [projectId]
-  );
-  return res.rows;
-}
-
 // Updates the rarity of a token (pulled from Artacle).
 async function updateTokenRarity({
   client,
@@ -41,6 +25,22 @@ async function updateTokenRarity({
   );
 }
 
+async function getRarityForProjectTokens({ client, projectId }) {
+  const res = await client.query(
+    `
+    SELECT tr.token_id AS "tokenId",
+        t.token_index AS "tokenIndex",
+        tr.rarity_rank AS "rarityRank"
+    FROM token_rarity tr
+    JOIN tokens t USING (token_id)
+    WHERE tr.project_id = $1::projectid
+    ORDER BY tr.rarity_rank
+    `,
+    [projectId]
+  );
+  return res.rows;
+}
+
 async function getTokenRarity({ client, tokenId }) {
   const res = await client.query(
     `
@@ -57,7 +57,7 @@ async function getTokenRarity({ client, tokenId }) {
 }
 
 module.exports = {
-  getRarityForProjectTokens,
   updateTokenRarity,
   getTokenRarity,
+  getRarityForProjectTokens,
 };
