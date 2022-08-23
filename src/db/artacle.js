@@ -28,13 +28,14 @@ async function updateTokenRarity({
 async function getRarityForProjectTokens({ client, projectId }) {
   const res = await client.query(
     `
-    SELECT tr.token_id AS "tokenId",
-        t.token_index AS "tokenIndex",
-        tr.rarity_rank AS "rarityRank"
+    SELECT
+      tr.token_id AS "tokenId",
+      t.token_index AS "tokenIndex",
+      tr.rarity_rank AS "rarityRank"
     FROM token_rarity tr
     JOIN tokens t USING (token_id)
     WHERE tr.project_id = $1::projectid
-    ORDER BY tr.rarity_rank
+    ORDER BY tr.rarity_rank, t.token_index
     `,
     [projectId]
   );
