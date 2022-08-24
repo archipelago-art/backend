@@ -31,7 +31,8 @@ async function refreshTokenRarity(args) {
         projectId: archiCollection.projectId,
       });
     });
-    if (!isFullyMinted) {
+    // TODO: Temp fix to allow Chromie Squiggle to be updated
+    if (!isFullyMinted && archiCollection.slug !== "chromie-squiggle") {
       log.info`Skipping ${archiCollection.slug} because it is not fully minted.`;
       continue;
     }
