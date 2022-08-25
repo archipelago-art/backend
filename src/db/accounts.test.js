@@ -48,6 +48,7 @@ describe("db/accounts", () => {
       address: account,
       authToken,
       nonce,
+      tz: "America/Los_Angeles",
     });
     return { account, email, authToken };
   }
@@ -122,9 +123,14 @@ describe("db/accounts", () => {
         address: account,
         authToken,
         nonce,
+        tz: "America/Los_Angeles",
       });
       expect(confirmRes).toEqual(authToken);
-      expect(await getDetails()).toEqual({ account, email, preferences: {} });
+      expect(await getDetails()).toEqual({
+        account,
+        email,
+        preferences: expect.any(Object),
+      });
       {
         const nonces = await getPendingConfirmationNonces({ client, account });
         expect(nonces).toEqual([]);
@@ -156,9 +162,9 @@ describe("db/accounts", () => {
         const details = await accounts.getUserDetails({ client, authToken });
         return details.preferences;
       }
-      expect(await getPreferences()).toEqual({});
+      expect(await getPreferences()).toEqual(expect.any(Object));
 
-      const tz = "America/Los_Angeles";
+      const tz = "America/New_York";
       await accounts.updatePreferences({
         client,
         authToken,
@@ -219,11 +225,12 @@ describe("db/accounts", () => {
         address: account,
         authToken,
         nonce: nonce1,
+        tz: "America/Los_Angeles",
       });
       expect(await getDetails()).toEqual({
         account,
         email: email1,
-        preferences: {},
+        preferences: expect.any(Object),
       });
 
       const email2 = "alice.two@example.com";
@@ -237,7 +244,7 @@ describe("db/accounts", () => {
       expect(await getDetails()).toEqual({
         account,
         email: email1,
-        preferences: {},
+        preferences: expect.any(Object),
       });
 
       const nonce2 = await getUniqueNonce();
@@ -246,11 +253,12 @@ describe("db/accounts", () => {
         address: account,
         authToken,
         nonce: nonce2,
+        tz: "America/Los_Angeles",
       });
       expect(await getDetails()).toEqual({
         account,
         email: email2,
-        preferences: {},
+        preferences: expect.any(Object),
       });
     })
   );
@@ -289,12 +297,13 @@ describe("db/accounts", () => {
         address: account,
         authToken: null,
         nonce,
+        tz: "America/Los_Angeles",
       });
       expect(confirmRes).toEqual(expect.any(String));
       expect(confirmRes).not.toEqual(authToken);
       expect(
         await accounts.getUserDetails({ client, authToken: confirmRes })
-      ).toEqual({ account, email, preferences: {} });
+      ).toEqual({ account, email, preferences: expect.any(Object) });
     })
   );
 

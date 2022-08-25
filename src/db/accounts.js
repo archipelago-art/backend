@@ -1,5 +1,7 @@
 require("dotenv").config();
 
+const luxon = require("luxon");
+
 const crypto = require("crypto");
 const ethers = require("ethers");
 const mail = require("@sendgrid/mail");
@@ -45,6 +47,11 @@ async function mintAuthToken({ client, account }) {
   );
   const authToken = res.rows[0].authToken;
   return authToken;
+}
+
+function verifyIanaZone(tz) {
+  const zone = new luxon.IANAZone(tz);
+  if (!zone.valid) throw new Error("invalid IANA time zone: " + tz);
 }
 
 // Takes a signed LoginRequest, and mints and returns an auth token.
@@ -99,6 +106,9 @@ async function updatePreferences({ client, authToken, newPreferences }) {
   const badKeys = Object.keys(newPreferences).filter((k) => !okKeys.has(k));
   if (badKeys.length > 0) {
     throw new Error("newPreferences: unknown keys: " + badKeys.join(", "));
+  }
+  if (newPreferences[PREF_EMAIL_TIME_ZONE] !== undefined) {
+    verifyIanaZone(newPreferences[PREF_EMAIL_TIME_ZONE]);
   }
   const res = await client.query(
     `
@@ -230,9 +240,10 @@ async function setEmailUnconfirmed({
 // 1. Confirm the pending email, keyed by nonce.
 // 2. Delete all other pending confirmations from the same account.
 // 3. If `authToken` is not a valid auth token for that account, mint and
-//    return a new auth token.
-async function confirmEmail({ client, address, authToken, nonce }) {
+//    return a new auth token. Otherwise, return `authToken`.
+async function confirmEmail({ client, address, authToken, nonce, tz }) {
   await client.query("BEGIN");
+  verifyIanaZone(tz);
   const confirmationRes = await client.query(
     `
     SELECT account, email FROM pending_email_confirmations
@@ -253,12 +264,17 @@ async function confirmEmail({ client, address, authToken, nonce }) {
       $2::text,
       now(),
       $3::uuid,
-      '{}'::jsonb
+      $4::jsonb
     )
     ON CONFLICT (account) DO UPDATE
       SET email = $2::text
     `,
-    [accountBuf, email, crypto.randomBytes(16)]
+    [
+      accountBuf,
+      email,
+      crypto.randomBytes(16),
+      JSON.stringify({ [PREF_BID_EMAILS]: false, [PREF_EMAIL_TIME_ZONE]: tz }),
+    ]
   );
   await client.query(
     "DELETE FROM pending_email_confirmations WHERE account = $1::address",
