@@ -11,7 +11,7 @@ const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 // Value: boolean, `true` to receive daily emails or `false`/absent otherwise.
 const PREF_BID_EMAILS = "bidEmails";
 // Value: IANA time zone string, like "America/Los_Angeles".
-const PREF_EMAIL_TIMEZONE = "emailTimezone";
+const PREF_EMAIL_TIME_ZONE = "emailTimeZone";
 
 if (process.env.SENDGRID_TOKEN != null) {
   mail.setApiKey(process.env.SENDGRID_TOKEN);
@@ -95,7 +95,7 @@ async function updatePreferences({ client, authToken, newPreferences }) {
       "newPreferences: want object, got " + JSON.stringify(newPreferences)
     );
   }
-  const okKeys = new Set([PREF_BID_EMAILS, PREF_EMAIL_TIMEZONE]);
+  const okKeys = new Set([PREF_BID_EMAILS, PREF_EMAIL_TIME_ZONE]);
   const badKeys = Object.keys(newPreferences).filter((k) => !okKeys.has(k));
   if (badKeys.length > 0) {
     throw new Error("newPreferences: unknown keys: " + badKeys.join(", "));
@@ -144,7 +144,7 @@ async function getAllEmailsByTimezone({ client }) /*: Promise<Array<{
     ) q
     ORDER BY timezone, account
     `,
-    [PREF_EMAIL_TIMEZONE, PREF_BID_EMAILS]
+    [PREF_EMAIL_TIME_ZONE, PREF_BID_EMAILS]
   );
   const result = [];
   let lastTimezone = null;
@@ -282,7 +282,7 @@ async function confirmEmail({ client, address, authToken, nonce }) {
 
 module.exports = {
   PREF_BID_EMAILS,
-  PREF_EMAIL_TIMEZONE,
+  PREF_EMAIL_TIME_ZONE,
   signLoginRequest,
   verifyLoginRequest,
   signIn,

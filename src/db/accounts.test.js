@@ -164,12 +164,12 @@ describe("db/accounts", () => {
         authToken,
         newPreferences: {
           [accounts.PREF_BID_EMAILS]: true,
-          [accounts.PREF_EMAIL_TIMEZONE]: tz,
+          [accounts.PREF_EMAIL_TIME_ZONE]: tz,
         },
       });
       expect(await getPreferences()).toEqual({
         [accounts.PREF_BID_EMAILS]: true,
-        [accounts.PREF_EMAIL_TIMEZONE]: tz,
+        [accounts.PREF_EMAIL_TIME_ZONE]: tz,
       });
 
       await accounts.updatePreferences({
@@ -179,7 +179,7 @@ describe("db/accounts", () => {
       });
       expect(await getPreferences()).toEqual({
         [accounts.PREF_BID_EMAILS]: false,
-        [accounts.PREF_EMAIL_TIMEZONE]: tz,
+        [accounts.PREF_EMAIL_TIME_ZONE]: tz,
       });
     })
   );
@@ -304,7 +304,7 @@ describe("db/accounts", () => {
       function makePrefs(enabled, tz) {
         return {
           [accounts.PREF_BID_EMAILS]: enabled,
-          [accounts.PREF_EMAIL_TIMEZONE]: tz,
+          [accounts.PREF_EMAIL_TIME_ZONE]: tz,
         };
       }
       const preferences = [
