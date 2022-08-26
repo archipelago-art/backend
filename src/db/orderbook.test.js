@@ -27,6 +27,7 @@ const {
   bidIdsForAddress,
   askIdsForAddress,
   highBidIdsForAllTokensInProject,
+  highBidIdsForTokensOwnedBy,
   highFloorBidsForAllProjects,
   bidsSharingScope,
   fillsForAddress,
@@ -1371,6 +1372,138 @@ describe("db/orderbook", () => {
           { tokenId: tri1, bidId: bidCnfRandomOrCube },
           { tokenId: tri2, bidId: bidTraitPaddle },
           { tokenId: a66, bidId: bidFloorArchetype },
+        ]);
+      })
+    );
+  });
+
+  describe("highBidIdsForTokensOwnedBy", () => {
+    it(
+      "includes the highest bid excluding bids by the owner",
+      withTestDb(async ({ client }) => {
+        const [archetype, squiggles] = await addProjects(client, [
+          snapshots.ARCHETYPE,
+          snapshots.SQUIGGLES,
+        ]);
+        const [theCube, tri1, tri2, a66, aSquiggle] = await addTokens(client, [
+          snapshots.THE_CUBE,
+          snapshots.ARCH_TRIPTYCH_1,
+          snapshots.ARCH_TRIPTYCH_2,
+          snapshots.ARCH_66,
+          snapshots.PERFECT_CHROMATIC,
+        ]);
+
+        // Cases to consider:
+        // - token with two bids (take higher)
+        // - token with two bids but the highest is the owner's
+        // - token with only bid by the owner
+        // - token with only inactive bids
+        // - token owned by someone else
+
+        async function makeBid({ scope, price, bidder, nonce = null }) {
+          if (nonce == null) nonce = ethers.BigNumber.from("0xabcd");
+          return await addBid({
+            client,
+            noVerify: true,
+            scope,
+            price,
+            deadline: new Date("2099-01-01"),
+            bidder,
+            nonce,
+            agreement: "0x",
+            message: "0x",
+            signature: SIG_DIRTY,
+          });
+        }
+
+        // Query on behalf of Camille; Alice and Bob are bidders.
+        const alice = dummyAddress("alice");
+        const bob = dummyAddress("bob");
+        const camille = dummyAddress("camille");
+
+        // `theCube`: two valid bids, one higher than the other.
+        const bidCube = await makeBid({
+          scope: { type: "TOKEN", tokenId: theCube },
+          price: "100",
+          bidder: alice,
+        });
+        await makeBid({
+          scope: { type: "TOKEN", tokenId: theCube },
+          price: "95",
+          bidder: bob,
+        });
+
+        // `tri1`: highest bid is by owner; second-highest should be chosen.
+        const bidTri1 = await makeBid({
+          scope: { type: "TOKEN", tokenId: tri1 },
+          price: "100",
+          bidder: alice,
+        });
+        await makeBid({
+          scope: { type: "TOKEN", tokenId: tri1 },
+          price: "999",
+          bidder: camille,
+        });
+
+        // `tri2`: only bid is by the owner; no result.
+        await makeBid({
+          scope: { type: "TOKEN", tokenId: tri2 },
+          price: "999",
+          bidder: camille,
+        });
+
+        // `a66`: only bid is cancelled.
+        await makeBid({
+          scope: { type: "TOKEN", tokenId: a66 },
+          nonce: 0xdead,
+          price: "456",
+          bidder: alice,
+        });
+        await updateActivityForNonce({
+          client,
+          account: alice,
+          nonce: 0xdead,
+          active: false,
+        });
+
+        // `aSquiggle`: valid high bid, but not Camille's token.
+        await makeBid({
+          scope: { type: "TOKEN", tokenId: aSquiggle },
+          price: "789",
+          bidder: bob,
+        });
+
+        const blocks = realBlocks();
+        await eth.addBlocks({ client, blocks });
+
+        function transfer({ tokenId, to, blockNumber, i } = {}) {
+          return {
+            tokenId,
+            fromAddress: ethers.constants.AddressZero,
+            toAddress: to,
+            blockNumber: 0,
+            blockHash: blocks[0].hash,
+            logIndex: i,
+            transactionHash: dummyTx(i),
+          };
+        }
+
+        const transfers = [
+          transfer({ i: 0, to: camille, tokenId: theCube }),
+          transfer({ i: 1, to: camille, tokenId: tri1 }),
+          transfer({ i: 2, to: camille, tokenId: tri2 }),
+          transfer({ i: 3, to: camille, tokenId: a66 }),
+          transfer({ i: 4, to: alice, tokenId: aSquiggle }),
+        ];
+        await eth.addErc721Transfers({ client, transfers });
+
+        const res = await highBidIdsForTokensOwnedBy({
+          client,
+          account: camille,
+        });
+        expect(res).toEqual([
+          { tokenId: theCube, bidId: bidCube },
+          { tokenId: tri1, bidId: bidTri1 },
         ]);
       })
     );

@@ -909,7 +909,7 @@ async function highBidIdsForAllTokensInProject({ client, projectId }) {
 }
 
 // Returns a list of `{ tokenId, bidId }`. Tokens without a bid will not appear
-// in the result.
+// in the result. Bids by the token owner don't count.
 async function highBidIdsForTokensOwnedBy({ client, account /*: address */ }) {
   // Compared to `highBidIdsForAllTokensInProject`, we take a different plan:
   // since tokens may be from many different projects, scopes will overlap
@@ -941,7 +941,7 @@ async function highBidIdsForTokensOwnedBy({ client, account /*: address */ }) {
         SELECT cnf_id FROM cnf_members WHERE cnf_members.token_id = ot.token_id
       ) AS scopes(scope)
       JOIN bids USING (scope)
-    WHERE bids.active AND (bids.deadline > now())
+    WHERE bids.active AND (bids.deadline > now()) AND bids.bidder <> $1::address
     ORDER BY token_id, bids.price DESC, bids.create_time ASC
     `,
     [hexToBuf(account)]
