@@ -352,14 +352,27 @@ async function tokenSummariesByOnChainId({ client, tokens }) {
 async function tokenInfoById({ client, tokenIds }) {
   const res = await client.query(
     `
-    SELECT t.token_index as "tokenIndex", t.token_id as "tokenId", p.slug
+    SELECT
+      t.token_id AS "tokenId",
+      p.project_id AS "projectId",
+      p.slug,
+      t.token_index AS "tokenIndex",
+      t.token_contract AS "tokenContract",
+      t.on_chain_token_id AS "onChainTokenId"
     FROM tokens t JOIN projects p USING (project_id)
     WHERE token_id = ANY($1::tokenid[])
     ORDER BY token_id
-  `,
+    `,
     [tokenIds]
   );
-  return res.rows;
+  return res.rows.map((r) => ({
+    tokenId: r.tokenId,
+    projectId: r.projectId,
+    slug: r.slug,
+    tokenIndex: r.tokenIndex,
+    tokenContract: bufToAddress(r.tokenContract),
+    onChainTokenId: r.onChainTokenId,
+  }));
 }
 
 module.exports = {

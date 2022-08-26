@@ -2,8 +2,8 @@ const luxon = require("luxon");
 
 const crypto = require("crypto");
 const ethers = require("ethers");
-const mail = require("@sendgrid/mail");
 
+const emails = require("./emails");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 
 //// Keys into the user preferences JSON object.
@@ -12,15 +12,6 @@ const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 const PREF_BID_EMAILS = "bidEmails";
 // Value: IANA time zone string, like "America/Los_Angeles".
 const PREF_EMAIL_TIME_ZONE = "emailTimeZone";
-
-function makeMailService() {
-  if (process.env.SENDGRID_TOKEN == null) {
-    throw new Error("missing SENDGRID_TOKEN environment variable");
-  }
-  const ms = new mail.MailService();
-  ms.setApiKey(process.env.SENDGRID_TOKEN);
-  return ms;
-}
 
 const LoginRequest = [{ type: "uint256", name: "timestamp" }];
 const domainSeparator = {
@@ -137,6 +128,45 @@ async function updatePreferences({ client, authToken, newPreferences }) {
   if (!row.updateOk) throw new Error("no email set");
 }
 
+async function getTimeZones({ client }) {
+  const res = await client.query(
+    `
+    SELECT DISTINCT preferences->>$1 AS "timeZone"
+    FROM account_emails
+    ORDER BY preferences->>$1
+    `,
+    [PREF_EMAIL_TIME_ZONE]
+  );
+  return res.rows.map((r) => r.timeZone);
+}
+
+/**
+ * Gets all users in the given time zone with `PREF_BID_EMAILS` set and last
+ * email time not after `threshold`.
+ */
+async function getEmailableUsers({ client, timeZone, threshold }) {
+  const res = await client.query(
+    `
+    SELECT account, email, last_email_time AS "lastEmailTime"
+    FROM account_emails
+    WHERE
+      preferences->>$1 = $3::text
+      AND preferences->$2 = 'true'::jsonb
+      AND (
+        last_email_time IS NULL
+        OR last_email_time <= $4::timestamptz
+      )
+    ORDER BY last_email_time, account
+    `,
+    [PREF_EMAIL_TIME_ZONE, PREF_BID_EMAILS, timeZone, threshold]
+  );
+  return res.rows.map((r) => ({
+    account: bufToAddress(r.account),
+    email: r.email,
+    lastEmailTime: r.lastEmailTime,
+  }));
+}
+
 /**
  * Returns Ethereum account and email address details for all addresses that
  * have the `PREF_BID_EMAILS` bit set.
@@ -219,22 +249,18 @@ async function setEmailUnconfirmed({
     const { nonce } = nonceRes.rows[0];
     // TODO: send an email to the user :-)
     if (sendEmail === true) {
-      await makeMailService().send({
-        from: {
-          email: "noreply@archipelago.art",
-          name: "Archipelago",
-        },
-        templateId: "d-d463363574e74103a8a4ed579f1e1aa4",
-        personalizations: [
-          {
-            to: [{ email }],
-            dynamicTemplateData: {
-              address: bufToAddress(account),
-              token: nonce,
-            },
+      await emails
+        .prepareEmail({
+          client,
+          topic: "EMAIL_CONFIRMATION",
+          email,
+          templateId: "d-d463363574e74103a8a4ed579f1e1aa4",
+          templateData: {
+            address: bufToAddress(account),
+            token: nonce,
           },
-        ],
-      });
+        })
+        .then((res) => res.send());
     }
   }
   await client.query("COMMIT");
@@ -299,6 +325,16 @@ async function confirmEmail({ client, address, authToken, nonce, tz }) {
   return result;
 }
 
+async function touchLastEmailTime({ client, account }) {
+  await client.query(
+    `
+    UPDATE account_emails SET last_email_time = now()
+    WHERE account = $1::address
+    `,
+    [hexToBuf(account)]
+  );
+}
+
 module.exports = {
   PREF_BID_EMAILS,
   PREF_EMAIL_TIME_ZONE,
@@ -308,7 +344,10 @@ module.exports = {
   signOut,
   getUserDetails,
   updatePreferences,
+  getTimeZones,
+  getEmailableUsers,
   getAllEmailsByTimezone,
   setEmailUnconfirmed,
   confirmEmail,
+  touchLastEmailTime,
 };

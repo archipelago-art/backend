@@ -28,4 +28,32 @@ describe("db/emails", () => {
       ]);
     })
   );
+
+  it(
+    "records emails in the email log",
+    withTestDb(async ({ client }) => {
+      const email = "alice@example.com";
+      const topic = "test-topic";
+      const templateId = "test-template";
+      const templateData = { foo: "bar" };
+      const now = new Date();
+
+      await emails.prepareEmail({
+        client,
+        topic,
+        email,
+        templateId,
+        templateData,
+      });
+      const emailLog = await emails.getLogForEmail({ client, email });
+
+      expect(emailLog).toHaveLength(1);
+      expect(emailLog[0].toEmail).toBe(email);
+      expect(emailLog[0].topic).toBe(topic);
+      expect(emailLog[0].templateId).toBe(templateId);
+      expect(emailLog[0].createTime.valueOf()).toBeGreaterThanOrEqual(
+        now.valueOf()
+      );
+    })
+  );
 });
