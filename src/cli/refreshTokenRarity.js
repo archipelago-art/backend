@@ -23,6 +23,27 @@ async function refreshTokenRarity(args) {
     return api.collections({ client });
   });
 
+  // Update artacle_projects table
+  const artacleProjects = [];
+  for (const archiCollection of archiCollections) {
+    const tokenContract = archiCollection.tokenContract.toLowerCase();
+    const mapKey = _buildProjectKey(
+      tokenContract,
+      archiCollection.artblocksProjectIndex
+    );
+    const artacleCollection = artacleCollectionMap.get(mapKey);
+    if (artacleCollection) {
+      artacleProjects.push({
+        projectId: archiCollection.projectId,
+        artacleSlug: artacleCollection.slug,
+      });
+    }
+  }
+  await withClient(async (client) => {
+    artacle.updateArtacleProjects({ client, updates: artacleProjects });
+  });
+  log.info`Updated artacle_projects table with ${artacleProjects.length} entries.`;
+
   // Loop over Archipelago collections, lookup Artacle collection, and update rarity
   for (const archiCollection of archiCollections) {
     const isFullyMinted = await withClient(async (client) => {
@@ -38,7 +59,7 @@ async function refreshTokenRarity(args) {
     }
     const tokenContract = archiCollection.tokenContract.toLowerCase();
 
-    // Get Artacle collection and lookup rarity
+    // Get Artacle collection, lookup rarity, and update
     const mapKey = _buildProjectKey(
       tokenContract,
       archiCollection.artblocksProjectIndex
@@ -48,6 +69,8 @@ async function refreshTokenRarity(args) {
       log.info`Collection ${archiCollection.slug} not found in Artacle.`;
       continue;
     }
+
+    // Get rarity for collection
     const artacleRarity = await fetcher.getCollectionRarity(
       artacleCollection.id
     );
