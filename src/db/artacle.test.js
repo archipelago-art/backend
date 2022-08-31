@@ -59,6 +59,14 @@ describe("db/artacle", () => {
       }
       await client.query("COMMIT");
 
+      // Assert that we receive the correct empty or null responses when rarity is missing
+      expect(
+        await artacle.getRarityForProjectTokens({ client, projectId: p2 })
+      ).toEqual([]);
+      expect(
+        await artacle.getTokenRarity({ client, tokenId: tokenIds.get(p1)[0] })
+      ).toEqual(null);
+
       async function rarityUpdateTime(projectId, tokenIndex) {
         const tokenId = tokenIds.get(projectId)[tokenIndex];
         const res = await client.query(
