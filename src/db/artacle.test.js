@@ -24,6 +24,10 @@ describe("db/artacle", () => {
         tokenContract: "0x" + "ff".repeat(20),
         imageTemplate: "/unused",
       });
+      await artacle.updateArtacleProjects({
+        client,
+        updates: [{ projectId: p1, artacleSlug: "one_" }],
+      });
       const p2 = await projects.addProject({
         client,
         name: "Two",
@@ -33,6 +37,10 @@ describe("db/artacle", () => {
         aspectRatio: 1.5,
         tokenContract: "0x" + "ee".repeat(20),
         imageTemplate: "/unused",
+      });
+      await artacle.updateArtacleProjects({
+        client,
+        updates: [{ projectId: p2, artacleSlug: "two" }],
       });
       const tokenIds = new Map([p1, p2].map((p) => [p, []]));
       for (const [p, n] of [
@@ -97,13 +105,18 @@ describe("db/artacle", () => {
 
       expect(
         await artacle.getTokenRarity({ client, tokenId: tokenIds.get(p1)[0] })
-      ).toEqual({ rarityRank: 3, total: 4, numTies: 1 });
+      ).toEqual({ rarityRank: 3, total: 4, numTies: 1, artacleSlug: "one_" });
       expect(
         await artacle.getTokenRarity({ client, tokenId: tokenIds.get(p1)[1] })
-      ).toEqual({ rarityRank: 1, total: 4, numTies: 2 });
+      ).toEqual({ rarityRank: 1, total: 4, numTies: 2, artacleSlug: "one_" });
       expect(
         await artacle.getTokenRarity({ client, tokenId: tokenIds.get(p1)[3] })
-      ).toEqual({ rarityRank: null, total: 4, numTies: 0 });
+      ).toEqual({
+        rarityRank: null,
+        total: 4,
+        numTies: 0,
+        artacleSlug: "one_",
+      });
 
       // Delay 1ms so that the timestamps are ~guaranteed different even
       // when downcasted to millisecond-precision JS dates.
@@ -133,7 +146,7 @@ describe("db/artacle", () => {
       ]);
       expect(
         await artacle.getTokenRarity({ client, tokenId: tokenIds.get(p1)[0] })
-      ).toEqual({ rarityRank: 4, total: 4, numTies: 1 });
+      ).toEqual({ rarityRank: 4, total: 4, numTies: 1, artacleSlug: "one_" });
     })
   );
 });
