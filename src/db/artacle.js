@@ -1,3 +1,21 @@
+// Updates the artacle_projects table with the slug of the Artacle collection
+async function updateArtacleProjects({
+  client,
+  updates, // array of {projectId, slug} objects
+}) {
+  await client.query(
+    `
+    INSERT INTO artacle_projects (project_id, artacle_slug, update_time)
+    SELECT project_id, artacle_slug, now()
+    FROM unnest($1::projectid[], $2::text[]) AS inputs(project_id, artacle_slug)
+    ON CONFLICT (project_id) DO UPDATE
+      SET artacle_slug = excluded.artacle_slug,
+      update_time = excluded.update_time
+    `,
+    [updates.map((x) => x.projectId), updates.map((x) => x.artacleSlug)]
+  );
+}
+
 // Updates the rarity of a token (pulled from Artacle).
 async function updateTokenRarity({
   client,
@@ -56,9 +74,11 @@ async function getTokenRarity({ client, tokenId }) {
         WHERE
           tr2.project_id = tr.project_id
           AND tr2.rarity_rank = tr.rarity_rank
-      ) AS "numTies"
+      ) AS "numTies",
+      ap.artacle_slug AS "artacleSlug"
     FROM token_rarity tr
     JOIN tokens t USING (token_id)
+    JOIN artacle_projects ap ON ap.project_id = tr.project_id
     WHERE token_id = $1::tokenid
     `,
     [tokenId]
@@ -68,6 +88,7 @@ async function getTokenRarity({ client, tokenId }) {
 
 module.exports = {
   updateTokenRarity,
+  updateArtacleProjects,
   getTokenRarity,
   getRarityForProjectTokens,
 };
