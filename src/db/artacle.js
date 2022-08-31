@@ -83,7 +83,7 @@ async function getTokenRarity({ client, tokenId }) {
     `,
     [tokenId]
   );
-  return res.rows[0];
+  return res.rows[0] || null;
 }
 
 module.exports = {
