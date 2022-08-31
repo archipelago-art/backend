@@ -142,6 +142,7 @@ const migrationModules = [
   "./0131_artblocks_project_index_not_unique",
   "./0132_token_rarity",
   "./0133_account_emails_time_zone_and_last_email_time",
+  "./0134_artacle_projects",
   // ...
 ];
 
