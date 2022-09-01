@@ -14,7 +14,7 @@ async function fetchUrl(baseUrl, urlParams, apiKey) {
   try {
     const { text, res } = await fetchWithRetries(url, {
       headers,
-      timeout: 4000,
+      timeout: 10000,
     });
     const json = JSON.parse(text);
     await promisedSleep;
