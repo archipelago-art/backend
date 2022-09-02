@@ -2,8 +2,8 @@ const luxon = require("luxon");
 
 const crypto = require("crypto");
 const ethers = require("ethers");
-const mail = require("@sendgrid/mail");
 
+const emails = require("./emails");
 const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 
 //// Keys into the user preferences JSON object.
@@ -12,15 +12,6 @@ const { bufToAddress, bufToHex, hexToBuf } = require("./util");
 const PREF_BID_EMAILS = "bidEmails";
 // Value: IANA time zone string, like "America/Los_Angeles".
 const PREF_EMAIL_TIME_ZONE = "emailTimeZone";
-
-function makeMailService() {
-  if (process.env.SENDGRID_TOKEN == null) {
-    throw new Error("missing SENDGRID_TOKEN environment variable");
-  }
-  const ms = new mail.MailService();
-  ms.setApiKey(process.env.SENDGRID_TOKEN);
-  return ms;
-}
 
 const LoginRequest = [{ type: "uint256", name: "timestamp" }];
 const domainSeparator = {
@@ -219,22 +210,18 @@ async function setEmailUnconfirmed({
     const { nonce } = nonceRes.rows[0];
     // TODO: send an email to the user :-)
     if (sendEmail === true) {
-      await makeMailService().send({
-        from: {
-          email: "noreply@archipelago.art",
-          name: "Archipelago",
-        },
-        templateId: "d-d463363574e74103a8a4ed579f1e1aa4",
-        personalizations: [
-          {
-            to: [{ email }],
-            dynamicTemplateData: {
-              address: bufToAddress(account),
-              token: nonce,
-            },
+      await emails
+        .prepareEmail({
+          client,
+          topic: "EMAIL_CONFIRMATION",
+          email,
+          templateId: "d-d463363574e74103a8a4ed579f1e1aa4",
+          templateData: {
+            address: bufToAddress(account),
+            token: nonce,
           },
-        ],
-      });
+        })
+        .then((res) => res.send());
     }
   }
   await client.query("COMMIT");
