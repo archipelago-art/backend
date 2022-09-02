@@ -16,7 +16,14 @@ async function fetchUrl(baseUrl, urlParams, apiKey) {
       headers,
       timeout: 10000,
     });
-    const json = JSON.parse(text);
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (e) {
+      throw new Error(
+        `invalid JSON from ${url} (HTTP ${res.status}): ${e}: ${text}`
+      );
+    }
     await promisedSleep;
     return json;
   } catch (e) {
