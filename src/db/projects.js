@@ -75,8 +75,31 @@ async function isProjectFullyMinted({ client, projectId }) {
   return res.rows[0].isFullyMinted;
 }
 
+async function projectInfoById({ client, projectIds }) {
+  const res = await client.query(
+    `
+    SELECT
+      project_id AS "projectId",
+      name AS "name",
+      slug AS "slug",
+      token_contract AS "tokenContract"
+    FROM projects
+    WHERE project_id = ANY($1::projectid[])
+    ORDER BY project_id
+    `,
+    [projectIds]
+  );
+  return res.rows.map((r) => ({
+    projectId: r.projectId,
+    name: r.name,
+    slug: r.slug,
+    tokenContract: bufToAddress(r.tokenContract),
+  }));
+}
+
 module.exports = {
   addProject,
   projectIdForSlug,
   isProjectFullyMinted,
+  projectInfoById,
 };

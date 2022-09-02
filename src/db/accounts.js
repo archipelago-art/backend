@@ -128,6 +128,45 @@ async function updatePreferences({ client, authToken, newPreferences }) {
   if (!row.updateOk) throw new Error("no email set");
 }
 
+async function getTimeZones({ client }) {
+  const res = await client.query(
+    `
+    SELECT DISTINCT preferences->>$1 AS "timeZone"
+    FROM account_emails
+    ORDER BY preferences->>$1
+    `,
+    [PREF_EMAIL_TIME_ZONE]
+  );
+  return res.rows.map((r) => r.timeZone);
+}
+
+/**
+ * Gets all users in the given time zone with `PREF_BID_EMAILS` set and last
+ * email time not after `threshold`.
+ */
+async function getEmailableUsers({ client, timeZone, threshold }) {
+  const res = await client.query(
+    `
+    SELECT account, email, last_email_time AS "lastEmailTime"
+    FROM account_emails
+    WHERE
+      preferences->>$1 = $3::text
+      AND preferences->$2 = 'true'::jsonb
+      AND (
+        last_email_time IS NULL
+        OR last_email_time <= $4::timestamptz
+      )
+    ORDER BY last_email_time, account
+    `,
+    [PREF_EMAIL_TIME_ZONE, PREF_BID_EMAILS, timeZone, threshold]
+  );
+  return res.rows.map((r) => ({
+    account: bufToAddress(r.account),
+    email: r.email,
+    lastEmailTime: r.lastEmailTime,
+  }));
+}
+
 /**
  * Returns Ethereum account and email address details for all addresses that
  * have the `PREF_BID_EMAILS` bit set.
@@ -286,6 +325,16 @@ async function confirmEmail({ client, address, authToken, nonce, tz }) {
   return result;
 }
 
+async function touchLastEmailTime({ client, account }) {
+  await client.query(
+    `
+    UPDATE account_emails SET last_email_time = now()
+    WHERE account = $1::address
+    `,
+    [hexToBuf(account)]
+  );
+}
+
 module.exports = {
   PREF_BID_EMAILS,
   PREF_EMAIL_TIME_ZONE,
@@ -295,7 +344,10 @@ module.exports = {
   signOut,
   getUserDetails,
   updatePreferences,
+  getTimeZones,
+  getEmailableUsers,
   getAllEmailsByTimezone,
   setEmailUnconfirmed,
   confirmEmail,
+  touchLastEmailTime,
 };
