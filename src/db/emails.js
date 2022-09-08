@@ -11,6 +11,26 @@ function makeMailService() {
   return ms;
 }
 
+// Returns the email log for a given email address.
+async function getLogForEmail({ client, email }) {
+  const res = await client.query(
+    `
+    SELECT
+      message_id AS "messageId",
+      create_time AS "createTime",
+      topic,
+      to_email AS "toEmail",
+      template_id AS "templateId",
+      template_data AS "templateData"
+    FROM email_log
+    WHERE to_email = $1
+    ORDER BY create_time DESC
+  `,
+    [email]
+  );
+  return res.rows;
+}
+
 // Records an email delivery in the `email_log` table, and returns a callback
 // that can be invoked with `.send()` to actually send the email with SendGrid.
 // The caller can send the email immediately or first wait for the transaction
@@ -89,4 +109,5 @@ module.exports = {
   prepareEmail,
   addEmailSignup,
   getEmailSignups,
+  getLogForEmail,
 };
