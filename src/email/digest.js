@@ -79,9 +79,15 @@ async function prepareTemplateData({ client, account, lastEmailTime }) {
   };
 }
 
-async function sendOneDigest({ client, account, email, lastEmailTime }) {
+async function sendOneDigest({
+  client,
+  account,
+  email,
+  lastEmailTime,
+  isTestEmail = false,
+}) {
   await client.query("BEGIN");
-  if (!email.includes("wchargin")) return;
+  if (!(email.includes("wchargin") || email.includes("bweisel"))) return;
   log.info`preparing email for ${account} (since ${lastEmailTime?.toISOString()})`;
   const templateData = await prepareTemplateData({
     client,
@@ -93,13 +99,16 @@ async function sendOneDigest({ client, account, email, lastEmailTime }) {
     await client.query("ROLLBACK");
     return;
   }
-  await accounts.touchLastEmailTime({ client, account });
+  if (!isTestEmail) {
+    await accounts.touchLastEmailTime({ client, account });
+  }
   const preparedEmail = await emails.prepareEmail({
     client,
     topic: "BID_DIGEST",
     email,
     templateId: "d-10770321a62e477b88af8a3ea99a77ee",
     templateData,
+    isTestEmail,
   });
   await client.query("COMMIT");
   log.info`sending email for ${account}`;

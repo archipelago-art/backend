@@ -22,20 +22,23 @@ async function prepareEmail({
   email,
   templateId,
   templateData,
+  isTestEmail,
 }) {
-  await client.query(
-    `
-    INSERT INTO email_log (message_id, create_time, topic, to_email, template_id, template_data)
-    VALUES ($1::uuid, now(), $2::text, $3::text, $4::text, $5::jsonb)
-    `,
-    [
-      crypto.randomBytes(16),
-      topic,
-      email,
-      templateId,
-      JSON.stringify(templateData),
-    ]
-  );
+  if (!isTestEmail) {
+    await client.query(
+      `
+      INSERT INTO email_log (message_id, create_time, topic, to_email, template_id, template_data)
+      VALUES ($1::uuid, now(), $2::text, $3::text, $4::text, $5::jsonb)
+      `,
+      [
+        crypto.randomBytes(16),
+        topic,
+        email,
+        templateId,
+        JSON.stringify(templateData),
+      ]
+    );
+  }
   const send = async () => {
     if (process.env.NODE_ENV === "test") {
       throw new Error(`refusing to send email in test (topic ${topic})`);
