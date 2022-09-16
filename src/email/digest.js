@@ -87,7 +87,6 @@ async function sendOneDigest({
   isTestEmail = false,
 }) {
   await client.query("BEGIN");
-  if (!(email.includes("wchargin") || email.includes("bweisel"))) return;
   log.info`preparing email for ${account} (since ${lastEmailTime?.toISOString()})`;
   const templateData = await prepareTemplateData({
     client,
@@ -111,7 +110,6 @@ async function sendOneDigest({
     isTestEmail,
   });
   await client.query("COMMIT");
-  log.info`sending email for ${account}`;
   await preparedEmail.send();
   log.info`sent email for ${account}`;
 }
