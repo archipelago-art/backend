@@ -4,7 +4,7 @@ const artacleApiBase = "https://api.artacle.io/v1";
 const artacleLimit = 1000;
 
 async function getCollections() {
-  return await _paginatedFetch(`${artacleApiBase}/collections`);
+  return (await _paginatedFetch(`${artacleApiBase}/collections`)).artacleRarity;
 }
 
 async function getCollectionRarity(artblocksCollectionIndex) {
@@ -24,6 +24,7 @@ async function _paginatedFetch(url) {
   const apiKey = process.env.ARTACLE_API_KEY;
   let offset = 0;
   let results = [];
+  let isFinalized = false;
   let lastLength = 0;
 
   do {
@@ -32,11 +33,12 @@ async function _paginatedFetch(url) {
     );
     const responseJson = await JSON.parse(responseRaw.text);
     results = results.concat(responseJson.data);
+    isFinalized = responseJson.is_finalized | false;
     lastLength = responseJson.data.length;
     offset += artacleLimit;
     await sleepMs(100);
   } while (lastLength == artacleLimit);
-  return results;
+  return { artacleRarity: results, isFinalized };
 }
 
 function sleepMs(ms) {
