@@ -71,13 +71,17 @@ async function refreshTokenRarity(args) {
     }
 
     // Get rarity for collection
-    const artacleRarity = await fetcher.getCollectionRarity(
+    const { artacleRarity, isFinalized } = await fetcher.getCollectionRarity(
       artacleCollection.id
     );
     const artacleRarityMap = new Map(
       artacleRarity.map((r) => [r.tokenId, r.rank])
     );
     log.info`Rarity retrieved for ${archiCollection.slug}`;
+    if (!isFinalized && archiCollection.slug !== "chromie-squiggle") {
+      log.info`Rarity for collection ${archiCollection.slug} is not finalized. Skipping.`;
+      continue;
+    }
 
     // Get all tokens in the Archipelago collection and create onChainTokenId -> token map for lookups
     const collectionTokens = await withClient(async (client) => {
