@@ -32,7 +32,7 @@ const brightMoments = Object.freeze({
 
 const qqlMintPass = Object.freeze({
   name: "qql-mint-pass",
-  address: "0xE370f9566344BF7F36276A63905ce57D1F5bCe9d",
+  address: "0xc73B17179Bf0C59cD5860Bb25247D1D1092c1088",
   externalUrl: "https://img.qql.art/assets/mintpass.png",
 });
 
