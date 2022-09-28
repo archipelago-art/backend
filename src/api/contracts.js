@@ -39,7 +39,7 @@ const qqlMintPass = Object.freeze({
 const qql = Object.freeze({
   name: "qql",
   address: "0x845dD2a7eE2a92A0518AB2135365Ed63fdbA0C88",
-  externalUrl: "https://img.qql.art/qql/{tokenid}.png",
+  externalUrl: "https://img.qql.art/canon/{tokenid}.png",
 });
 
 const contracts = Object.freeze([
