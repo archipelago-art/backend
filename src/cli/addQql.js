@@ -1,4 +1,4 @@
-const { addMintPassProject } = require("../db/qql");
+const { addMintPassProject, addQqlProject } = require("../db/qql");
 const { withClient } = require("../db/util");
 const log = require("../util/log")(__filename);
 
@@ -8,7 +8,7 @@ async function main(args) {
   }
   switch (args[0]) {
     case "qql": {
-      await withClient((client) => addQQLProject({ client }));
+      await withClient((client) => addQqlProject({ client }));
       log.info`added qql`;
       return;
     }
