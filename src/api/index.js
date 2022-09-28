@@ -203,6 +203,9 @@ async function _collections({ client, projectId }) {
       if (addr === contracts.qqlMintPass.address) {
         return feesForCollection("QQL_MINT_PASS");
       }
+      if (addr === contracts.qql.address) {
+        return feesForCollection("QQL");
+      }
       throw new Error("can't get fees; unrecognized collection " + row.slug);
     })(),
   }));
@@ -220,7 +223,7 @@ async function collection({ client, slug }) {
 }
 
 function feesForCollection(
-  type /*: "ARTBLOCKS" | "CRYPTOADZ" | "AUTOGLYPHS" | "BRIGHT_MOMENTS" | "QQL_MINT_PASS" */
+  type /*: "ARTBLOCKS" | "CRYPTOADZ" | "AUTOGLYPHS" | "BRIGHT_MOMENTS" | "QQL_MINT_PASS" | "QQL" */
 ) {
   const ARCHIPELAGO_PROTOCOL_PAYEE =
     "0x1fC12C9f68A6B0633Ba5897A40A8e61ed9274dC9";
@@ -237,6 +240,7 @@ function feesForCollection(
   const CRYPTOADZ_PAYEE = "0x87757c7fD54D892176e9ECEc6767Bc16e04a06a8";
   const STARFORGE_PAYEE = "0x53Ffb2f67FaAAE40aA26cf4Eb4F69A55Cb03611e";
   const QQL_SHARD_PAYEE = "0x221e1B033E10063Ae3Fba737Ce40ef682fbfcCcC";
+  const MANIFOLD_ROYALTY_ORACLE = "0x7F8BC4596971dD7e3C0983392D0C5bD6A00F354b";
 
   const fees = [
     {
@@ -270,6 +274,13 @@ function feesForCollection(
     case "QQL_MINT_PASS":
       fees.push({ target: STARFORGE_PAYEE, micros: 10000, static: true });
       fees.push({ target: QQL_SHARD_PAYEE, micros: 50000, static: true });
+      break;
+    case "QQL":
+      fees.push({
+        target: MANIFOLD_ROYALTY_ORACLE,
+        micros: 70000,
+        static: false,
+      });
       break;
     default:
       throw new Error("unknown collection type: " + type);

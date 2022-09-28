@@ -8,7 +8,9 @@ async function main(args) {
   }
   switch (args[0]) {
     case "qql": {
-      throw new Error("NYE");
+      await withClient((client) => addQQLProject({ client }));
+      log.info`added qql`;
+      return;
     }
     case "mint-pass": {
       await withClient((client) => addMintPassProject({ client }));

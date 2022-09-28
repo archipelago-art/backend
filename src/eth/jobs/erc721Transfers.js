@@ -100,6 +100,10 @@ async function getOrAddTokenId({
     const tokenId = await qql.addMintPass({ client, onChainTokenId });
     return { tokenId, added: true };
   }
+  if (tokenContract === contracts.qql.address) {
+    const tokenId = await qql.addQql({ client, onChainTokenId });
+    return { tokenId, added: true };
+  }
 
   if (
     tokenContract !== artblocks.CONTRACT_ARTBLOCKS_STANDARD &&
