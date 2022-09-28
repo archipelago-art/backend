@@ -2,8 +2,9 @@ const { withClient } = require("../db/util");
 const log = require("../util/log")(__filename);
 const contracts = require("../api/contracts");
 const { newId, newIds, ObjectType } = require("./id");
-const { addProject } = require("./projects");
+const { addProject, projectIdForSlug } = require("./projects");
 const { hexToBuf } = require("./util");
+const tokens = require("./tokens");
 
 async function addMintPassProject({ client }) {
   const description =
