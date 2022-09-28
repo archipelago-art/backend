@@ -110,6 +110,11 @@ const JOB_SPECS = [
     args: { address: contracts.brightMoments.address },
     startBlock: 14484184,
   },
+  {
+    type: "erc721Transfers",
+    args: { address: contracts.qqlMintPass.address },
+    startBlock: 15627631,
+  },
   // ...
 ];
 

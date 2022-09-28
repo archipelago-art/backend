@@ -95,6 +95,11 @@ async function getOrAddTokenId({
   });
   if (existing != null) return { tokenId: existing, added: false };
 
+  if (tokenContract === contracts.QQL_MINT_PASS) {
+    const tokenId = qql.addMintPass({ client, onChainTokenId });
+    return { tokenId, added: true };
+  }
+
   if (
     tokenContract !== artblocks.CONTRACT_ARTBLOCKS_STANDARD &&
     tokenContract !== artblocks.CONTRACT_ARTBLOCKS_LEGACY &&

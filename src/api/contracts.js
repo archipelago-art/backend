@@ -30,6 +30,12 @@ const brightMoments = Object.freeze({
   externalUrl: "https://bright-moments-mainnet.s3.amazonaws.com/{tokenid}.png",
 });
 
+const qqlMintPass = Object.freeze({
+  name: "qql-mint-pass",
+  address: "0xE370f9566344BF7F36276A63905ce57D1F5bCe9d",
+  externalUrl: "https://img.qql.art/assets/mintpass.png",
+});
+
 const contracts = Object.freeze([
   artblocksLegacy,
   artblocksStandard,
@@ -53,6 +59,7 @@ module.exports = {
   autoglyphs,
   brightMoments,
   cryptoadz,
+  qqlMintPass,
   contracts,
   contractForAddress,
 };

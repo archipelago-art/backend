@@ -7,6 +7,7 @@ const commands = [
   ["add-project", require("./addProject")],
   ["add-autoglyphs", require("./addAutoglyphs")],
   ["add-cryptoadz", require("./addCryptoadz")],
+  ["add-qql", require("./addQql")],
   ["add-token", require("./addToken")],
   ["add-project-tokens", require("./addProjectTokens")],
   ["prune-empty-traits", require("./pruneEmptyTraits")],
