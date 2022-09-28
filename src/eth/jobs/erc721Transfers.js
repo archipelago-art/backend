@@ -97,7 +97,7 @@ async function getOrAddTokenId({
   if (existing != null) return { tokenId: existing, added: false };
 
   if (tokenContract === contracts.qqlMintPass.address) {
-    const tokenId = qql.addMintPass({ client, onChainTokenId });
+    const tokenId = await qql.addMintPass({ client, onChainTokenId });
     return { tokenId, added: true };
   }
 
