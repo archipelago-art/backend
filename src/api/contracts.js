@@ -36,6 +36,12 @@ const qqlMintPass = Object.freeze({
   externalUrl: "https://img.qql.art/assets/mintpass.png",
 });
 
+const qql = Object.freeze({
+  name: "qql",
+  address: "0x845dD2a7eE2a92A0518AB2135365Ed63fdbA0C88",
+  externalUrl: "https://img.qql.art/qql/{tokenid}.png",
+});
+
 const contracts = Object.freeze([
   artblocksLegacy,
   artblocksStandard,
@@ -43,6 +49,7 @@ const contracts = Object.freeze([
   cryptoadz,
   brightMoments,
   qqlMintPass,
+  qql,
 ]);
 
 function contractForAddress(address) {
@@ -61,6 +68,7 @@ module.exports = {
   brightMoments,
   cryptoadz,
   qqlMintPass,
+  qql,
   contracts,
   contractForAddress,
 };
