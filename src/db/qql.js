@@ -33,3 +33,8 @@ async function addMintPass({ client, onChainTokenId }) {
   await client.query("COMMIT");
   return tokenId;
 }
+
+module.exports = {
+  addMintPassProject,
+  addMintPass,
+};
