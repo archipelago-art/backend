@@ -2,6 +2,7 @@ const ethers = require("ethers");
 
 const contracts = require("../../api/contracts");
 const artblocks = require("../../db/artblocks");
+const qql = require("../../db/qql");
 const eth = require("../../db/eth");
 const safeQueryFilter = require("../../db/safeQueryFilter");
 const tokens = require("../../db/tokens");
