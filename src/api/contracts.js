@@ -42,6 +42,7 @@ const contracts = Object.freeze([
   autoglyphs,
   cryptoadz,
   brightMoments,
+  qqlMintPass,
 ]);
 
 function contractForAddress(address) {
