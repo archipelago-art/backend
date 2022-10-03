@@ -2,7 +2,12 @@ const artblocks = require("../db/artblocks");
 const channels = require("../db/channels");
 const tokens = require("../db/tokens");
 const { acqrel, withPool } = require("../db/util");
-const { fetchTokenData } = require("../scrape/fetchArtblocksToken");
+const {
+  fetchTokenData: fetchArtblocksTokenData,
+} = require("../scrape/fetchArtblocksToken");
+const {
+  fetchTokenData: fetchQqlTokenData,
+} = require("../scrape/fetchQqlToken");
 const log = require("../util/log")(__filename);
 const signal = require("../util/signal");
 
@@ -86,10 +91,11 @@ async function watchTokenTraitsQueueOnce(pool, ecache) {
       client,
       tokenIds,
     });
-    const tokenData = await Promise.all(
+    const tokenInfo = await tokens.tokenInfoById({ client, tokenIds });
+    const artblocksTokenData = await Promise.all(
       artblocksTokenIds.map(
         async ({ tokenId, artblocksTokenId, tokenContract }) => {
-          const token = await fetchTokenData(
+          const token = await fetchArtblocksTokenData(
             tokenContract,
             artblocksTokenId
           ).catch((e) => {
@@ -110,9 +116,33 @@ async function watchTokenTraitsQueueOnce(pool, ecache) {
         }
       )
     );
+    const qqlTokenData = await Promise.all(
+      tokenInfo
+        .filter((x) => x.slug === "qql")
+        .map(async ({ tokenId, tokenIndex }) => {
+          const token = await fetchQqlTokenData(tokenIndex).catch((e) => {
+            log.warn`failed to fetch QQL token #${tokenIndex}: ${e}`;
+            const expirationTime =
+              Date.now() + FAILED_FETCH_DELAY_SECONDS * 1000;
+            ecache.add(tokenId, expirationTime);
+            return { found: false };
+          });
+          log.debug`token ${tokenId} (QQL #${tokenIndex}): found=${token.found}`;
+          if (!token.found) {
+            const expirationTime =
+              Date.now() + FAILED_FETCH_DELAY_SECONDS * 1000;
+            ecache.add(tokenId, expirationTime);
+            return { tokenId, featureData: null };
+          }
+          const featureData = Object.fromEntries(
+            token.data.attributes.map((x) => [x["trait_type"], x["value"]])
+          );
+          return { tokenId, featureData };
+        })
+    );
     let notFoundTokenIds = [];
     let doneCount = 0;
-    for (const { tokenId, rawTokenData } of tokenData) {
+    for (const { tokenId, rawTokenData } of artblocksTokenData) {
       if (rawTokenData == null) {
         notFoundTokenIds.push(tokenId);
         continue;
@@ -121,6 +151,19 @@ async function watchTokenTraitsQueueOnce(pool, ecache) {
         client,
         tokenId,
         rawTokenData,
+        alreadyInTransaction: true,
+      });
+      doneCount++;
+    }
+    for (const { tokenId, featureData } of qqlTokenData) {
+      if (featureData == null) {
+        notFoundTokenIds.push(tokenId);
+        continue;
+      }
+      await tokens.setTokenTraits({
+        client,
+        tokenId,
+        featureData,
         alreadyInTransaction: true,
       });
       doneCount++;
