@@ -8,12 +8,12 @@ const tokens = require("./tokens");
 
 async function addQqlProject({ client }) {
   const description =
-    "QQL is a generative art NFT project by Tyler Hobbs and Dandelion Wist Mané that empowers collectors as co-creators.";
+    "QQL is a generative art NFT project by Tyler Hobbs and Dandelion Wist that empowers collectors as co-creators.";
   await addProject({
     client,
     name: "QQL",
     maxInvocations: 999,
-    artistName: "Tyler Hobbs x Dandelion Wist Mané",
+    artistName: "Tyler Hobbs x Dandelion Wist",
     description,
     aspectRatio: 1,
     tokenContract: contracts.qql.address,
@@ -23,12 +23,12 @@ async function addQqlProject({ client }) {
 
 async function addMintPassProject({ client }) {
   const description =
-    "QQL is a generative art NFT project by Tyler Hobbs and Dandelion Wist Mané that empowers collectors as co-creators.";
+    "QQL is a generative art NFT project by Tyler Hobbs and Dandelion Wist that empowers collectors as co-creators.";
   await addProject({
     client,
     name: "QQL Mint Pass",
     maxInvocations: 999,
-    artistName: "Tyler Hobbs x Dandelion Wist Mané",
+    artistName: "Tyler Hobbs x Dandelion Wist",
     description,
     aspectRatio: 1,
     tokenContract: contracts.qqlMintPass.address,
