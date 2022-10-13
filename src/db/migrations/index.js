@@ -143,6 +143,7 @@ const migrationModules = [
   "./0132_token_rarity",
   "./0133_account_emails_time_zone_and_last_email_time",
   "./0134_artacle_projects",
+  "./0135_email_log",
   // ...
 ];
 

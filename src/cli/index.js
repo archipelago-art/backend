@@ -21,6 +21,7 @@ const commands = [
   ["find-missing-images", require("./findMissingImages")],
   ["watch-cnf-queue", require("./watchCnfQueue")],
   ["watch-token-traits-queue", require("./watchTokenTraitsQueue")],
+  ["watch-email-digests", require("./watchEmailDigests")],
   ["deactivate-expired-orders", require("./deactivateExpiredOrders")],
   ["opensea", require("./opensea")],
   ["follow-chain", require("./followChain")],
