@@ -57,6 +57,7 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //        projectId: string,
 //        slug: string,
 //        tokenIndex: number,
+//        venue: "ARCHIPELAGO" | "OPENSEA",
 //      }
 //
 //  - For `type: "BID_PLACED"`, `data` looks like:
@@ -70,7 +71,7 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //        bidId: string,
 //        projectId: string,
 //        slug: string,
-//        venue: "ARCHIPELAGO" | "OPENSEA",
+//        venue: "ARCHIPELAGO",
 //        bidder: address (0xstring),
 //        currency: "ETH",
 //        price: string(wei),
@@ -84,6 +85,7 @@ const deferrals = events.channel("erc721_transfers_deferred");
 //        bidId: string,
 //        projectId: string,
 //        slug: string,
+//        venue: "ARCHIPELAGO",
 //      }
 //
 //  - For `type: "TOKEN_MINTED"`, `data` looks like:
