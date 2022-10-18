@@ -613,7 +613,12 @@ describe("db/orderbook", () => {
               timestamp: expect.any(String),
               type: "BID_CANCELLED",
               topic: "archetype",
-              data: { bidId, projectId: archetype, slug: "archetype" },
+              data: {
+                bidId,
+                projectId: archetype,
+                slug: "archetype",
+                venue: "ARCHIPELAGO",
+              },
             },
           ])
         );
@@ -675,6 +680,7 @@ describe("db/orderbook", () => {
                 bidId: bidIdExpensive,
                 projectId: archetype,
                 slug: "archetype",
+                venue: "ARCHIPELAGO",
               },
             },
           ])
@@ -986,6 +992,7 @@ describe("db/orderbook", () => {
                 projectId: squiggles,
                 slug: "chromie-squiggle",
                 tokenIndex: 7583,
+                venue: "ARCHIPELAGO",
               },
             },
           ])
@@ -1108,6 +1115,7 @@ describe("db/orderbook", () => {
                 projectId: archetype,
                 slug: "archetype",
                 tokenIndex: 36,
+                venue: "ARCHIPELAGO",
               },
             },
           ])

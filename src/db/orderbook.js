@@ -268,6 +268,7 @@ async function sendBidActivityMessages({ client, bidIds }) {
           bidId: row.bidId,
           projectId: row.projectId,
           slug: row.slug,
+          venue: "ARCHIPELAGO",
         },
       });
     }
@@ -309,6 +310,7 @@ async function sendAskActivityMessages({ client, askIds }) {
           projectId: row.projectId,
           slug: row.slug,
           tokenIndex: row.tokenIndex,
+          venue: "ARCHIPELAGO",
         },
       });
     }
