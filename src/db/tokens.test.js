@@ -269,7 +269,9 @@ describe("db/tokens", () => {
   it(
     "supports tokenInfoById",
     withTestDb(async ({ client }) => {
-      await sc.addProjects(client, [snapshots.ARCHETYPE]);
+      const [{ projectId: archetype }] = await sc.addProjects(client, [
+        snapshots.ARCHETYPE,
+      ]);
       const tokenId = snapshots.ARCH_TRIPTYCH_1;
       const [{ tokenId: archipelagoTokenId }] = await sc.addTokens(client, [
         tokenId,
@@ -281,8 +283,11 @@ describe("db/tokens", () => {
       expect(res).toEqual([
         {
           tokenId: archipelagoTokenId,
+          projectId: archetype,
           slug: "archetype",
           tokenIndex: 36,
+          tokenContract: tokenId.tokenContract,
+          onChainTokenId: String(tokenId.onChainTokenId),
         },
       ]);
     })
