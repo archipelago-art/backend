@@ -12,12 +12,23 @@ const Cmp = require("../util/cmp");
 const log = require("../util/log")(__filename);
 const priceToString = require("../util/priceToString");
 
+const DAILY_DIGEST_TEMPLATE_ID = "d-10770321a62e477b88af8a3ea99a77ee";
+const PERCENTAGE_OF_FLOOR_FILTER = 0.75;
+
 function index(fk, fv = (x) => x) {
   return (xs) => new Map(xs.map((x) => [fk(x), fv(x)]));
 }
 
 // Returns a value for the `dynamicTemplateData` arg to a SendGrid call.
 async function prepareTemplateData({ client, account, lastEmailTime }) {
+  // Retrieve data necessary to render the email.
+  const projectFloors = await orderbook.floorAskForEveryProject({
+    client,
+  });
+  const projectFloorMap = index(
+    (x) => x.projectId,
+    (x) => x.price
+  )(projectFloors);
   const highBidIds = await orderbook.highBidIdsForTokensOwnedBy({
     client,
     account,
@@ -35,6 +46,7 @@ async function prepareTemplateData({ client, account, lastEmailTime }) {
     })
     .then(index((x) => x.projectId));
 
+  // Build the bid data structure to be passed to the template.
   let tokenBids = Array.from(highBidIds, ({ tokenId, bidId }) => {
     const bid = bidInfo.get(bidId);
     const token = tokenInfo.get(tokenId);
@@ -49,16 +61,32 @@ async function prepareTemplateData({ client, account, lastEmailTime }) {
     const url = `https://archipelago.art/collections/${project.slug}/${token.tokenIndex}`;
     const imageUrl = `https://static.archipelago.art/tokens/400p/${contractObject.name}/${hi}/${lo}`;
     const formattedPrice = priceToString(String(bid.price));
+    const bigIntPrice = BigInt(bid.price);
+    const bigIntFloor = BigInt(projectFloorMap.get(project.projectId));
+    const ratioToFloor = Number((bigIntPrice * 100n) / bigIntFloor) / 100;
 
-    const datum = { label, url, imageUrl, formattedPrice };
+    const datum = {
+      label,
+      url,
+      imageUrl,
+      formattedPrice,
+      ratioToFloor,
+    };
     return { bid, token, project, datum };
   });
+
+  // Filter and sort the bids
   tokenBids = tokenBids.filter((x) => x.bid.createTime > lastEmailTime);
+  tokenBids = tokenBids.filter(
+    (x) => x.datum.ratioToFloor >= PERCENTAGE_OF_FLOOR_FILTER
+  );
+
   if (tokenBids.length === 0) {
     return null;
   }
   tokenBids.sort(
     Cmp.first([
+      Cmp.comparing((x) => x.ratioToFloor),
       Cmp.comparing((x) => BigInt(x.bid.price), Cmp.rev()),
       Cmp.comparing((x) => x.bid.createTime),
       Cmp.comparing((x) => x.project.name),
@@ -105,13 +133,18 @@ async function sendOneDigest({
     client,
     topic: "BID_DIGEST",
     email,
-    templateId: "d-10770321a62e477b88af8a3ea99a77ee",
+    templateId: DAILY_DIGEST_TEMPLATE_ID,
     templateData,
     isTestEmail,
   });
-  await client.query("COMMIT");
-  await preparedEmail.send();
-  log.info`sent email for ${account}`;
+  try {
+    await preparedEmail.send();
+    await client.query("COMMIT");
+    log.info`sent email for ${account}`;
+  } catch (e) {
+    log.error`error sending email: ${e}`;
+    await client.query("ROLLBACK");
+  }
 }
 
 async function sendAllDigests({ pool }) {

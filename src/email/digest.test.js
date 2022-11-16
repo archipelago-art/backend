@@ -4,8 +4,9 @@ const { testDbProvider } = require("../db/testUtil");
 const snapshots = require("../scrape/snapshots");
 const eth = require("../db/eth");
 const digest = require("./digest");
-const { addBid } = require("../db/orderbook");
+const { addBid, addAsk } = require("../db/orderbook");
 const priceToString = require("../util/priceToString");
+const orderbook = require("../db/orderbook");
 
 describe("email/digest", () => {
   const withTestDb = testDbProvider();
@@ -73,17 +74,36 @@ describe("email/digest", () => {
         });
       }
 
+      async function makeAsk({ tokenId, price }) {
+        return await addAsk({
+          client,
+          noVerify: true,
+          tokenId: tokenId,
+          price,
+          deadline: new Date("2099-01-01"),
+          asker: ethers.constants.AddressZero,
+          nonce: ethers.BigNumber.from("123"),
+          agreement: "0x",
+          message: "0x",
+          signature: "0x" + "fe".repeat(64) + "01",
+        });
+      }
+
       // Insert test data:
       //   Projects
       //   Tokens (for projects)
+      //   Floor asks (for projects)
       //   ERC-721 transactions (for tokens)
       //   Bids (for tokens)
-      await client.query("BEGIN");
-      await addProjects(client, [
+
+      // Projects
+      const [genesis, squiggles, archetype] = await addProjects(client, [
         snapshots.GENESIS,
         snapshots.SQUIGGLES,
         snapshots.ARCHETYPE,
       ]);
+
+      // Tokens
       const [genZero, squiggle, archCube, arch1, arch2, arch3, arch66] =
         await addTokens(client, [
           snapshots.GENESIS_ZERO,
@@ -103,6 +123,7 @@ describe("email/digest", () => {
       const blocks = realBlocks();
       await eth.addBlocks({ client, blocks });
 
+      // ERC-721 transactions
       const aliceMintsGenZero = {
         tokenId: genZero,
         fromAddress: zeroAddress,
@@ -172,6 +193,21 @@ describe("email/digest", () => {
         ],
       });
 
+      // Floor asks
+      await makeAsk({
+        tokenId: genZero,
+        price: ethers.BigNumber.from("9900000000000000000"),
+      });
+      await makeAsk({
+        tokenId: squiggle,
+        price: ethers.BigNumber.from("1000000000000000000"),
+      });
+      await makeAsk({
+        tokenId: archCube,
+        price: ethers.BigNumber.from("1000000000000000000"),
+      });
+
+      // Bids
       const topBid = "99000000000000000000";
       const secondBid = "56700000000000000000";
       const thirdBid = "22100000000000000000";
