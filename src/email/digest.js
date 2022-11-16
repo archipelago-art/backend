@@ -13,7 +13,7 @@ const log = require("../util/log")(__filename);
 const priceToString = require("../util/priceToString");
 
 const DAILY_DIGEST_TEMPLATE_ID = "d-10770321a62e477b88af8a3ea99a77ee";
-const PERCENTAGE_OF_FLOOR_FILTER = 0.75;
+const PERCENTAGE_OF_FLOOR_FILTER = 0.5;
 
 function index(fk, fv = (x) => x) {
   return (xs) => new Map(xs.map((x) => [fk(x), fv(x)]));
