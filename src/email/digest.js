@@ -62,7 +62,7 @@ async function prepareTemplateData({ client, account, lastEmailTime }) {
     const imageUrl = `https://static.archipelago.art/tokens/400p/${contractObject.name}/${hi}/${lo}`;
     const formattedPrice = priceToString(String(bid.price));
     const bigIntPrice = BigInt(bid.price);
-    const bigIntFloor = BigInt(projectFloorMap.get(project.projectId));
+    const bigIntFloor = BigInt(projectFloorMap.get(project.projectId) || 1);
     const ratioToFloor = Number((bigIntPrice * 100n) / bigIntFloor) / 100;
 
     const datum = {
