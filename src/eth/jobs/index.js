@@ -104,6 +104,7 @@ const JOB_SPECS = [
     type: "weth9Transfers",
     args: {},
     startBlock: 4719568,
+    killedAtBlock: 16430517,
   },
   {
     type: "erc721Transfers",
