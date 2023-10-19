@@ -94,17 +94,19 @@ const JOB_SPECS = [
     type: "nonceCancellations",
     args: { address: MARKET_MAINNET_ADDRESS },
     startBlock: 14997767,
+    killed: true,
   },
   {
     type: "fills",
     args: { address: MARKET_MAINNET_ADDRESS },
     startBlock: 14997767,
+    killed: true,
   },
   {
     type: "weth9Transfers",
     args: {},
     startBlock: 4719568,
-    killedAtBlock: 16430517,
+    killed: true,
   },
   {
     type: "erc721Transfers",

@@ -23,7 +23,7 @@ async function followChain(args) {
     for (let i = 0; i < targetJobs.length; i++) {
       const target = targetJobs[i];
       const current = currentJobs.get(i);
-      if (target.killedAtBlock != null) {
+      if (target.killed) {
         continue;
       }
 
