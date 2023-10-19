@@ -117,6 +117,7 @@ const JOB_SPECS = [
     type: "erc721Transfers",
     args: { address: contracts.qqlMintPass.address },
     startBlock: 15627631,
+    killed: true,
   },
   {
     type: "erc721Transfers",
