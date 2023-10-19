@@ -45,21 +45,23 @@ class Erc721TransfersJob {
       const { blockHash, blockNumber, logIndex, transactionHash } = transfer;
       const { from, to } = transfer.args;
       const onChainTokenId = String(transfer.args.tokenId);
-      const { tokenId, added } = await getOrAddTokenId({
+      const tokenTracking = await getTokenTracking({
         client,
         tokenContract: contract.address,
         onChainTokenId,
         blockHash,
       });
-      transfers.push({
-        tokenId,
-        fromAddress: transfer.args.from,
-        toAddress: transfer.args.to,
-        blockHash,
-        logIndex,
-        transactionHash,
-      });
-      if (added) newTokens++;
+      if (tokenTracking.tracked) {
+        transfers.push({
+          tokenId: tokenTracking.tokenId,
+          fromAddress: transfer.args.from,
+          toAddress: transfer.args.to,
+          blockHash,
+          logIndex,
+          transactionHash,
+        });
+        if (tokenTracking.added) newTokens++;
+      }
     }
     const actualAdded = await eth.addErc721Transfers({
       client,
@@ -82,7 +84,12 @@ class Erc721TransfersJob {
   }
 }
 
-async function getOrAddTokenId({
+// Returns one of the following:
+// {tracked: true, tokenId, added: bool}
+// {tracked: false}
+// The reason we are expecting untracked tokens is because we
+// are not tracking all the projects on the ArtBlocks contract.
+async function getTokenTracking({
   client,
   tokenContract,
   onChainTokenId,
@@ -94,15 +101,16 @@ async function getOrAddTokenId({
     onChainTokenId,
     blockHash,
   });
-  if (existing != null) return { tokenId: existing, added: false };
+  if (existing != null)
+    return { tracked: true, tokenId: existing, added: false };
 
   if (tokenContract === contracts.qqlMintPass.address) {
     const tokenId = await qql.addMintPass({ client, onChainTokenId });
-    return { tokenId, added: true };
+    return { tracked: true, tokenId, added: true };
   }
   if (tokenContract === contracts.qql.address) {
     const tokenId = await qql.addQql({ client, onChainTokenId });
-    return { tokenId, added: true };
+    return { tracked: true, tokenId, added: true };
   }
 
   if (
@@ -119,15 +127,29 @@ async function getOrAddTokenId({
     Number(onChainTokenId)
   );
   const spec = { projectIndex: artblocksProjectIndex, tokenContract };
-  await ensureArtblocksProjectExists({ client, spec });
-  log.trace`adding Art Blocks token #${onChainTokenId}`;
-  const { tokenId } = await artblocks.addBareToken({
+  const exists = await doesArtblocksProjectExist({ client, spec });
+  if (exists) {
+    log.trace`adding Art Blocks token #${onChainTokenId}`;
+    const { tokenId } = await artblocks.addBareToken({
+      client,
+      tokenContract,
+      artblocksTokenId: Number(onChainTokenId),
+      alreadyInTransaction: true,
+    });
+    return { tracked: true, tokenId, added: true };
+  } else {
+    // An AB project we've chosen not to include in the database.
+    return { tracked: false };
+  }
+}
+
+async function doesArtblocksProjectExist({ client, spec }) {
+  const existing = await artblocks.projectIdsFromArtblocksSpecs({
     client,
-    tokenContract,
-    artblocksTokenId: Number(onChainTokenId),
-    alreadyInTransaction: true,
+    specs: [spec],
   });
-  return { tokenId, added: true };
+
+  return existing[0] != null;
 }
 
 async function ensureArtblocksProjectExists({ client, spec }) {
